@@ -2,120 +2,144 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import AnimatedBackground from "./AnimatedBackground";
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Animated Background */}
+    <section id="hero" className="relative min-h-screen flex items-center justify-center pt-20">
       <AnimatedBackground />
       
-      {/* Content */}
-      <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="mb-8"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm text-white/80">Next-Gen AI Platform • 3025</span>
-            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
-          </div>
-        </motion.div>
-
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold mb-6 leading-tight"
-        >
-          <span className="text-white">
-            The Future
-          </span>
-          <br />
-          <span className="text-white">of AI</span>
-          <br />
-          <span className="relative">
-            <span className="text-cyan-400">
-              Intelligence
-            </span>
+      <div className="relative z-10 content-max container-padding">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          {/* Left Content */}
+          <div className="space-y-8">
             <motion.div
-              className="absolute -right-4 -top-2 w-2 h-2 bg-cyan-400 rounded-full"
-              animate={{
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 0.8, 0.3],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          </span>
-        </motion.h1>
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-6"
+            >
+              <h1 className="text-white leading-tight">
+                Enterprise-Grade
+                <br />
+                <span className="text-orange">AI Solutions</span>
+              </h1>
+              
+              <p className="lead max-w-lg">
+                Power your business operations with advanced artificial intelligence. 
+                Scalable, secure, and built for mission-critical applications.
+              </p>
+            </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="text-xl sm:text-2xl text-white/70 mb-12 max-w-3xl mx-auto leading-relaxed"
-        >
-          Experience the power of advanced artificial intelligence designed for the
-          <span className="text-cyan-400 font-semibold"> future</span>. 
-          Transform your workflow with cutting-edge automation and intelligent insights.
-        </motion.p>
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="flex flex-col sm:flex-row gap-4"
+            >
+              <Button 
+                size="lg" 
+                className="bg-orange hover:bg-orange-dark text-white font-medium px-8 py-4 rounded-md transition-standard group"
+              >
+                Get Started
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="border-border hover:bg-muted text-white px-8 py-4 rounded-md transition-standard"
+              >
+                <Play className="mr-2 w-5 h-5" />
+                View Demo
+              </Button>
+            </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
-        >
-          <Button 
-            size="lg" 
-            className="group bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-8 py-6 text-lg rounded-xl transition-all duration-300 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-400/30"
-          >
-            Get Started
-            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Button>
+            {/* Professional metrics */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="grid grid-cols-3 gap-8 pt-8 border-t border-border"
+            >
+              <div>
+                <div className="text-2xl font-bold text-orange mb-1">99.9%</div>
+                <div className="text-muted-foreground text-sm font-medium">Uptime</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange mb-1">&lt;50ms</div>
+                <div className="text-muted-foreground text-sm font-medium">Response</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange mb-1">10M+</div>
+                <div className="text-muted-foreground text-sm font-medium">Operations</div>
+              </div>
+            </motion.div>
+          </div>
           
-          <Button 
-            variant="outline" 
-            size="lg" 
-            className="group glass-card border-white/20 hover:border-cyan-400/50 text-white px-8 py-6 text-lg rounded-xl transition-all duration-300"
+          {/* Right Visual */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="hidden lg:block"
           >
-            <Zap className="mr-2 w-5 h-5" />
-            Watch Demo
-          </Button>
-        </motion.div>
-
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.0 }}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-2xl mx-auto"
-        >
-          <div className="text-center">
-            <div className="text-3xl font-bold text-cyan-400 mb-2">99.9%</div>
-            <div className="text-white/60 text-sm uppercase tracking-wider">Uptime</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-cyan-400 mb-2">10M+</div>
-            <div className="text-white/60 text-sm uppercase tracking-wider">Queries/Day</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-cyan-400 mb-2">250ms</div>
-            <div className="text-white/60 text-sm uppercase tracking-wider">Response Time</div>
-          </div>
-        </motion.div>
+            <div className="relative">
+              {/* Professional dashboard mockup */}
+              <div className="w-full max-w-md mx-auto surface-elevated rounded-lg p-8">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-orange rounded-md flex items-center justify-center">
+                      <div className="w-4 h-4 bg-white rounded-sm" />
+                    </div>
+                    <div className="text-white font-semibold">NexAgent</div>
+                  </div>
+                  <div className="w-2 h-2 bg-orange rounded-full animate-pulse" />
+                </div>
+                
+                {/* Content blocks */}
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-orange/60 rounded-full" />
+                      <div className="h-2 bg-white/20 rounded flex-1" />
+                    </div>
+                    <div className="flex items-center gap-3 pl-6">
+                      <div className="w-2 h-2 bg-white/40 rounded-full" />
+                      <div className="h-2 bg-white/10 rounded w-3/4" />
+                    </div>
+                    <div className="flex items-center gap-3 pl-6">
+                      <div className="w-2 h-2 bg-white/40 rounded-full" />
+                      <div className="h-2 bg-white/10 rounded w-1/2" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="h-1 bg-orange/40 rounded w-full" />
+                    <div className="h-1 bg-white/20 rounded w-4/5" />
+                    <div className="h-1 bg-white/10 rounded w-2/3" />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Floating elements */}
+              <motion.div
+                className="absolute -top-4 -right-4 w-6 h-6 border-2 border-orange/30 rounded" 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              />
+              <motion.div
+                className="absolute -bottom-6 -left-6 w-4 h-4 bg-orange/20 rounded-full"
+                animate={{ y: [-4, 4, -4] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+          </motion.div>
+        </div>
       </div>
-      
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
     </section>
   );
 }
