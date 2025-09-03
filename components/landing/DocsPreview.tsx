@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Code, BookOpen, Terminal, Layers, GitBranch, Eye, Download, ArrowRight, Sparkles } from "lucide-react";
+import { FileText, Code, BookOpen, Terminal, Layers, GitBranch, Eye, Download, ArrowRight} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const documents = [

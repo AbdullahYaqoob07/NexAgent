@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Sparkles, Star, Zap, Shield, Brain, ArrowRight } from "lucide-react";
+import { Check, Sparkles, Star, Zap, Shield,  ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const plans = [

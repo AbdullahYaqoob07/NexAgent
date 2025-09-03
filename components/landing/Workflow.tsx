@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Settings, Database, Zap, ArrowRight, Cpu, Network, CloudLightning } from "lucide-react";
+import { Settings, Database, Zap, ArrowRight, Cpu, CloudLightning } from "lucide-react";
 
 const workflowSteps = [
   {

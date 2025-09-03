@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Brain, Zap, Workflow, Shield, Rocket, Database, Code, Bot, Sparkles } from "lucide-react";
+import { Brain, Shield, Rocket, Database, Code, Bot } from "lucide-react";
 
 const features = [
   {
