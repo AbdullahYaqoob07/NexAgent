@@ -7,7 +7,7 @@ import AnimatedBackground from "./AnimatedBackground";
 
 export default function Hero() {
   return (
-    <section id="hero" className="relative min-h-screen flex mt-2 items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-screen flex mt-6 items-center justify-center overflow-hidden">
       {/* Animated Background */}
       <AnimatedBackground />
       
