@@ -8,13 +8,13 @@ const documents = [
   {
     id: 1,
     type: "Guide",
-    icon: <BookOpen className="w-5 h-5" />,
+    icon: <BookOpen size={40} className="text-[#FF6900]" />,
     title: "Getting Started with NexAgent",
     description: "Learn the fundamentals of building intelligent agents with our comprehensive quickstart guide",
     tags: ["Beginner", "Tutorial"],
     readTime: "5 min read",
     nodeConnections: 3,
-    color: "from-cyan-500/20 to-blue-500/20"
+    gradient: "from-[#FF6900]/10 to-transparent"
   },
   {
     id: 2,
@@ -25,7 +25,7 @@ const documents = [
     tags: ["API", "Advanced"],
     readTime: "12 min read",
     nodeConnections: 5,
-    color: "from-blue-500/20 to-purple-500/20"
+    gradient: "from-[#FF8555]/10 to-transparent"
   },
   {
     id: 3,
@@ -36,7 +36,7 @@ const documents = [
     tags: ["Workflows", "Automation"],
     readTime: "8 min read",
     nodeConnections: 7,
-    color: "from-purple-500/20 to-pink-500/20"
+    gradient: "from-[#FF6900]/15 to-transparent"
   },
   {
     id: 4,
@@ -47,7 +47,7 @@ const documents = [
     tags: ["Enterprise", "Architecture"],
     readTime: "10 min read",
     nodeConnections: 4,
-    color: "from-pink-500/20 to-cyan-500/20"
+    gradient: "from-[#FF8555]/15 to-transparent"
   },
   {
     id: 5,
@@ -58,7 +58,7 @@ const documents = [
     tags: ["CLI", "DevOps"],
     readTime: "6 min read",
     nodeConnections: 2,
-    color: "from-green-500/20 to-cyan-500/20"
+    gradient: "from-[#FF6900]/10 to-transparent"
   },
   {
     id: 6,
@@ -69,7 +69,7 @@ const documents = [
     tags: ["Tutorial", "Hands-on"],
     readTime: "15 min read",
     nodeConnections: 6,
-    color: "from-yellow-500/20 to-orange-500/20"
+    gradient: "from-[#FF8555]/10 to-transparent"
   }
 ];
 
@@ -82,33 +82,39 @@ const DocumentCard = ({ doc, index }: { doc: typeof documents[0], index: number 
       viewport={{ once: true }}
       className="group relative"
     >
-      <div className="relative glass-card p-6 rounded-2xl h-full hover:shadow-xl hover:shadow-cyan-400/10 transition-all duration-300 overflow-hidden">
+      <div className="relative glass-card p-6 rounded-2xl h-full hover:shadow-xl hover:shadow-[#FF6900]/20 hover-lift cursor-pointer transition-all duration-300">
         {/* Background gradient */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${doc.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+        <div className={`absolute inset-0 bg-gradient-to-br ${doc.gradient} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+        
+        {/* Floating icon background - similar to Features */}
+        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-16 h-16 glass-card rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6900]/20 transition-all duration-300">
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="text-[#FF6900]"
+          >
+            {doc.icon}
+          </motion.div>
+        </div>
         
         {/* Node connections visualization */}
-        <div className="absolute top-2 right-2">
-          <div className="flex items-center gap-1 text-cyan-400/50">
-            {[...Array(doc.nodeConnections)].map((_, i) => (
-              <div key={i} className="w-1 h-1 bg-cyan-400/50 rounded-full" />
+        <div className="absolute top-4 right-4">
+          <div className="flex items-center gap-1">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="w-2 h-2 bg-[#FF6900] rounded-full opacity-50 group-hover:opacity-100 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
             ))}
           </div>
         </div>
         
         {/* Content */}
-        <div className="relative z-10">
+        <div className="relative z-10 pt-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-cyan-400/10 flex items-center justify-center text-cyan-400">
-                {doc.icon}
-              </div>
-              <div>
-                <span className="text-xs text-cyan-400 font-medium">{doc.type}</span>
-                <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors duration-300">
-                  {doc.title}
-                </h3>
-              </div>
+            <div className="text-center w-full">
+              <span className="text-xs text-[#FF6900] font-medium">{doc.type}</span>
+              <h3 className="text-lg font-bold text-white mb-2 group-hover:text-[#FF6900] transition-colors duration-300">
+                {doc.title}
+              </h3>
             </div>
           </div>
           
@@ -141,7 +147,7 @@ const DocumentCard = ({ doc, index }: { doc: typeof documents[0], index: number 
         </div>
         
         {/* Hover effect line */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF6900] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
     </motion.div>
   );
@@ -152,15 +158,15 @@ const DocsPreview = () => {
     <section id="docs" className="relative py-32 overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-[#FF6900]/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-0 w-96 h-96 bg-[#FF8555]/5 rounded-full blur-3xl" />
         
         {/* Workflowy grid pattern */}
         <div className="absolute inset-0 opacity-[0.02]">
           <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="dots" width="50" height="50" patternUnits="userSpaceOnUse">
-                <circle cx="25" cy="25" r="1" fill="#64b5f6" />
+                <circle cx="25" cy="25" r="1" fill="#FF6900" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#dots)" />
@@ -177,14 +183,9 @@ const DocsPreview = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
-            <Sparkles className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm text-white/80">Knowledge Base</span>
-          </div>
-          
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
             Explore Our
-            <span className="block text-cyan-400">
+            <span className="block text-[#FF6900]">
               Documentation
             </span>
           </h2>
@@ -195,7 +196,7 @@ const DocsPreview = () => {
         </motion.div>
         
         {/* Document grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {documents.map((doc, index) => (
             <DocumentCard key={doc.id} doc={doc} index={index} />
           ))}
@@ -217,7 +218,7 @@ const DocsPreview = () => {
               Access our complete documentation portal with advanced search, interactive examples, and community resources
             </p>
             <Button 
-              className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold px-8 py-3 rounded-xl transition-all duration-300 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-400/30"
+              className="bg-[#FF6900] hover:bg-[#FF8555] text-white font-semibold px-8 py-3 rounded-xl transition-all duration-300 shadow-lg shadow-[#FF6900]/20 hover:shadow-[#FF8555]/30"
             >
               View Full Documentation
               <ArrowRight className="ml-2 w-4 h-4" />

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -36,9 +37,9 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
@@ -77,10 +78,13 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  /* Professional 3025 theme colors */
-  --cyan-primary: #06b6d4;
-  --cyan-glow: rgba(6, 182, 212, 0.3);
-  --blue-accent: #3b82f6;
+  /* Professional 3025 theme colors - Orange Rebrand */
+  --orange-primary: #FF6900;
+  --orange-secondary: #FF8555;
+  --orange-accent: #FF5722;
+  --orange-glow: rgba(255, 105, 0, 0.3);
+  --orange-hover: #E55D00;
+  --orange-light: #FF8A4A;
   --dark-bg: #000000;
   --dark-surface: rgba(15, 23, 42, 0.6);
   --glass-bg: rgba(255, 255, 255, 0.03);
@@ -88,25 +92,25 @@
 }
 
 .dark {
-  /* Professional 3025 dark theme */
+  /* Professional 3025 dark theme - Orange Rebrand */
   --background: var(--dark-bg);
   --foreground: #ffffff;
   --card: var(--dark-surface);
   --card-foreground: #ffffff;
   --popover: var(--dark-surface);
   --popover-foreground: #ffffff;
-  --primary: var(--cyan-primary);
+  --primary: var(--orange-primary);
   --primary-foreground: #000000;
   --secondary: rgba(255, 255, 255, 0.08);
   --secondary-foreground: #ffffff;
   --muted: rgba(255, 255, 255, 0.05);
   --muted-foreground: rgba(255, 255, 255, 0.7);
-  --accent: var(--cyan-primary);
+  --accent: var(--orange-primary);
   --accent-foreground: #000000;
   --destructive: oklch(0.704 0.191 22.216);
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.05);
-  --ring: var(--cyan-glow);
+  --ring: var(--orange-glow);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -114,12 +118,12 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: var(--dark-surface);
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: var(--cyan-primary);
+  --sidebar-primary: var(--orange-primary);
   --sidebar-primary-foreground: #000000;
   --sidebar-accent: rgba(255, 255, 255, 0.08);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: var(--cyan-glow);
+  --sidebar-ring: var(--orange-glow);
 }
 /* styles/globals.css */
 html {
@@ -128,9 +132,8 @@ html {
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
-  
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -154,22 +157,26 @@ html {
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
   }
   
-  .cyan-glow {
-    box-shadow: 0 0 20px var(--cyan-glow);
+  .orange-glow {
+    box-shadow: 0 0 20px var(--orange-glow);
   }
   
-  .cyan-border {
-    border: 1px solid var(--cyan-primary);
-    box-shadow: 0 0 10px var(--cyan-glow);
+  .neon-glow {
+    box-shadow: 0 0 20px var(--orange-glow), 0 0 40px var(--orange-glow);
+  }
+  
+  .orange-border {
+    border: 1px solid var(--orange-primary);
+    box-shadow: 0 0 10px var(--orange-glow);
   }
   
   /* Professional gradient backgrounds */
   .gradient-radial {
-    background: radial-gradient(circle at center, var(--cyan-glow) 0%, transparent 70%);
+    background: radial-gradient(circle at center, var(--orange-glow) 0%, transparent 70%);
   }
   
   .gradient-conic {
-    background: conic-gradient(from 180deg at 50% 50%, var(--cyan-glow) 0deg, transparent 60deg, transparent 300deg, var(--cyan-glow) 360deg);
+    background: conic-gradient(from 180deg at 50% 50%, var(--orange-glow) 0deg, transparent 60deg, transparent 300deg, var(--orange-glow) 360deg);
   }
   
   /* Subtle animation utilities */
@@ -196,7 +203,7 @@ html {
   
   .hover-lift:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(6, 182, 212, 0.15);
+    box-shadow: 0 12px 24px var(--orange-glow);
   }
 }
 
@@ -211,10 +218,10 @@ html {
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 10px var(--cyan-glow);
+    box-shadow: 0 0 10px var(--orange-glow);
   }
   to {
-    box-shadow: 0 0 20px var(--cyan-glow), 0 0 30px var(--cyan-glow);
+    box-shadow: 0 0 20px var(--orange-glow), 0 0 30px var(--orange-glow);
   }
 }
 
@@ -228,10 +235,10 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--cyan-primary);
+  background: var(--orange-primary);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0891b2;
+  background: var(--orange-hover);
 }

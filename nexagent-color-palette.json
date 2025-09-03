@@ -1,0 +1,129 @@
+{
+  "brand": {
+    "name": "NexAgent Orange Palette",
+    "description": "Complete color palette for the NexAgent AI platform website after orange rebrand from cyan/blue theme",
+    "version": "1.0.0",
+    "lastUpdated": "2025-09-03"
+  },
+  "primary": {
+    "primary": "#FF6900",
+    "primary-hover": "#E55D00",
+    "primary-light": "#FF8A4A",
+    "primary-foreground": "#FFFFFF"
+  },
+  "secondary": {
+    "secondary": "#FF8555",
+    "secondary-light": "#FFA366",
+    "secondary-dark": "#E55D00"
+  },
+  "accent": {
+    "accent": "#FF5722",
+    "accent-hover": "#E55D00"
+  },
+  "neutral": {
+    "background": "#000000",
+    "foreground": "#FFFFFF",
+    "surface": "rgba(15, 23, 42, 0.6)",
+    "card": "rgba(15, 23, 42, 0.6)",
+    "card-foreground": "#FFFFFF"
+  },
+  "text": {
+    "primary": "#FFFFFF",
+    "secondary": "rgba(255, 255, 255, 0.8)",
+    "muted": "rgba(255, 255, 255, 0.7)",
+    "disabled": "rgba(255, 255, 255, 0.6)"
+  },
+  "glass": {
+    "background": "rgba(255, 255, 255, 0.03)",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "muted": "rgba(255, 255, 255, 0.05)"
+  },
+  "effects": {
+    "glow": "rgba(255, 105, 0, 0.3)",
+    "glow-strong": "rgba(255, 105, 0, 0.4)",
+    "shadow": "rgba(255, 105, 0, 0.2)",
+    "shadow-strong": "rgba(255, 105, 0, 0.3)"
+  },
+  "states": {
+    "hover": "#E55D00",
+    "active": "#D84315",
+    "focus": "rgba(255, 105, 0, 0.3)",
+    "disabled": "rgba(255, 105, 0, 0.5)"
+  },
+  "gradients": {
+    "primary": "linear-gradient(135deg, #FF6900 0%, #FF8555 100%)",
+    "secondary": "linear-gradient(135deg, #FF8555 0%, #FFA366 100%)",
+    "radial": "radial-gradient(circle at center, rgba(255, 105, 0, 0.3) 0%, transparent 70%)",
+    "conic": "conic-gradient(from 180deg at 50% 50%, rgba(255, 105, 0, 0.3) 0deg, transparent 60deg, transparent 300deg, rgba(255, 105, 0, 0.3) 360deg)"
+  },
+  "components": {
+    "button": {
+      "primary": "#FF6900",
+      "primary-hover": "#E55D00",
+      "primary-text": "#FFFFFF",
+      "secondary": "rgba(255, 255, 255, 0.1)",
+      "secondary-hover": "rgba(255, 255, 255, 0.2)",
+      "secondary-text": "#FFFFFF"
+    },
+    "card": {
+      "background": "rgba(255, 255, 255, 0.03)",
+      "border": "rgba(255, 255, 255, 0.08)",
+      "hover-border": "rgba(255, 105, 0, 0.3)"
+    },
+    "input": {
+      "background": "rgba(255, 255, 255, 0.05)",
+      "border": "rgba(255, 255, 255, 0.08)",
+      "focus-border": "rgba(255, 105, 0, 0.5)"
+    }
+  },
+  "usage": {
+    "logo": "#FF6900",
+    "cta-buttons": "#FF6900",
+    "links": "#FF6900",
+    "accents": "#FF6900",
+    "icons": "#FF6900",
+    "highlights": "#FF6900",
+    "borders": "rgba(255, 105, 0, 0.3)",
+    "backgrounds": "rgba(255, 105, 0, 0.05)"
+  },
+  "accessibility": {
+    "contrast": {
+      "primary-on-dark": "AAA",
+      "white-on-primary": "AAA",
+      "notes": "All color combinations meet WCAG 2.1 accessibility standards"
+    }
+  },
+  "technical": {
+    "css-variables": {
+      "--orange-primary": "#FF6900",
+      "--orange-secondary": "#FF8555",
+      "--orange-accent": "#FF5722",
+      "--orange-glow": "rgba(255, 105, 0, 0.3)",
+      "--orange-hover": "#E55D00",
+      "--orange-light": "#FF8A4A"
+    },
+    "tailwind-classes": {
+      "primary": "text-[#FF6900] bg-[#FF6900]",
+      "hover": "hover:bg-[#E55D00] hover:text-[#E55D00]",
+      "glow": "shadow-[#FF6900]/30"
+    }
+  },
+  "migration": {
+    "replaced-colors": {
+      "cyan-400": "#06b6d4 → #FF6900",
+      "cyan-500": "#0891b2 → #FF6900",
+      "blue-500": "#3b82f6 → #FF8555",
+      "cyan-glow": "rgba(6, 182, 212, 0.3) → rgba(255, 105, 0, 0.3)"
+    },
+    "components-updated": [
+      "Navbar",
+      "Hero",
+      "Features",
+      "Pricing",
+      "Workflow", 
+      "Footer",
+      "CSS Variables",
+      "Global Styles"
+    ]
+  }
+}

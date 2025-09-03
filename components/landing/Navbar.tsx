@@ -9,7 +9,8 @@ const navItems = [
   { name: "Home", id: "hero" },
   { name: "Features", id: "features" },
   { name: "Workflow", id: "workflow" },
-  { name: "Testimonials", id: "testimonials" },
+  { name: "Pricing", id: "pricing" },
+  { name: "Docs", id: "docs" },
 ];
 
 export default function Navbar() {
@@ -29,25 +30,42 @@ export default function Navbar() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
+        // Find the entry with the highest intersection ratio
+        let maxIntersectionRatio = 0;
+        let activeId = "";
+        
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id);
+          if (entry.isIntersecting && entry.intersectionRatio > maxIntersectionRatio) {
+            maxIntersectionRatio = entry.intersectionRatio;
+            activeId = entry.target.id;
           }
         });
+        
+        if (activeId) {
+          setActiveSection(activeId);
+        }
       },
-      { threshold: 0.6 }
+      { 
+        threshold: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], 
+        rootMargin: "-100px 0px -100px 0px" 
+      }
     );
 
-    navItems.forEach((item) => {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
-    });
-
-    return () => {
+    const observeElements = () => {
       navItems.forEach((item) => {
         const el = document.getElementById(item.id);
-        if (el) observer.unobserve(el);
+        if (el) {
+          observer.observe(el);
+        }
       });
+    };
+
+    // Add a small delay to ensure all elements are mounted
+    const timeout = setTimeout(observeElements, 100);
+
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
     };
   }, []);
 
@@ -77,11 +95,11 @@ export default function Navbar() {
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-[#ff6b35] to-[#ff8555] rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-black" />
+              <div className="w-8 h-8 bg-gradient-to-br from-[#FF6900] to-[#FF8555] rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold text-white">
-                Nex<span className="text-[#ff6b35]">Agent</span>
+                Nex<span className="text-[#FF6900]">Agent</span>
               </span>
             </motion.div>
 
@@ -94,14 +112,14 @@ export default function Navbar() {
                       onClick={() => scrollToSection(item.id)}
                       className={`relative px-3 py-2 text-sm font-medium transition-all duration-300 ${
                         activeSection === item.id
-                          ? "text-[#ff6b35]"
+                          ? "text-[#FF6900]"
                           : "text-white/80 hover:text-white"
                       }`}
                     >
                       {item.name}
                       {activeSection === item.id && (
                         <motion.div
-                          className="absolute bottom-0 left-0 w-full h-0.5 bg-[#ff6b35] rounded-full"
+                          className="absolute bottom-0 left-0 w-full h-0.5 bg-[#FF6900] rounded-full"
                           layoutId="activeTab"
                           initial={false}
                           transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -114,7 +132,7 @@ export default function Navbar() {
 
               <Button
                 size="sm"
-                className="bg-[#ff6b35] hover:bg-[#ff5722] text-black font-semibold px-6 rounded-xl hover-lift transition-all duration-300 group"
+                className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold px-6 rounded-xl hover-lift transition-all duration-300 group"
               >
                 Get Started
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -125,7 +143,7 @@ export default function Navbar() {
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-white hover:text-[#ff6b35] transition-colors duration-300"
+                className="text-white hover:text-[#FF6900] transition-colors duration-300"
               >
                 {isMobileMenuOpen ? (
                   <X className="w-6 h-6" />
@@ -157,7 +175,7 @@ export default function Navbar() {
               onClick={() => scrollToSection(item.id)}
               className={`block w-full text-left px-3 py-2 text-base font-medium transition-all duration-300 ${
                 activeSection === item.id
-                  ? "text-[#ff6b35] bg-[#ff6b35]/10 rounded-lg"
+                  ? "text-[#FF6900] bg-[#FF6900]/10 rounded-lg"
                   : "text-white/80 hover:text-white hover:bg-white/5 rounded-lg"
               }`}
             >
@@ -167,7 +185,7 @@ export default function Navbar() {
           <div className="pt-4">
             <Button
               size="sm"
-              className="w-full bg-[#ff6b35] hover:bg-[#ff5722] text-black font-semibold rounded-xl"
+              className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold rounded-xl"
             >
               Get Started
             </Button>
