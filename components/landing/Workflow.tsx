@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Settings, Database, Zap, ArrowRight, Cpu, Network, CloudLightning } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const workflowSteps = [
   {
@@ -10,7 +9,7 @@ const workflowSteps = [
     title: "Neural Design",
     description: "Create intelligent workflows using our quantum-powered visual interface",
     icon: <Settings className="w-8 h-8" />,
-    color: "#f97316",
+    color: "#ff6b35",
   },
   {
     id: 2,
@@ -54,13 +53,13 @@ const AnimatedFlowDiagram = () => {
             <path
               d="M 20 0 L 0 0 0 20"
               fill="none"
-              stroke="rgba(249, 115, 22, 0.1)"
+              stroke="rgba(255, 107, 53, 0.1)"
               strokeWidth="0.5"
             />
           </pattern>
           <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#f97316" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#f97316" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#ff6b35" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#ff6b35" stopOpacity="0.2" />
           </linearGradient>
         </defs>
         
@@ -85,7 +84,7 @@ const AnimatedFlowDiagram = () => {
               cx={x}
               cy={200}
               r="8"
-              fill="#f97316"
+              fill="#ff6b35"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: index * 0.3, duration: 0.5 }}
@@ -97,7 +96,7 @@ const AnimatedFlowDiagram = () => {
               cy={200}
               r="8"
               fill="none"
-              stroke="#f97316"
+              stroke="#ff6b35"
               strokeWidth="2"
               opacity="0.6"
               animate={{
@@ -191,7 +190,7 @@ const WorkflowStep = ({ step, index }: { step: typeof workflowSteps[0]; index: n
       <div className="flex items-start gap-6">
         {/* Step number and icon */}
         <div className="flex flex-col items-center">
-          <div className="relative w-16 h-16 surface-elevated rounded-lg flex items-center justify-center group-hover:border-orange/30 transition-standard">
+          <div className="relative w-16 h-16 glass-card rounded-2xl flex items-center justify-center group-hover:neon-glow transition-all duration-300">
             <motion.div
               whileHover={{ scale: 1.1, rotate: 5 }}
               className="text-[#ff6b35]"
@@ -247,6 +246,10 @@ const Workflow = () => {
           viewport={{ once: true }}
           className="text-center mb-20"
         >
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card mb-6">
+            <Network className="w-4 h-4 text-[#ff6b35]" />
+            <span className="text-sm text-white/80">Intelligent Workflow</span>
+          </div>
           
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
             How It
@@ -293,17 +296,17 @@ const Workflow = () => {
           viewport={{ once: true }}
           className="text-center mt-20"
         >
-          <div className="surface-elevated p-8 rounded-lg text-center">
-            <p className="text-muted-foreground mb-6">Ready to transform your operations?</p>
+          <div className="glass-card p-8 rounded-2xl inline-block">
+            <p className="text-white/80 mb-6">Ready to revolutionize your workflow?</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button className="bg-orange hover:bg-orange-dark text-white font-medium px-8 py-3 rounded-md transition-standard">
+              <button className="bg-[#ff6b35] hover:bg-[#ff5722] text-black font-semibold px-8 py-3 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-2">
                 Start Building
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-              <Button variant="outline" className="border-border hover:bg-muted text-white px-8 py-3 rounded-md transition-standard">
-                <Zap className="mr-2 w-4 h-4" />
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button className="glass border-white/20 hover:border-[#ff6b35]/50 text-white font-semibold px-8 py-3 rounded-xl hover-lift transition-all duration-300 flex items-center gap-2">
+                <Zap className="w-4 h-4" />
                 View Demo
-              </Button>
+              </button>
             </div>
           </div>
         </motion.div>
