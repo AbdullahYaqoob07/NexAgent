@@ -1,36 +1,36 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Settings, Database, Zap, ArrowRight, Cpu, CloudLightning } from "lucide-react";
+import { MousePointer, Link, Play, BarChart3, ArrowRight, CheckCircle } from "lucide-react";
 
 const workflowSteps = [
   {
     id: 1,
-    title: "Neural Design",
-    description: "Create intelligent workflows using our quantum-powered visual interface",
-    icon: <Settings className="w-8 h-8" />,
-    color: "#FF6900",
+    title: "Design Visually",
+    description: "Drag and drop to build workflows without code. Connect triggers, actions, and logic with our intuitive visual editor.",
+    icon: <MousePointer className="w-6 h-6" />,
+    benefits: ["No coding required", "Visual flow designer", "Real-time preview"]
   },
   {
     id: 2,
-    title: "Data Fusion",
-    description: "Connect unlimited data sources with zero-latency quantum tunneling",
-    icon: <Database className="w-8 h-8" />,
-    color: "#FF6900",
+    title: "Connect Everything",
+    description: "Integrate with 500+ applications and services. Use pre-built connectors or create custom integrations with our API.",
+    icon: <Link className="w-6 h-6" />,
+    benefits: ["500+ integrations", "Pre-built connectors", "Custom API support"]
   },
   {
     id: 3,
-    title: "AI Processing",
-    description: "Deploy self-evolving agents across our distributed neural network",
-    icon: <Cpu className="w-8 h-8" />,
-    color: "#FF6900",
+    title: "Deploy & Execute",
+    description: "Launch your workflows with a single click. Set triggers, configure schedules, and let automation handle the rest.",
+    icon: <Play className="w-6 h-6" />,
+    benefits: ["One-click deployment", "Flexible scheduling", "Automatic execution"]
   },
   {
     id: 4,
-    title: "Hyper Deployment",
-    description: "Scale infinitely with autonomous optimization and real-time adaptation",
-    icon: <CloudLightning className="w-8 h-8" />,
-    color: "#FF6900",
+    title: "Monitor & Scale",
+    description: "Track performance with real-time analytics. Monitor executions, troubleshoot errors, and optimize for scale.",
+    icon: <BarChart3 className="w-6 h-6" />,
+    benefits: ["Real-time monitoring", "Error tracking", "Performance optimization"]
   },
 ];
 
@@ -181,47 +181,46 @@ const AnimatedFlowDiagram = () => {
 const WorkflowStep = ({ step, index }: { step: typeof workflowSteps[0]; index: number }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, x: -50 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.6, delay: index * 0.2 }}
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: index * 0.1 }}
       viewport={{ once: true }}
-      className="relative group"
+      className="relative"
     >
       <div className="flex items-start gap-6">
         {/* Step number and icon */}
-        <div className="flex flex-col items-center">
-          <div className="relative w-16 h-16 glass-card rounded-2xl flex items-center justify-center group-hover:neon-glow transition-all duration-300">
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              className="text-[#FF6900]"
-            >
-              {step.icon}
-            </motion.div>
-            <div className="absolute -top-2 -right-2 w-6 h-6 bg-[#FF6900] rounded-full flex items-center justify-center text-white text-xs font-bold">
-              {step.id}
-            </div>
+        <div className="flex-shrink-0 flex flex-col items-center">
+          <div className="w-12 h-12 bg-[#FF6900] rounded-full flex items-center justify-center text-white font-bold text-lg mb-2">
+            {step.id}
           </div>
-          
-          {/* Connector line */}
           {index < workflowSteps.length - 1 && (
-            <motion.div
-              className="w-0.5 h-24 bg-gradient-to-b from-[#FF6900]/50 to-transparent mt-4"
-              initial={{ scaleY: 0 }}
-              whileInView={{ scaleY: 1 }}
-              transition={{ delay: index * 0.2 + 0.3, duration: 0.5 }}
-              viewport={{ once: true }}
-            />
+            <div className="w-px h-16 bg-zinc-700 mt-4" />
           )}
         </div>
         
         {/* Content */}
-        <div className="flex-1 pb-12">
-          <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-[#FF6900] transition-colors duration-300">
-            {step.title}
-          </h3>
-          <p className="text-white/70 text-lg leading-relaxed">
-            {step.description}
-          </p>
+        <div className="flex-1 pb-8">
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-zinc-800 rounded-lg flex items-center justify-center text-[#FF6900]">
+                {step.icon}
+              </div>
+              <h3 className="text-xl font-semibold text-white">
+                {step.title}
+              </h3>
+            </div>
+            <p className="text-zinc-400 mb-4">
+              {step.description}
+            </p>
+            <div className="space-y-2">
+              {step.benefits.map((benefit, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <span className="text-zinc-300 text-sm">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -230,77 +229,54 @@ const WorkflowStep = ({ step, index }: { step: typeof workflowSteps[0]; index: n
 
 const Workflow = () => {
   return (
-    <section id="workflow" className="relative py-32 overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-[#FF6900]/30 to-transparent" />
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-[#FF6900]/30 to-transparent" />
-      </div>
-      
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="workflow" className="relative py-24 bg-zinc-950/30">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="text-center mb-20"
+          className="text-center mb-16"
         >
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-            How It
-            <span className="block bg-gradient-to-r from-[#FF6900] to-[#FF8555] bg-clip-text text-transparent">
-              Actually Works
-            </span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-full mb-6">
+            <div className="w-2 h-2 bg-[#FF6900] rounded-full" />
+            <span className="text-sm text-zinc-300 font-medium">Simple Process</span>
+          </div>
+          
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+            How It Works
           </h2>
           
-          <p className="text-xl text-white/70 max-w-3xl mx-auto mb-16">
-            Experience the seamless fusion of artificial intelligence and quantum computing in action.
+          <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+            Get started with automation in minutes. Our intuitive platform guides you through every step.
           </p>
         </motion.div>
         
-        {/* Animated flow diagram */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          viewport={{ once: true }}
-          className="mb-24"
-        >
-          <AnimatedFlowDiagram />
-        </motion.div>
-        
         {/* Workflow steps */}
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
-          <div className="space-y-8">
-            {workflowSteps.slice(0, 2).map((step, index) => (
-              <WorkflowStep key={step.id} step={step} index={index} />
-            ))}
-          </div>
-          <div className="space-y-8">
-            {workflowSteps.slice(2).map((step, index) => (
-              <WorkflowStep key={step.id} step={step} index={index + 2} />
-            ))}
-          </div>
+        <div className="space-y-0">
+          {workflowSteps.map((step, index) => (
+            <WorkflowStep key={step.id} step={step} index={index} />
+          ))}
         </div>
         
         {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
           viewport={{ once: true }}
-          className="text-center mt-20"
+          className="text-center mt-16"
         >
-          <div className="glass-card p-8 rounded-2xl inline-block">
-            <p className="text-white/80 mb-6">Ready to revolutionize your workflow?</p>
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
+            <p className="text-zinc-300 mb-6">Ready to automate your business processes?</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold px-8 py-3 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-2">
-                Start Building
+              <button className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                Start Building Workflows
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <button className="glass border-white/20 hover:border-[#FF6900]/50 text-white font-semibold px-8 py-3 rounded-xl hover-lift transition-all duration-300 flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                View Demo
+              <button className="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold px-6 py-3 rounded-lg transition-all duration-200">
+                View Live Demo
               </button>
             </div>
           </div>

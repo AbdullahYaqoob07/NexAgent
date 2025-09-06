@@ -8,40 +8,44 @@ const plans = [
   {
     name: "Starter",
     icon: <Zap className="w-6 h-6" />,
-    price: "0",
+    price: "49",
     currency: "$",
-    duration: "/forever",
-    description: "Perfect for individuals exploring AI capabilities",
+    duration: "/month",
+    description: "Perfect for small teams getting started with automation",
     features: [
-      "5 AI agents per month",
-      "Basic neural processing",
-      "Community support",
-      "Standard response time",
-      "Access to public models",
-      "Basic analytics dashboard"
+      "Up to 1,000 workflow executions/month",
+      "50+ pre-built integrations",
+      "Email support",
+      "Basic analytics & monitoring",
+      "5 team members included",
+      "Standard execution priority"
     ],
     popular: false,
-    cta: "Start Free"
+    cta: "Start Free Trial",
+    monthlyExecutions: "1,000",
+    teamSize: "5 users"
   },
   {
     name: "Professional",
     icon: <Star className="w-6 h-6" />,
-    price: "99",
+    price: "149",
     currency: "$",
     duration: "/month",
-    description: "Advanced features for growing businesses",
+    description: "Advanced automation for growing businesses",
     features: [
-      "Unlimited AI agents",
-      "Advanced neural processing",
-      "Priority 24/7 support",
-      "50ms response time",
-      "Custom model training",
-      "Advanced analytics suite",
+      "Up to 10,000 workflow executions/month",
+      "500+ enterprise integrations",
+      "Priority support & dedicated CSM",
+      "Advanced analytics & reporting",
+      "25 team members included",
+      "High-priority execution",
       "API access & webhooks",
-      "Team collaboration tools"
+      "Advanced workflow features"
     ],
     popular: true,
-    cta: "Start Trial"
+    cta: "Start Free Trial",
+    monthlyExecutions: "10,000",
+    teamSize: "25 users"
   },
   {
     name: "Enterprise",
@@ -49,95 +53,95 @@ const plans = [
     price: "Custom",
     currency: "",
     duration: "",
-    description: "Tailored solutions for large organizations",
+    description: "Enterprise-grade solutions with unlimited scale",
     features: [
-      "Unlimited everything",
-      "Quantum neural processing",
-      "Dedicated support team",
-      "<10ms response time",
-      "Private model deployment",
-      "Custom integrations",
-      "On-premise options",
-      "SLA guarantees",
-      "Security compliance"
+      "Unlimited workflow executions",
+      "All integrations + custom connectors",
+      "24/7 dedicated support team",
+      "Advanced security & compliance",
+      "Unlimited team members",
+      "Guaranteed SLA & uptime",
+      "On-premise deployment options",
+      "Custom integrations & features",
+      "Priority feature requests"
     ],
     popular: false,
-    cta: "Contact Sales"
+    cta: "Contact Sales",
+    monthlyExecutions: "Unlimited",
+    teamSize: "Unlimited"
   }
 ];
 
 const PricingCard = ({ plan, index }: { plan: typeof plans[0], index: number }) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: index * 0.1 }}
       viewport={{ once: true }}
       className="relative h-full"
     >
       {plan.popular && (
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="bg-[#FF6900] text-white px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-[#FF6900] text-white px-3 py-1 rounded-full text-xs font-semibold">
             Most Popular
           </div>
         </div>
       )}
       
-      <div className={`relative glass-card p-8 rounded-2xl h-full flex flex-col hover-lift cursor-pointer ${
-        plan.popular ? 'border-2 border-[#FF6900]/50 shadow-lg shadow-[#FF6900]/20' : 'border border-white/10'
-      } hover:shadow-xl hover:shadow-[#FF6900]/20 hover:border-[#FF6900]/30 transition-all duration-300`}>
+      <div className={`relative bg-zinc-900/50 border rounded-xl p-6 h-full flex flex-col ${
+        plan.popular ? 'border-[#FF6900] shadow-lg shadow-[#FF6900]/10' : 'border-zinc-800 hover:border-zinc-700'
+      } transition-all duration-200`}>
         
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-[#FF6900]/10 flex items-center justify-center text-[#FF6900]">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-[#FF6900]">
               {plan.icon}
             </div>
-            <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+            <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
           </div>
-          <p className="text-white/60 text-sm leading-relaxed">{plan.description}</p>
+          <p className="text-zinc-400 text-sm">{plan.description}</p>
         </div>
         
         {/* Price */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-baseline">
-            {plan.currency && <span className="text-[#FF6900] text-2xl font-bold">{plan.currency}</span>}
-            <span className="text-5xl font-bold text-white mx-1">{plan.price}</span>
-            {plan.duration && <span className="text-white/60 text-lg">{plan.duration}</span>}
+            {plan.currency && <span className="text-zinc-400 text-xl">{plan.currency}</span>}
+            <span className="text-3xl font-bold text-white">{plan.price}</span>
+            {plan.duration && <span className="text-zinc-400">{plan.duration}</span>}
           </div>
+          {plan.monthlyExecutions && (
+            <div className="mt-2 text-sm text-zinc-500">
+              {plan.monthlyExecutions} executions • {plan.teamSize}
+            </div>
+          )}
         </div>
         
         {/* Features */}
-        <div className="flex-grow mb-8">
-          <ul className="space-y-4">
+        <div className="flex-grow mb-6">
+          <ul className="space-y-3">
             {plan.features.map((feature, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#FF6900]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Check className="w-3 h-3 text-[#FF6900]" />
-                </div>
-                <span className="text-white/80 text-sm leading-relaxed">{feature}</span>
+              <li key={i} className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span className="text-zinc-300 text-sm">{feature}</span>
               </li>
             ))}
           </ul>
         </div>
         
-        {/* CTA Button - moved to bottom */}
+        {/* CTA Button */}
         <div className="mt-auto">
           <Button 
-            className={`w-full py-4 rounded-xl font-semibold transition-all duration-300 group ${
+            className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${
               plan.popular 
-                ? 'bg-[#FF6900] hover:bg-[#E55D00] text-white shadow-lg shadow-[#FF6900]/30 hover:shadow-[#FF6900]/40 hover-lift' 
-                : 'bg-white/10 hover:bg-[#FF6900]/20 text-white border border-white/20 hover:border-[#FF6900]/50'
+                ? 'bg-[#FF6900] hover:bg-[#E55D00] text-white' 
+                : 'bg-zinc-800 hover:bg-zinc-700 text-white border-0'
             }`}
           >
             {plan.cta}
-            <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
-        
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#FF6900]/10 to-transparent rounded-2xl blur-2xl" />
       </div>
     </motion.div>
   );
@@ -145,14 +149,8 @@ const PricingCard = ({ plan, index }: { plan: typeof plans[0], index: number }) 
 
 const Pricing = () => {
   return (
-    <section id="pricing" className="relative py-32 overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-[#FF6900]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-[#FF8555]/5 rounded-full blur-3xl" />
-      </div>
-      
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="pricing" className="relative py-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -161,20 +159,22 @@ const Pricing = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-            Choose Your
-            <span className="block text-[#FF6900]">
-              AI Journey
-            </span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900/50 border border-zinc-800 rounded-full mb-6">
+            <div className="w-2 h-2 bg-[#FF6900] rounded-full" />
+            <span className="text-sm text-zinc-300 font-medium">Flexible Pricing</span>
+          </div>
+          
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
+            Choose Your Plan
           </h2>
           
-          <p className="text-xl text-white/70 max-w-3xl mx-auto">
-            Scale seamlessly from prototype to production with pricing that grows with your needs
+          <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+            Start free and scale as you grow. All plans include core automation features and integrations.
           </p>
         </motion.div>
         
         {/* Pricing cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {plans.map((plan, index) => (
             <PricingCard key={index} plan={plan} index={index} />
           ))}
@@ -188,19 +188,21 @@ const Pricing = () => {
           viewport={{ once: true }}
           className="text-center"
         >
-          <div className="glass-card p-6 rounded-2xl inline-block">
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 inline-block">
             <div className="flex items-center gap-8 flex-wrap justify-center">
               <div className="text-center">
-                <div className="text-2xl font-bold text-[#FF6900]">30-Day</div>
-                <div className="text-white/60 text-sm">Money-back guarantee</div>
+                <div className="text-xl font-bold text-white">14-Day</div>
+                <div className="text-zinc-400 text-sm">Free trial</div>
               </div>
+              <div className="w-px h-8 bg-zinc-700" />
               <div className="text-center">
-                <div className="text-2xl font-bold text-[#FF6900]">No</div>
-                <div className="text-white/60 text-sm">Hidden fees</div>
+                <div className="text-xl font-bold text-white">No</div>
+                <div className="text-zinc-400 text-sm">Setup fees</div>
               </div>
+              <div className="w-px h-8 bg-zinc-700" />
               <div className="text-center">
-                <div className="text-2xl font-bold text-[#FF6900]">Cancel</div>
-                <div className="text-white/60 text-sm">Anytime</div>
+                <div className="text-xl font-bold text-white">Cancel</div>
+                <div className="text-zinc-400 text-sm">Anytime</div>
               </div>
             </div>
           </div>

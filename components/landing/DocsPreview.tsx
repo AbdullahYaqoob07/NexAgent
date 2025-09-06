@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { FileText, Code, BookOpen, Terminal, Layers, GitBranch, Eye, Download, ArrowRight} from "lucide-react";
+import { FileText, Code, BookOpen, Terminal, Layers, GitBranch, Eye, Download, ArrowRight, Workflow, Settings, Database} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const documents = [
   {
@@ -10,11 +11,24 @@ const documents = [
     type: "Guide",
     icon: <BookOpen size={40} className="text-[#FF6900]" />,
     title: "Getting Started with NexAgent",
-    description: "Learn the fundamentals of building intelligent agents with our comprehensive quickstart guide",
+    description: "Learn the fundamentals of building intelligent agents with our comprehensive quickstart guide including setup, basic concepts, and your first workflow",
     tags: ["Beginner", "Tutorial"],
     readTime: "5 min read",
     nodeConnections: 3,
-    gradient: "from-[#FF6900]/10 to-transparent"
+    gradient: "from-[#FF6900]/10 to-transparent",
+    link: "/docs/getting-started"
+  },
+  {
+    id: 7,
+    type: "Engine",
+    icon: <Workflow size={40} className="text-[#FF6900]" />,
+    title: "JSON Node Engine System",
+    description: "Complete guide to NexAgent's JSON-based workflow engine with node types, validation, import/export, and AI-driven workflow creation",
+    tags: ["Core", "JSON", "Workflows"],
+    readTime: "15 min read",
+    nodeConnections: 8,
+    gradient: "from-[#FF6900]/15 to-[#FF8555]/5",
+    link: "/docs/json-node-engine"
   },
   {
     id: 2,
@@ -74,6 +88,76 @@ const documents = [
 ];
 
 const DocumentCard = ({ doc, index }: { doc: typeof documents[0], index: number }) => {
+  const CardContent = () => (
+    <div className="relative glass-card p-6 rounded-2xl h-full hover:shadow-xl hover:shadow-[#FF6900]/20 hover-lift cursor-pointer transition-all duration-300">
+      {/* Background gradient */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${doc.gradient} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+      
+      {/* Floating icon background - similar to Features */}
+      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-16 h-16 glass-card rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6900]/20 transition-all duration-300">
+        <motion.div
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ type: "spring", stiffness: 300 }}
+          className="text-[#FF6900]"
+        >
+          {doc.icon}
+        </motion.div>
+      </div>
+      
+      {/* Node connections visualization */}
+      <div className="absolute top-4 right-4">
+        <div className="flex items-center gap-1">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="w-2 h-2 bg-[#FF6900] rounded-full opacity-50 group-hover:opacity-100 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+          ))}
+        </div>
+      </div>
+      
+      {/* Content */}
+      <div className="relative z-10 pt-4">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="text-center w-full">
+            <span className="text-xs text-[#FF6900] font-medium">{doc.type}</span>
+            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-[#FF6900] transition-colors duration-300">
+              {doc.title}
+            </h3>
+          </div>
+        </div>
+        
+        {/* Description */}
+        <p className="text-white/70 text-sm mb-4 line-clamp-2 group-hover:text-white/90 transition-colors duration-300">
+          {doc.description}
+        </p>
+        
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {doc.tags.map((tag, i) => (
+            <span key={i} className="px-2 py-1 text-xs rounded-full bg-white/10 text-white/70">
+              {tag}
+            </span>
+          ))}
+        </div>
+        
+        {/* Footer */}
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/50">{doc.readTime}</span>
+          <div className="flex items-center gap-2">
+            <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
+              <Eye className="w-4 h-4 text-white/70" />
+            </button>
+            <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
+              <Download className="w-4 h-4 text-white/70" />
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Hover effect line */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF6900] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
@@ -82,73 +166,13 @@ const DocumentCard = ({ doc, index }: { doc: typeof documents[0], index: number 
       viewport={{ once: true }}
       className="group relative"
     >
-      <div className="relative glass-card p-6 rounded-2xl h-full hover:shadow-xl hover:shadow-[#FF6900]/20 hover-lift cursor-pointer transition-all duration-300">
-        {/* Background gradient */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${doc.gradient} rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-        
-        {/* Floating icon background - similar to Features */}
-        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-16 h-16 glass-card rounded-2xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6900]/20 transition-all duration-300">
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="text-[#FF6900]"
-          >
-            {doc.icon}
-          </motion.div>
-        </div>
-        
-        {/* Node connections visualization */}
-        <div className="absolute top-4 right-4">
-          <div className="flex items-center gap-1">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="w-2 h-2 bg-[#FF6900] rounded-full opacity-50 group-hover:opacity-100 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-            ))}
-          </div>
-        </div>
-        
-        {/* Content */}
-        <div className="relative z-10 pt-4">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div className="text-center w-full">
-              <span className="text-xs text-[#FF6900] font-medium">{doc.type}</span>
-              <h3 className="text-lg font-bold text-white mb-2 group-hover:text-[#FF6900] transition-colors duration-300">
-                {doc.title}
-              </h3>
-            </div>
-          </div>
-          
-          {/* Description */}
-          <p className="text-white/70 text-sm mb-4 line-clamp-2 group-hover:text-white/90 transition-colors duration-300">
-            {doc.description}
-          </p>
-          
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {doc.tags.map((tag, i) => (
-              <span key={i} className="px-2 py-1 text-xs rounded-full bg-white/10 text-white/70">
-                {tag}
-              </span>
-            ))}
-          </div>
-          
-          {/* Footer */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-white/50">{doc.readTime}</span>
-            <div className="flex items-center gap-2">
-              <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
-                <Eye className="w-4 h-4 text-white/70" />
-              </button>
-              <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-300">
-                <Download className="w-4 h-4 text-white/70" />
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Hover effect line */}
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF6900] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      </div>
+      {doc.link ? (
+        <Link href={doc.link}>
+          <CardContent />
+        </Link>
+      ) : (
+        <CardContent />
+      )}
     </motion.div>
   );
 };

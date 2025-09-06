@@ -1,0 +1,151 @@
+{
+  "name": "Daily Data Processing Pipeline",
+  "description": "Simple automated data processing workflow that runs daily",
+  "nodes": [
+    {
+      "type": "schedule",
+      "name": "Daily Trigger",
+      "position": { "x": 100, "y": 100 },
+      "config": {
+        "type": "cron",
+        "cron": "0 2 * * *",
+        "timezone": "UTC"
+      }
+    },
+    {
+      "type": "http_request",
+      "name": "Fetch API Data",
+      "position": { "x": 400, "y": 100 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.example.com/daily-data",
+        "headers": {
+          "Authorization": "Bearer {{env.API_TOKEN}}",
+          "Content-Type": "application/json"
+        },
+        "timeout": 30000,
+        "retries": 3
+      }
+    },
+    {
+      "type": "condition",
+      "name": "Check Data Quality",
+      "position": { "x": 700, "y": 100 },
+      "config": {
+        "conditions": [
+          {
+            "field": "data.length",
+            "operator": "greater_than",
+            "value": 0,
+            "type": "number"
+          }
+        ],
+        "logic": "and"
+      }
+    },
+    {
+      "type": "data_transform",
+      "name": "Process Data",
+      "position": { "x": 1000, "y": 50 },
+      "config": {
+        "transformations": [
+          {
+            "type": "filter",
+            "expression": "item => item.status === 'active'"
+          },
+          {
+            "type": "map",
+            "expression": "item => ({ ...item, processedAt: new Date().toISOString(), source: 'daily_import' })"
+          }
+        ],
+        "outputFormat": "json"
+      }
+    },
+    {
+      "type": "database_query",
+      "name": "Store Processed Data",
+      "position": { "x": 1300, "y": 50 },
+      "config": {
+        "connectionString": "{{env.DATABASE_URL}}",
+        "database": "postgresql",
+        "query": "INSERT INTO processed_data (data, created_at) VALUES ($1, NOW())",
+        "parameters": ["{{JSON.stringify(input)}}"],
+        "timeout": 30000
+      }
+    },
+    {
+      "type": "email_send",
+      "name": "Send Success Notification",
+      "position": { "x": 1600, "y": 50 },
+      "config": {
+        "to": ["admin@company.com"],
+        "subject": "Daily Data Processing Complete",
+        "body": "Data processing completed successfully.\n\nProcessed {{input.length}} records at {{new Date().toISOString()}}",
+        "smtp": {
+          "host": "smtp.gmail.com",
+          "port": 587,
+          "secure": false,
+          "auth": {
+            "user": "{{env.SMTP_USER}}",
+            "pass": "{{env.SMTP_PASS}}"
+          }
+        }
+      }
+    },
+    {
+      "type": "email_send",
+      "name": "Send Error Alert",
+      "position": { "x": 1000, "y": 200 },
+      "config": {
+        "to": ["admin@company.com", "dev-team@company.com"],
+        "subject": "Daily Data Processing Failed",
+        "body": "Data processing failed or no data available.\n\nError details: {{error.message}}\nTime: {{new Date().toISOString()}}",
+        "smtp": {
+          "host": "smtp.gmail.com",
+          "port": 587,
+          "secure": false,
+          "auth": {
+            "user": "{{env.SMTP_USER}}",
+            "pass": "{{env.SMTP_PASS}}"
+          }
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "from": "Daily Trigger",
+      "to": "Fetch API Data"
+    },
+    {
+      "from": "Fetch API Data",
+      "to": "Check Data Quality",
+      "fromPort": "success"
+    },
+    {
+      "from": "Check Data Quality",
+      "to": "Process Data",
+      "fromPort": "true"
+    },
+    {
+      "from": "Process Data",
+      "to": "Store Processed Data",
+      "fromPort": "output"
+    },
+    {
+      "from": "Store Processed Data",
+      "to": "Send Success Notification",
+      "fromPort": "results"
+    },
+    {
+      "from": "Check Data Quality",
+      "to": "Send Error Alert",
+      "fromPort": "false"
+    },
+    {
+      "from": "Fetch API Data",
+      "to": "Send Error Alert",
+      "fromPort": "error"
+    }
+  ]
+}

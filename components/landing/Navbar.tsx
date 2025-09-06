@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Menu, X, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const navItems = [
   { name: "Home", id: "hero" },
@@ -14,6 +15,7 @@ const navItems = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState("hero");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -77,6 +79,11 @@ export default function Navbar() {
     }
   };
 
+  const handleGetStarted = () => {
+    router.push('/workflows');
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <>
       <motion.nav
@@ -128,9 +135,18 @@ export default function Navbar() {
                     </button>
                   </li>
                 ))}
+                <li>
+                  <button
+                    onClick={handleGetStarted}
+                    className="relative px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-all duration-300"
+                  >
+                    Workflows
+                  </button>
+                </li>
               </ul>
 
               <Button
+                onClick={handleGetStarted}
                 size="sm"
                 className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold px-6 rounded-xl hover-lift transition-all duration-300 group"
               >
@@ -182,8 +198,15 @@ export default function Navbar() {
               {item.name}
             </button>
           ))}
+          <button
+            onClick={handleGetStarted}
+            className="block w-full text-left px-3 py-2 text-base font-medium text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"
+          >
+            Workflows
+          </button>
           <div className="pt-4">
             <Button
+              onClick={handleGetStarted}
               size="sm"
               className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold rounded-xl"
             >
