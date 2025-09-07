@@ -153,7 +153,7 @@ export default function DashboardHome({ user }: DashboardHomeProps) {
             Welcome back, <span className="text-[#FF6900]">{firstName}</span>
           </h1>
           <p className="text-white/70 text-lg">
-            Here's what's happening in your AI workspace today
+            Here&apos;s what&apos;s happening in your AI workspace today
           </p>
         </motion.div>
 
