@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { useTour, TourStep } from "@/hooks/useTour";
 import { TourSpotlight } from "@/components/tour/TourSpotlight";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 interface Workflow {
   id: string;
@@ -229,91 +230,87 @@ export function WorkflowDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <div className="border-b border-zinc-800 bg-zinc-950">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Workflows</h1>
-              <p className="text-zinc-400 mt-1">Create and manage your automated workflows</p>
-            </div>
-            <Button
-              onClick={handleCreateWorkflow}
-              className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-6 gap-2"
-              data-tour-id="new-workflow-button"
-            >
-              <Plus className="w-4 h-4" />
-              New Workflow
-            </Button>
+    <DashboardLayout>
+      <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl lg:text-4xl font-bold text-white">Workflows</h1>
+            <p className="text-white/70 text-lg mt-1">Create and manage your automated workflows</p>
           </div>
+          <Button
+            onClick={handleCreateWorkflow}
+            className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-6 gap-2"
+            data-tour-id="new-workflow-button"
+          >
+            <Plus className="w-4 h-4" />
+            New Workflow
+          </Button>
+        </div>
 
-          {/* Filters and Search */}
-          <div className="flex items-center gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <Input
-                placeholder="Search workflows..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-zinc-900 border-zinc-700 text-white placeholder-zinc-400 h-10"
-              />
-            </div>
+        {/* Filters and Search */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+            <Input
+              placeholder="Search workflows..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-white/50 h-10 focus:border-[#FF6900]"
+            />
+          </div>
             
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 text-white rounded-md px-3 py-2 h-10"
-            >
-              {categories.map(category => (
-                <option key={category} value={category}>
-                  {category === "all" ? "All Categories" : category}
-                </option>
-              ))}
-            </select>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="bg-white/5 border border-white/20 text-white rounded-md px-3 py-2 h-10 focus:border-[#FF6900]"
+          >
+            {categories.map(category => (
+              <option key={category} value={category} className="bg-black">
+                {category === "all" ? "All Categories" : category}
+              </option>
+            ))}
+          </select>
 
-            <select
-              value={`${sortBy}-${sortOrder}`}
-              onChange={(e) => {
-                const [field, order] = e.target.value.split('-');
-                setSortBy(field as "name" | "created" | "executions");
-                setSortOrder(order as "asc" | "desc");
-              }}
-              className="bg-zinc-900 border border-zinc-700 text-white rounded-md px-3 py-2 h-10"
-            >
-              <option value="created-desc">Newest First</option>
-              <option value="created-asc">Oldest First</option>
-              <option value="name-asc">Name A-Z</option>
-              <option value="name-desc">Name Z-A</option>
-              <option value="executions-desc">Most Executions</option>
-              <option value="executions-asc">Least Executions</option>
-            </select>
+          <select
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [field, order] = e.target.value.split('-');
+              setSortBy(field as "name" | "created" | "executions");
+              setSortOrder(order as "asc" | "desc");
+            }}
+            className="bg-white/5 border border-white/20 text-white rounded-md px-3 py-2 h-10 focus:border-[#FF6900]"
+          >
+            <option value="created-desc" className="bg-black">Newest First</option>
+            <option value="created-asc" className="bg-black">Oldest First</option>
+            <option value="name-asc" className="bg-black">Name A-Z</option>
+            <option value="name-desc" className="bg-black">Name Z-A</option>
+            <option value="executions-desc" className="bg-black">Most Executions</option>
+            <option value="executions-asc" className="bg-black">Least Executions</option>
+          </select>
 
-            <div className="flex rounded-md border border-zinc-700 bg-zinc-900">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-2 ${viewMode === "grid" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"}`}
-              >
-                <Grid3x3 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 ${viewMode === "list" ? "bg-zinc-700 text-white" : "text-zinc-400 hover:text-white"}`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="flex rounded-md border border-white/20 bg-white/5">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 ${viewMode === "grid" ? "bg-white/10 text-white" : "text-white/50 hover:text-white"}`}
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 ${viewMode === "list" ? "bg-white/10 text-white" : "text-white/50 hover:text-white"}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Content */}
         {filteredWorkflows.length === 0 ? (
           <div className="text-center py-16">
-            <Folder className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-zinc-300 mb-2">No workflows found</h3>
-            <p className="text-zinc-500 mb-8">
+            <Folder className="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <h3 className="text-xl font-medium text-white mb-2">No workflows found</h3>
+            <p className="text-white/70 mb-8">
               {searchTerm || selectedCategory !== "all" 
                 ? "Try adjusting your search or filters"
                 : "Get started by creating your first workflow"
@@ -338,7 +335,7 @@ export function WorkflowDashboard() {
             {filteredWorkflows.map((workflow) => (
               <div
                 key={workflow.id}
-                className={`bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors ${
+                className={`bg-white/5 border border-white/10 rounded-lg hover:border-white/20 transition-colors backdrop-blur-xl ${
                   viewMode === "list" ? "p-6" : "p-4"
                 }`}
               >
@@ -348,32 +345,32 @@ export function WorkflowDashboard() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="font-medium text-white mb-1">{workflow.name}</h3>
-                        <p className="text-sm text-zinc-400 line-clamp-2">{workflow.description}</p>
+                        <p className="text-sm text-white/70 line-clamp-2">{workflow.description}</p>
                       </div>
                       <div className="relative group">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-zinc-400 hover:text-white p-1 h-8 w-8"
+                          className="text-white/50 hover:text-white p-1 h-8 w-8"
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
-                        <div className="absolute right-0 top-8 hidden group-hover:block bg-zinc-800 border border-zinc-700 rounded-md py-1 z-10 min-w-[140px]">
+                        <div className="absolute right-0 top-8 hidden group-hover:block bg-black/60 backdrop-blur-xl border border-white/20 rounded-md py-1 z-10 min-w-[140px]">
                           <button
                             onClick={() => handleEditWorkflow(workflow.id)}
-                            className="w-full px-3 py-1 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                            className="w-full px-3 py-1 text-left text-sm text-white/70 hover:bg-white/10 flex items-center gap-2"
                           >
                             <Edit className="w-3 h-3" /> Edit
                           </button>
                           <button
                             onClick={() => handleDuplicateWorkflow(workflow)}
-                            className="w-full px-3 py-1 text-left text-sm text-zinc-300 hover:bg-zinc-700 flex items-center gap-2"
+                            className="w-full px-3 py-1 text-left text-sm text-white/70 hover:bg-white/10 flex items-center gap-2"
                           >
                             <Copy className="w-3 h-3" /> Duplicate
                           </button>
                           <button
                             onClick={() => handleDeleteWorkflow(workflow.id)}
-                            className="w-full px-3 py-1 text-left text-sm text-red-400 hover:bg-zinc-700 flex items-center gap-2"
+                            className="w-full px-3 py-1 text-left text-sm text-red-400 hover:bg-white/10 flex items-center gap-2"
                           >
                             <Trash2 className="w-3 h-3" /> Delete
                           </button>
@@ -385,23 +382,23 @@ export function WorkflowDashboard() {
                       <span className={`px-2 py-1 text-xs rounded-full border ${getStatusColor(workflow.status)}`}>
                         {workflow.status}
                       </span>
-                      <span className="text-xs text-zinc-500">{workflow.category}</span>
+                      <span className="text-xs text-white/50">{workflow.category}</span>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-zinc-500 mb-4">
+                    <div className="flex items-center justify-between text-xs text-white/50 mb-4">
                       <span>{workflow.nodes} nodes</span>
                       <span>{workflow.executions} runs</span>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-zinc-500">
+                      <span className="text-xs text-white/50">
                         Last run: {formatLastRun(workflow.lastRun)}
                       </span>
                       <Button
                         onClick={() => handleEditWorkflow(workflow.id)}
                         size="sm"
                         variant="outline"
-                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-8 px-3"
+                        className="border-white/20 text-white/70 hover:bg-white/10 hover:text-white h-8 px-3"
                       >
                         Open
                       </Button>
@@ -413,10 +410,10 @@ export function WorkflowDashboard() {
                     <div className="flex items-center gap-4 flex-1">
                       <div className="flex-1">
                         <h3 className="font-medium text-white mb-1">{workflow.name}</h3>
-                        <p className="text-sm text-zinc-400">{workflow.description}</p>
+                        <p className="text-sm text-white/70">{workflow.description}</p>
                       </div>
                       
-                      <div className="flex items-center gap-6 text-sm text-zinc-500">
+                      <div className="flex items-center gap-6 text-sm text-white/50">
                         <span className={`px-2 py-1 text-xs rounded-full border ${getStatusColor(workflow.status)}`}>
                           {workflow.status}
                         </span>
@@ -432,7 +429,7 @@ export function WorkflowDashboard() {
                         onClick={() => handleEditWorkflow(workflow.id)}
                         size="sm"
                         variant="outline"
-                        className="border-zinc-700 text-zinc-300 hover:bg-zinc-800 h-8 px-3"
+                        className="border-white/20 text-white/70 hover:bg-white/10 hover:text-white h-8 px-3"
                       >
                         <Edit className="w-3 h-3 mr-1" />
                         Edit
@@ -440,7 +437,7 @@ export function WorkflowDashboard() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-zinc-400 hover:text-white p-1 h-8 w-8"
+                        className="text-white/50 hover:text-white p-1 h-8 w-8"
                         onClick={() => handleDeleteWorkflow(workflow.id)}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -452,24 +449,24 @@ export function WorkflowDashboard() {
             ))}
           </div>
         )}
+        
+        {/* Tour Spotlight */}
+        {isTourVisible && targetElement && currentStepData && (
+          <TourSpotlight
+            isVisible={isTourVisible}
+            targetElement={targetElement}
+            step={currentStepData}
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            isFirstStep={isFirstStep}
+            isLastStep={isLastStep}
+            onNext={nextStep}
+            onPrevious={prevStep}
+            onSkip={skipTour}
+            onComplete={completeTour}
+          />
+        )}
       </div>
-      
-      {/* Tour Spotlight */}
-      {isTourVisible && targetElement && currentStepData && (
-        <TourSpotlight
-          isVisible={isTourVisible}
-          targetElement={targetElement}
-          step={currentStepData}
-          currentStep={currentStep}
-          totalSteps={totalSteps}
-          isFirstStep={isFirstStep}
-          isLastStep={isLastStep}
-          onNext={nextStep}
-          onPrevious={prevStep}
-          onSkip={skipTour}
-          onComplete={completeTour}
-        />
-      )}
-    </div>
+    </DashboardLayout>
   );
 }

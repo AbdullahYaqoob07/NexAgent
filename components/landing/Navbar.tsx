@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Menu, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 
 const navItems = [
   { name: "Home", id: "hero" },
@@ -16,6 +17,7 @@ const navItems = [
 
 export default function Navbar() {
   const router = useRouter();
+  const { isSignedIn } = useAuth();
   const [activeSection, setActiveSection] = useState("hero");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -80,7 +82,20 @@ export default function Navbar() {
   };
 
   const handleGetStarted = () => {
-    router.push('/workflows');
+    if (isSignedIn) {
+      router.push('/dashboard');
+    } else {
+      router.push('/sign-in');
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleWorkflowsClick = () => {
+    if (isSignedIn) {
+      router.push('/workflows');
+    } else {
+      router.push('/sign-in');
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -137,7 +152,7 @@ export default function Navbar() {
                 ))}
                 <li>
                   <button
-                    onClick={handleGetStarted}
+                    onClick={handleWorkflowsClick}
                     className="relative px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-all duration-300"
                   >
                     Workflows
@@ -199,7 +214,7 @@ export default function Navbar() {
             </button>
           ))}
           <button
-            onClick={handleGetStarted}
+            onClick={handleWorkflowsClick}
             className="block w-full text-left px-3 py-2 text-base font-medium text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"
           >
             Workflows
