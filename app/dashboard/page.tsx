@@ -18,8 +18,8 @@ export default async function DashboardPage() {
     phoneNumbers: user.phoneNumbers.map(phone => ({
       phoneNumber: phone.phoneNumber
     })),
-    createdAt: user.createdAt,
-    lastSignInAt: user.lastSignInAt,
+    createdAt: new Date(user.createdAt),
+    lastSignInAt: user.lastSignInAt ? new Date(user.lastSignInAt) : null,
     imageUrl: user.imageUrl
   } : null
 

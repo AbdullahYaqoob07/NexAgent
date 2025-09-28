@@ -99,6 +99,7 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   };
 
+
   return (
     <>
       <motion.nav
@@ -163,7 +164,7 @@ export default function Navbar() {
               <Button
                 onClick={handleGetStarted}
                 size="sm"
-                className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold px-6 rounded-xl hover-lift transition-all duration-300 group"
+                className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold px-8 py-2 rounded-xl hover-lift transition-all duration-300 group"
               >
                 Get Started
                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -223,7 +224,7 @@ export default function Navbar() {
             <Button
               onClick={handleGetStarted}
               size="sm"
-              className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold rounded-xl"
+              className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold rounded-xl py-3"
             >
               Get Started
             </Button>

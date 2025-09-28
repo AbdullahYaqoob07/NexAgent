@@ -133,10 +133,10 @@ const PricingCard = ({ plan, index }: { plan: typeof plans[0], index: number }) 
         {/* CTA Button */}
         <div className="mt-auto">
           <Button 
-            className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${
+            className={`w-full py-4 rounded-xl font-bold text-lg transition-all duration-300 ${
               plan.popular 
-                ? 'bg-[#FF6900] hover:bg-[#E55D00] text-white' 
-                : 'bg-zinc-800 hover:bg-zinc-700 text-white border-0'
+                ? 'bg-[#FF6900] hover:bg-[#E55D00] text-white shadow-lg hover:shadow-[#FF6900]/25' 
+                : 'bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-[#FF6900]/50'
             }`}
           >
             {plan.cta}

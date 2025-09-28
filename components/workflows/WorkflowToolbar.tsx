@@ -22,12 +22,16 @@ interface WorkflowToolbarProps {
   showAssistant?: boolean;
   onToggleAssistant?: () => void;
   assistantMinimized?: boolean;
+  onExecute?: () => void;
+  isExecuting?: boolean;
 }
 
 export function WorkflowToolbar({ 
   showAssistant = true, 
   onToggleAssistant,
-  assistantMinimized = false 
+  assistantMinimized = false,
+  onExecute,
+  isExecuting = false
 }: WorkflowToolbarProps = {}) {
   const router = useRouter();
 
@@ -126,11 +130,22 @@ export function WorkflowToolbar({
         </Button>
         
         <Button
+          onClick={onExecute}
+          disabled={isExecuting}
           size="sm"
-          className="bg-[#FF6900] hover:bg-[#E55D00] text-white h-8 px-4 gap-2"
+          className="bg-[#FF6900] hover:bg-[#E55D00] text-white h-8 px-4 gap-2 disabled:opacity-50"
         >
-          <Play className="w-4 h-4" />
-          <span className="text-sm">Execute</span>
+          {isExecuting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Executing...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4" />
+              <span className="text-sm">Execute</span>
+            </>
+          )}
         </Button>
         
         <Button
@@ -144,3 +159,5 @@ export function WorkflowToolbar({
     </div>
   );
 }
+
+export default WorkflowToolbar;

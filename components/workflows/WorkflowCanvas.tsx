@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { 
   Plus, 
   Grid3x3, 
@@ -27,6 +27,13 @@ interface WorkflowCanvasProps {
   onOpenTriggers?: () => void;
 }
 
+export interface WorkflowCanvasRef {
+  getWorkflowData: () => {
+    nodes: WorkflowNode[];
+    connections: Connection[];
+  };
+}
+
 interface WorkflowNode {
   id: string;
   type: string;
@@ -43,7 +50,7 @@ interface Connection {
   toPoint: 'input';
 }
 
-export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: WorkflowCanvasProps) {
+const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers }, ref) => {
   // Canvas ref for precise measurements
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -61,6 +68,14 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
   const NODE_WIDTH = 192;
   const NODE_HEIGHT = 80;
   const CONNECTION_HANDLE_SIZE = 6;
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    getWorkflowData: () => ({
+      nodes,
+      connections
+    })
+  }));
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
@@ -672,4 +687,8 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
       )}
     </div>
   );
-}
+});
+
+WorkflowCanvas.displayName = 'WorkflowCanvas';
+
+export default WorkflowCanvas;

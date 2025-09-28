@@ -80,19 +80,19 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+          className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20"
         >
          <button 
             onClick={handleGetStarted}
-            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold px-8 py-3 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-2"
+            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold px-10 py-4 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
           >
                 Get Started
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5" />
               </button>
           
-          <button className="glass border-white/20 hover:border-[#FF6900]/50 text-white font-semibold px-8 py-3 rounded-xl hover-lift transition-all duration-300 flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Watch Demo
+          <button className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-bold px-10 py-4 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg">
+                <Zap className="w-5 h-5" />
+                Learn More
               </button>
         </motion.div>
 

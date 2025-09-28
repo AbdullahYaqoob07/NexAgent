@@ -87,6 +87,13 @@ const quickActions = [
     color: "from-[#FF6900] to-[#FF8555]"
   },
   {
+    title: "Workflow Demo",
+    description: "Try the interactive workflow engine",
+    icon: Bot,
+    href: "/demo/workflow-engine",
+    color: "from-green-500 to-green-600"
+  },
+  {
     title: "Marketplace",
     description: "Browse AI models and tools",
     icon: Store,
@@ -98,14 +105,7 @@ const quickActions = [
     description: "Manage your API tokens",
     icon: Coins,
     href: "/tokens",
-    color: "from-green-500 to-green-600"
-  },
-  {
-    title: "Analytics",
-    description: "View performance metrics",
-    icon: BarChart3,
-    href: "/analytics",
-    color: "from-purple-500 to-purple-600"
+    color: "from-yellow-500 to-yellow-600"
   }
 ];
 

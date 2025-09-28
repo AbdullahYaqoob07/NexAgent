@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getNodeMappingsByCategory } from "@/lib/workflow/utils/NodeMapping";
 
 interface NodeCategory {
   name: string;
@@ -32,48 +33,74 @@ interface NodeCategory {
   }>;
 }
 
-const nodeCategories: NodeCategory[] = [
-  {
-    name: "Triggers",
-    icon: <Zap className="w-4 h-4" />,
-    nodes: [
-      { name: "HTTP Request", description: "Trigger workflow via HTTP", icon: <Globe className="w-4 h-4" /> },
-      { name: "Schedule", description: "Time-based triggers", icon: <Calendar className="w-4 h-4" /> },
-      { name: "Webhook", description: "Receive webhook data", icon: <GitBranch className="w-4 h-4" /> },
-      { name: "File Watch", description: "Monitor file changes", icon: <FileText className="w-4 h-4" /> },
-    ]
-  },
-  {
-    name: "Actions",
-    icon: <Settings className="w-4 h-4" />,
-    nodes: [
-      { name: "HTTP Request", description: "Make API calls", icon: <Globe className="w-4 h-4" /> },
-      { name: "Database", description: "Query databases", icon: <Database className="w-4 h-4" /> },
-      { name: "Email", description: "Send emails", icon: <Mail className="w-4 h-4" /> },
-      { name: "Slack", description: "Send messages", icon: <MessageSquare className="w-4 h-4" /> },
-    ]
-  },
-  {
-    name: "Logic",
-    icon: <GitBranch className="w-4 h-4" />,
-    nodes: [
-      { name: "If", description: "Conditional logic", icon: <GitBranch className="w-4 h-4" /> },
-      { name: "Switch", description: "Multiple conditions", icon: <Filter className="w-4 h-4" /> },
-      { name: "Loop", description: "Iterate data", icon: <Code className="w-4 h-4" /> },
-      { name: "Merge", description: "Combine data", icon: <Users className="w-4 h-4" /> },
-    ]
-  },
-  {
-    name: "AI/ML",
-    icon: <Bot className="w-4 h-4" />,
-    nodes: [
-      { name: "OpenAI", description: "AI completions", icon: <Bot className="w-4 h-4" /> },
-      { name: "Text Analysis", description: "Analyze text", icon: <FileText className="w-4 h-4" /> },
-      { name: "Image Processing", description: "Process images", icon: <Zap className="w-4 h-4" /> },
-      { name: "Data Transform", description: "Transform data", icon: <Code className="w-4 h-4" /> },
-    ]
-  }
-];
+// Get node categories from the engine mappings
+const getNodeCategories = (): NodeCategory[] => {
+  const categoryConfig = [
+    { name: "Triggers", icon: <Zap className="w-4 h-4" />, key: "trigger" },
+    { name: "Actions", icon: <Settings className="w-4 h-4" />, key: "action" },
+    { name: "Logic", icon: <GitBranch className="w-4 h-4" />, key: "logic" },
+    { name: "AI/ML", icon: <Bot className="w-4 h-4" />, key: "ai_ml" },
+    { name: "Data", icon: <Database className="w-4 h-4" />, key: "data" }
+  ];
+
+  return categoryConfig.map(category => {
+    const mappings = getNodeMappingsByCategory(category.key);
+    const nodes = mappings.map(mapping => ({
+      name: mapping.displayName,
+      description: mapping.nodeType,
+      icon: getNodeIcon(mapping.displayName)
+    }));
+
+    return {
+      name: category.name,
+      icon: category.icon,
+      nodes
+    };
+  });
+};
+
+// Get appropriate icon for node type
+const getNodeIcon = (nodeName: string): React.ReactNode => {
+  const iconMap: Record<string, React.ReactNode> = {
+    // Triggers
+    'HTTP Request': <Globe className="w-4 h-4" />,
+    'Schedule': <Calendar className="w-4 h-4" />,
+    'Webhook': <GitBranch className="w-4 h-4" />,
+    'File Watch': <FileText className="w-4 h-4" />,
+    'Database Trigger': <Database className="w-4 h-4" />,
+    'Email Trigger': <Mail className="w-4 h-4" />,
+    
+    // Actions
+    'Database': <Database className="w-4 h-4" />,
+    'Email': <Mail className="w-4 h-4" />,
+    'Slack': <MessageSquare className="w-4 h-4" />,
+    'Save': <FileText className="w-4 h-4" />,
+    'File Operation': <FileText className="w-4 h-4" />,
+    
+    // Logic
+    'If': <GitBranch className="w-4 h-4" />,
+    'Switch': <Filter className="w-4 h-4" />,
+    'Loop': <Code className="w-4 h-4" />,
+    'Merge': <Users className="w-4 h-4" />,
+    'Delay': <Calendar className="w-4 h-4" />,
+    
+    // AI/ML
+    'OpenAI': <Bot className="w-4 h-4" />,
+    'Text Analysis': <FileText className="w-4 h-4" />,
+    'Image Processing': <Zap className="w-4 h-4" />,
+    'Data Transform': <Code className="w-4 h-4" />,
+    
+    // Data
+    'JSON Parse': <FileText className="w-4 h-4" />,
+    'XML Parse': <FileText className="w-4 h-4" />,
+    'CSV Parse': <FileText className="w-4 h-4" />,
+    'Data Filter': <Filter className="w-4 h-4" />
+  };
+
+  return iconMap[nodeName] || <FileText className="w-4 h-4" />;
+};
+
+const nodeCategories = getNodeCategories();
 
 interface WorkflowSidebarProps {
   collapsed: boolean;
