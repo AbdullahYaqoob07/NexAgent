@@ -61,6 +61,7 @@ export interface ExecutionLog {
   sidebarNodeType: string;
   engineNodeClass: string;
   nodeName: string;
+  nodeId?: string;
   status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
   startTime: number;
   endTime?: number;
@@ -108,4 +109,13 @@ export interface LoggerConfig {
   enableFileLogging: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   maxLogEntries: number;
+}
+
+export interface ExecuteOptions {
+  timeout?: number;
+  retryCount?: number;
+  errorHandling?: 'stop' | 'continue' | 'retry';
+  onStepStart?: (log: ExecutionLog) => void;
+  onStepComplete?: (log: ExecutionLog) => void;
+  onStepFail?: (log: ExecutionLog) => void;
 }

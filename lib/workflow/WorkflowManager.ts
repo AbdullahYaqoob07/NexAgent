@@ -108,11 +108,7 @@ export class WorkflowManager {
   async executeWorkflow(
     workflow: Workflow,
     input: ExecutionContext = {},
-    options: {
-      timeout?: number;
-      retryCount?: number;
-      errorHandling?: 'stop' | 'continue' | 'retry';
-    } = {}
+    options: import('./engine/types').ExecuteOptions = {}
   ): Promise<WorkflowExecution> {
     try {
       // Convert Workflow to WorkflowConfig
@@ -131,7 +127,7 @@ export class WorkflowManager {
       duration: result.duration,
       input: input, // Use the original input
       nodeLogs: result.logs.map(log => ({
-        nodeId: log.nodeName, // Map to nodeId
+        nodeId: log.nodeId || log.nodeName,
         nodeName: log.nodeName,
         nodeType: log.engineNodeClass,
         status: log.status,

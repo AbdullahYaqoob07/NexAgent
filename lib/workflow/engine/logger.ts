@@ -27,13 +27,15 @@ export class WorkflowLogger {
     sidebarNodeType: string,
     engineNodeClass: string,
     nodeName: string,
-    input?: any
+    input?: any,
+    nodeId?: string
   ): ExecutionLog {
     const log: ExecutionLog = {
       stepNumber,
       sidebarNodeType,
       engineNodeClass,
       nodeName,
+      nodeId,
       status: 'running',
       startTime: Date.now(),
       retryCount: 0,

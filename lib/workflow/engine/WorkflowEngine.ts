@@ -26,11 +26,7 @@ export class WorkflowEngine {
   async executeWorkflow(
     workflow: WorkflowConfig,
     context: ExecutionContext = {},
-    options: {
-      timeout?: number;
-      retryCount?: number;
-      errorHandling?: 'stop' | 'continue' | 'retry';
-    } = {}
+    options: import('./types').ExecuteOptions = {}
   ): Promise<WorkflowExecutionResult> {
     const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const startTime = Date.now();
@@ -131,8 +127,11 @@ export class WorkflowEngine {
             stepNumber,
             nodeConfig.sidebarType,
             'Unknown',
-            nodeConfig.name
+            nodeConfig.name,
+            executionContext,
+            nodeConfig.id
           );
+          options.onStepStart?.(log);
           this.logger.failStep(log, error);
           
           if (options.errorHandling === 'stop') {
@@ -151,8 +150,11 @@ export class WorkflowEngine {
             stepNumber,
             nodeConfig.sidebarType,
             mapping.engineType,
-            nodeConfig.name
+            nodeConfig.name,
+            executionContext,
+            nodeConfig.id
           );
+          options.onStepStart?.(log);
           this.logger.failStep(log, error);
           
           if (options.errorHandling === 'stop') {
@@ -189,11 +191,13 @@ export class WorkflowEngine {
 
           // Complete the step
           this.logger.completeStep(log, nodeResult.result, nodeResult.metadata);
+          options.onStepComplete?.(log);
           
           console.log(`✅ Step ${stepNumber} completed: ${nodeConfig.sidebarType} → ${mapping.engineType}`);
         } else {
           // Handle node execution failure
           this.logger.failStep(log, nodeResult.error || 'Node execution failed', nodeResult.metadata);
+          options.onStepFail?.(log);
           
           console.error(`❌ Step ${stepNumber} failed: ${nodeConfig.sidebarType} → ${mapping.engineType}: ${nodeResult.error}`);
           
@@ -212,9 +216,13 @@ export class WorkflowEngine {
           stepNumber,
           nodeConfig.sidebarType,
           'Unknown',
-          nodeConfig.name
+          nodeConfig.name,
+          executionContext,
+          nodeConfig.id
         );
+        options.onStepStart?.(log);
         this.logger.failStep(log, errorMessage);
+        options.onStepFail?.(log);
         
         if (options.errorHandling === 'stop') {
           throw error;
