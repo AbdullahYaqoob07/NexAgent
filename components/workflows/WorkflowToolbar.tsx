@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { 
   Play, 
   Save, 
@@ -24,6 +25,8 @@ interface WorkflowToolbarProps {
   assistantMinimized?: boolean;
   onExecute?: () => void;
   isExecuting?: boolean;
+  workflowName: string;
+  onRenameWorkflow: (name: string) => void;
 }
 
 export function WorkflowToolbar({ 
@@ -31,8 +34,10 @@ export function WorkflowToolbar({
   onToggleAssistant,
   assistantMinimized = false,
   onExecute,
-  isExecuting = false
-}: WorkflowToolbarProps = {}) {
+  isExecuting = false,
+  workflowName,
+  onRenameWorkflow
+}: WorkflowToolbarProps) {
   const router = useRouter();
 
   return (
@@ -49,8 +54,8 @@ export function WorkflowToolbar({
         
         <div className="text-zinc-400 text-sm">|</div>
         
-        <div className="flex items-center gap-1">
-          <span className="text-sm text-white">Untitled Workflow</span>
+      <div className="flex items-center gap-1">
+          <EditableWorkflowName name={workflowName} onRename={onRenameWorkflow} />
           <ChevronDown className="w-4 h-4 text-zinc-400" />
         </div>
       </div>
@@ -157,6 +162,34 @@ export function WorkflowToolbar({
         </Button>
       </div>
     </div>
+  );
+}
+
+function EditableWorkflowName({ name, onRename }: { name: string; onRename: (n: string) => void }) {
+  const [editing, setEditing] = React.useState(false);
+  const [value, setValue] = React.useState(name);
+  React.useEffect(() => setValue(name), [name]);
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => { setEditing(false); onRename(value.trim() || 'Untitled Workflow'); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+          if (e.key === 'Escape') { setEditing(false); setValue(name); }
+        }}
+        className="bg-transparent border-b border-zinc-600 focus:border-[#FF6900] outline-none text-sm text-white px-1"
+        placeholder="Workflow name"
+      />
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)} className="text-sm text-white hover:text-[#FF6900]">
+      {name}
+    </button>
   );
 }
 

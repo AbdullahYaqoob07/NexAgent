@@ -171,7 +171,9 @@ export default function SampleWorkflowPage() {
         concurrency: 1,
         errorHandling: 'stop',
       },
-      status: 'draft'
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: '1.0.0'
     };
   };
 

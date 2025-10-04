@@ -6,6 +6,7 @@ import { WorkflowToolbar } from "./WorkflowToolbar";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import WorkflowCanvas, { WorkflowCanvasRef } from "./WorkflowCanvas";
 import { WorkflowAssistant } from "./WorkflowAssistant";
+import ExecutionModal from "./ExecutionModal";
 import { useTour, TourStep } from "@/hooks/useTour";
 import { TourSpotlight } from "@/components/tour/TourSpotlight";
 import { Workflow } from "@/lib/workflow/types";
@@ -24,8 +25,22 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [showAssistant, setShowAssistant] = useState(true);
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionError, setExecutionError] = useState<string | null>(null);
+  const [canvasNodeCount, setCanvasNodeCount] = useState(0);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  const [workflowName, setWorkflowName] = useState<string>('Untitled Workflow');
   const sidebarRef = useRef<{ openTriggersWithBlink: () => void }>(null);
   const canvasRef = useRef<WorkflowCanvasRef>(null);
+  const [activeTab, setActiveTab] = useState<'nexa' | 'executions'>('nexa');
+  const [executionModalOpen, setExecutionModalOpen] = useState(false);
+  const [lastExecutionId, setLastExecutionId] = useState<string | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [errorNodeIds, setErrorNodeIds] = useState<string[]>([]);
+  const [toasts, setToasts] = useState<{ id: string; message: string; type?: 'info' | 'error' }[]>([]);
+  const addToast = (message: string, type: 'info' | 'error' = 'error') => {
+    const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  };
 
   // Workflow editor tour steps (2-4)
   const tourSteps: TourStep[] = [
@@ -91,6 +106,71 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     try {
       // Get workflow data from canvas
       const workflowData = canvasRef.current.getWorkflowData();
+
+      // Validation: ensure proper connections
+      const nodesArr = workflowData.nodes;
+      const conns = workflowData.connections;
+
+      // Node helpers
+      const byId = new Map(nodesArr.map(n => [n.id, n] as const));
+      const outMap = new Map<string, string[]>();
+      const inMap = new Map<string, string[]>();
+      nodesArr.forEach(n => { outMap.set(n.id, []); inMap.set(n.id, []); });
+      conns.forEach(c => {
+        if (outMap.has(c.from)) outMap.get(c.from)!.push(c.to);
+        if (inMap.has(c.to)) inMap.get(c.to)!.push(c.from);
+      });
+
+      // Identify trigger nodes by category from mapping
+      const triggers = nodesArr.filter(n => {
+        const m = getNodeMapping(n.type);
+        return m?.category === 'trigger';
+      });
+
+      // Must have at least one trigger
+      if (triggers.length === 0) {
+        const allIds = nodesArr.map(n => n.id);
+        setErrorNodeIds(allIds);
+        try { canvasRef.current?.setErrorNodes?.(allIds); } catch {}
+        addToast('Add at least one Trigger to start execution.', 'error');
+        try { canvasRef.current?.setExecutingNode(null); } catch {}
+        return;
+      }
+
+      // Graph traversal (forward) from all triggers to find reachable nodes
+      const visited = new Set<string>();
+      const stack: string[] = triggers.map(t => t.id);
+      while (stack.length) {
+        const id = stack.pop()!;
+        if (visited.has(id)) continue;
+        visited.add(id);
+        (outMap.get(id) || []).forEach(nid => { if (!visited.has(nid)) stack.push(nid); });
+      }
+
+      // Unreachable nodes (not from any trigger)
+      const unreachable = nodesArr.filter(n => !visited.has(n.id));
+
+      // Isolated nodes (no in and no out)
+      const isolated = nodesArr.filter(n => (outMap.get(n.id)?.length || 0) === 0 && (inMap.get(n.id)?.length || 0) === 0);
+
+      // Triggers with no outgoing (warn only)
+      const emptyTriggers = triggers.filter(t => (outMap.get(t.id)?.length || 0) === 0);
+      if (emptyTriggers.length > 0) {
+        addToast(`${emptyTriggers.length} trigger(s) have no outgoing connections.`, 'info');
+      }
+
+      // Block execution if unreachable or isolated exist
+      const errorIds = Array.from(new Set([...unreachable.map(n => n.id), ...isolated.map(n => n.id)]));
+      if (errorIds.length > 0) {
+        setErrorNodeIds(errorIds);
+        try { canvasRef.current?.setErrorNodes?.(errorIds); } catch {}
+        addToast('Some nodes are not connected to any Trigger. Connect the highlighted nodes.', 'error');
+        try { canvasRef.current?.setExecutingNode(null); } catch {}
+        return;
+      }
+
+      // Clear any previous errors
+      setErrorNodeIds([]);
       
       if (!workflowData || workflowData.nodes.length === 0) {
         setExecutionError('No workflow nodes found. Please add some nodes to execute.');
@@ -131,7 +211,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       const now = new Date().toISOString();
       const workflow: Workflow = {
         id: workflowId || `workflow_${Date.now()}`,
-        name: 'Current Workflow',
+        name: workflowName || 'Untitled Workflow',
         description: 'Workflow created in editor',
         nodes: workflowNodes,
         connections: workflowData.connections.map((conn: any) => ({
@@ -157,13 +237,28 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       // Execute workflow using the engine directly
       console.log('Executing workflow with engine:', workflow);
       
+      // Pre-activate first node to ensure visible feedback immediately
+      try { setActiveNodeId(workflow.nodes[0]?.id || null); } catch {}
+      
       const execution = await workflowManager.executeWorkflow(
         workflow,
         { demoInput: 'Hello from workflow editor!' },
         {
           timeout: 30000,
           retryCount: 2,
-          errorHandling: 'stop'
+          errorHandling: 'stop',
+          onStepStart: (log) => {
+            setActiveNodeId(log.nodeId || null);
+            try { canvasRef.current?.setExecutingNode(log.nodeId || null); } catch {}
+          },
+          onStepComplete: () => {
+            setActiveNodeId(null);
+            try { canvasRef.current?.setExecutingNode(null); } catch {}
+          },
+          onStepFail: () => {
+            setActiveNodeId(null);
+            try { canvasRef.current?.setExecutingNode(null); } catch {}
+          }
         }
       );
 
@@ -172,9 +267,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       // Save the workflow
       await workflowManager.saveWorkflow(workflow);
       
-      // Navigate to execution results page
-      console.log('Navigating to execution page:', `/workflows/execution/${execution.id}`);
-      router.push(`/workflows/execution/${execution.id}`);
+      // Set last execution id; remain on canvas (no navigation)
+      setActiveNodeId(null);
+      setLastExecutionId(execution.id);
       
     } catch (error) {
       console.error('Workflow execution error:', error);
@@ -192,6 +287,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           ref={sidebarRef}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          canvasNodeCount={canvasNodeCount}
         />
       </div>
       
@@ -204,15 +300,45 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           assistantMinimized={assistantMinimized}
           onExecute={executeWorkflow}
           isExecuting={isExecuting}
+          workflowName={workflowName}
+          onRenameWorkflow={setWorkflowName}
         />
         
         {/* Canvas */}
         <div className="flex-1 relative" data-tour-id="workflow-canvas">
+          {/* Tabs bar on top-left over canvas */}
+          <div className="absolute top-3 left-4 z-30 bg-black/60 backdrop-blur-sm border border-zinc-800 rounded-xl overflow-hidden flex">
+            <button
+              className={`px-4 py-2 text-sm ${activeTab === 'nexa' ? 'bg-[#FF6900] text-white' : 'text-white/80 hover:bg-white/5'}`}
+              onClick={() => setActiveTab('nexa')}
+            >
+              Nexa
+            </button>
+            <button
+              className={`px-4 py-2 text-sm border-l border-zinc-800 ${activeTab === 'executions' ? 'bg-[#FF6900] text-white' : 'text-white/80 hover:bg-white/5'}`}
+              onClick={() => {
+                setActiveTab('executions');
+                if (lastExecutionId) setExecutionModalOpen(true);
+              }}
+            >
+              Executions
+            </button>
+          </div>
+
+          {/* Layout chooser button (top-right) */}
+          <div className="absolute top-3 right-4 z-30">
+            <LayoutChooser onChoose={(layout) => canvasRef.current?.applyLayout(layout)} />
+          </div>
+
+          {/* Main canvas always visible */}
           <WorkflowCanvas
             ref={canvasRef}
             selectedNode={selectedNode}
             onNodeSelect={setSelectedNode}
             onOpenTriggers={() => sidebarRef.current?.openTriggersWithBlink()}
+            onNodeCountChange={setCanvasNodeCount}
+            executingNodeId={activeNodeId}
+            errorNodeIds={errorNodeIds}
           />
         </div>
       </div>
@@ -268,6 +394,80 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           onSkip={skipTour}
           onComplete={completeTour}
         />
+      )}
+      {/* Toasts (top-right) */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
+        {toasts.map(t => (
+          <div key={t.id} className={`px-4 py-2 rounded-xl shadow-xl text-sm border ${t.type === 'error' ? 'bg-black/80 border-red-500/40 text-red-300' : 'bg-black/80 border-white/20 text-white/90'}`}>
+            {t.message}
+          </div>
+        ))}
+      </div>
+
+      {/* Executions Modal */}
+      <ExecutionModal
+        executionId={lastExecutionId}
+        open={executionModalOpen}
+        onClose={() => { setExecutionModalOpen(false); setActiveTab('nexa'); }}
+      />
+    </div>
+  );
+}
+
+function LayoutChooser({ onChoose }: { onChoose: (l: 'serpentine' | 'row' | 'column' | 'radial') => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-800 bg-black/60 text-white/90 hover:bg-white/5"
+        title="Choose layout"
+      >
+        <span className="w-2 h-2 rounded-full bg-[#FF6900]" />
+        Layout
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-64 bg-zinc-950 border border-zinc-800 rounded-xl shadow-xl p-3 grid grid-cols-2 gap-3 z-50">
+          {[
+            { key: 'serpentine', label: 'Serpentine' },
+            { key: 'row', label: 'Left → Right' },
+            { key: 'column', label: 'Top ↓ Down' },
+            { key: 'radial', label: 'Radial' },
+          ].map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => { onChoose(opt.key as any); setOpen(false); }}
+              className="h-20 rounded-lg border border-white/10 hover:border-[#FF6900] hover:bg-white/5 text-white/80 text-xs flex flex-col items-center justify-center gap-2"
+            >
+              <div className="w-14 h-10 bg-white/5 rounded relative overflow-hidden">
+                {/* Simple illustration blocks */}
+                {opt.key === 'serpentine' && (
+                  <div className="absolute inset-1 grid grid-cols-4 gap-1">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className="bg-white/20 rounded-sm" />
+                    ))}
+                  </div>
+                )}
+                {opt.key === 'row' && (
+                  <div className="absolute inset-1 flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (<div key={i} className="flex-1 h-2 bg-white/20 rounded" />))}
+                  </div>
+                )}
+                {opt.key === 'column' && (
+                  <div className="absolute inset-1 flex flex-col justify-center gap-1">
+                    {[...Array(5)].map((_, i) => (<div key={i} className="h-2 bg-white/20 rounded" />))}
+                  </div>
+                )}
+                {opt.key === 'radial' && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full border border-white/30" />
+                  </div>
+                )}
+              </div>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
