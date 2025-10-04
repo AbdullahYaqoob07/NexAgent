@@ -20,11 +20,15 @@ import {
   Code,
   Bot
 } from "lucide-react";
+import { getNodeMapping } from "@/lib/workflow/utils/NodeMapping";
 
 interface WorkflowCanvasProps {
   selectedNode: string | null;
   onNodeSelect: (nodeId: string | null) => void;
   onOpenTriggers?: () => void;
+  onNodeCountChange?: (count: number) => void;
+  executingNodeId?: string | null; // externally-controlled active node
+  errorNodeIds?: string[]; // nodes to highlight as invalid
 }
 
 export interface WorkflowCanvasRef {
@@ -32,6 +36,9 @@ export interface WorkflowCanvasRef {
     nodes: WorkflowNode[];
     connections: Connection[];
   };
+  setExecutingNode: (nodeId: string | null) => void;
+  setErrorNodes: (ids: string[]) => void;
+  applyLayout: (layout: 'serpentine' | 'row' | 'column' | 'radial') => void;
 }
 
 interface WorkflowNode {
@@ -50,7 +57,7 @@ interface Connection {
   toPoint: 'input';
 }
 
-const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers }, ref) => {
+const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers, onNodeCountChange, executingNodeId: executingNodeIdProp, errorNodeIds: errorNodeIdsProp }, ref) => {
   // Canvas ref for precise measurements
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -63,6 +70,10 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [draggedNode, setDraggedNode] = useState<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
   const [forceConnectionUpdate, setForceConnectionUpdate] = useState(0);
+  const [executingNodeIdState, setExecutingNodeIdState] = useState<string | null>(null);
+  const executingNodeId = executingNodeIdProp ?? executingNodeIdState;
+  const [errorNodeIdsState, setErrorNodeIdsState] = useState<string[]>([]);
+  const errorNodeIds = errorNodeIdsProp ?? errorNodeIdsState;
   
   // Constants for precise node dimensions
   const NODE_WIDTH = 192;
@@ -74,8 +85,81 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     getWorkflowData: () => ({
       nodes,
       connections
-    })
+    }),
+    setExecutingNode: (nodeId: string | null) => {
+      setExecutingNodeIdState(nodeId);
+    },
+    setErrorNodes: (ids: string[]) => {
+      setErrorNodeIdsState(ids);
+      // auto clear after few seconds
+      if (ids && ids.length > 0) {
+        setTimeout(() => setErrorNodeIdsState([]), 4000);
+      }
+    },
+    applyLayout: (layout: 'serpentine' | 'row' | 'column' | 'radial') => {
+      const canvasEl = canvasRef.current;
+      const width = canvasEl?.clientWidth || 1200;
+      const height = canvasEl?.clientHeight || 800;
+      const padding = 40;
+      const hGap = 80;
+      const vGap = 60;
+      const colWidth = NODE_WIDTH + hGap;
+      const rowHeight = NODE_HEIGHT + vGap;
+      const cols = Math.max(1, Math.floor((width - padding * 2) / colWidth));
+      const centerX = width / 2 - NODE_WIDTH / 2;
+      const centerY = height / 2 - NODE_HEIGHT / 2;
+
+      setNodes(prev => {
+        const arr = [...prev];
+        if (arr.length === 0) return arr;
+        switch (layout) {
+          case 'row': {
+            return arr.map((n, i) => ({
+              ...n,
+              x: padding + (i % cols) * colWidth,
+              y: padding + Math.floor(i / cols) * rowHeight,
+            }));
+          }
+          case 'column': {
+            const rows = Math.max(1, Math.floor((height - padding * 2) / rowHeight));
+            return arr.map((n, i) => ({
+              ...n,
+              x: padding + Math.floor(i / rows) * colWidth,
+              y: padding + (i % rows) * rowHeight,
+            }));
+          }
+          case 'radial': {
+            const radius = Math.min(width, height) / 3;
+            const cx = centerX; const cy = centerY;
+            return arr.map((n, i) => {
+              const angle = (i / arr.length) * Math.PI * 2;
+              return { ...n, x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+            });
+          }
+          case 'serpentine':
+          default: {
+            // Zig-zag rows: left->right on even rows, right->left on odd rows
+            return arr.map((n, i) => {
+              const row = Math.floor(i / cols);
+              const idxInRow = i % cols;
+              const isOdd = row % 2 === 1;
+              const xBase = padding;
+              const y = padding + row * rowHeight;
+              const x = isOdd
+                ? padding + (cols - 1 - idxInRow) * colWidth
+                : xBase + idxInRow * colWidth;
+              return { ...n, x, y };
+            });
+          }
+        }
+      });
+    }
   }));
+
+  // Notify parent of node count changes
+  useEffect(() => {
+    onNodeCountChange?.(nodes.length);
+  }, [nodes.length, onNodeCountChange]);
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
@@ -104,6 +188,15 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     if (!nodeType) {
       console.log('No node type found in drag data');
       return;
+    }
+
+    // Validation: If this is the first node, it must be a trigger
+    if (nodes.length === 0) {
+      const nodeMapping = getNodeMapping(nodeType);
+      if (!nodeMapping || nodeMapping.category !== 'trigger') {
+        alert('The first node must be a trigger! Please select a node from the Triggers section.');
+        return;
+      }
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
@@ -320,6 +413,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       path = `M ${startX} ${startY} C ${startX + controlOffset} ${startY}, ${endX - controlOffset} ${endY}, ${endX} ${endY}`;
     }
 
+    const isActiveFlow = executingNodeId && connection.from === executingNodeId;
     return (
       <g key={connection.id} className="group">
         {/* Invisible wider path for easier clicking */}
@@ -342,9 +436,21 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
           stroke="#FF6900"
           strokeWidth="3"
           fill="none"
-          className="opacity-80 group-hover:opacity-100 transition-all duration-200"
+          className={`opacity-80 group-hover:opacity-100 transition-all duration-200 ${isActiveFlow ? 'glow' : ''}`}
           style={{ pointerEvents: 'none' }}
         />
+        n        {/* Active flow overlay */}
+        {isActiveFlow && (
+          <path
+            d={path}
+            stroke="#FFB080"
+            strokeWidth="3"
+            fill="none"
+            strokeDasharray="48 16"
+            className="flow-active"
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
         
         {/* Connection flow animation */}
         <path
@@ -399,6 +505,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
 
   const getNodeIcon = (nodeType: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
+      "On Clicking Execute": <Play className="w-4 h-4 text-[#FF6900] fill-current" />,
       "HTTP Request": <Globe className="w-4 h-4" />,
       "Schedule": <Calendar className="w-4 h-4" />,
       "Webhook": <GitBranch className="w-4 h-4" />,
@@ -438,11 +545,10 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       >
         <defs>
           <style>{`
-            @keyframes dash {
-              to {
-                stroke-dashoffset: -16;
-              }
-            }
+            @keyframes dash { to { stroke-dashoffset: -16; } }
+            @keyframes flow { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -48; } }
+            .flow-active { animation: flow 1.2s linear infinite; }
+            .glow { filter: drop-shadow(0 0 6px rgba(255,105,0,0.35)); }
           `}</style>
         </defs>
         {connections.map(renderConnection)}
@@ -495,16 +601,20 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
           </div>
         </div>
       )}
-
       {/* Workflow Nodes */}
-      {nodes.map((node) => (
+      {nodes.map((node, index) => {
+        const isFirstNode = index === 0;
+        const nodeMapping = getNodeMapping(node.type);
+        const isTrigger = nodeMapping?.category === 'trigger';
+        
+        return (
         <div
           key={node.id}
-          className={`absolute cursor-pointer transition-all duration-200 z-20 ${
-            selectedNode === node.id
-              ? "transform scale-[1.02]"
+          className={`absolute cursor-pointer transition-all duration-200 z-20 group
+            ${selectedNode === node.id
+              ? "transform scale-[1.02]" 
               : "hover:transform hover:scale-[1.01]"
-          }`}
+            }`}
           style={{
             left: node.x,
             top: node.y,
@@ -516,50 +626,98 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
             handleNodeDelete(node.id);
           }}
         >
-          {/* Clean Minimalistic Enterprise Node */}
+          {/* Clean Enterprise Node */}
           <div className="relative group">
-            {/* Main Node Container */}
-            <div className={`
-              bg-zinc-900/90 backdrop-blur-sm border transition-all duration-200
-              rounded-xl p-4 w-48 shadow-lg
-              ${selectedNode === node.id 
-                ? 'border-[#FF6900] shadow-[#FF6900]/20 shadow-lg' 
-                : 'border-zinc-700/60 hover:border-zinc-600/80 hover:shadow-xl'
-              }
-            `}>
-              
-              {/* Node Header */}
-              <div className="flex items-center gap-3 mb-3">
-                {/* Icon */}
-                <div className={`
-                  w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200
-                  ${selectedNode === node.id 
-                    ? 'bg-[#FF6900] text-white' 
-                    : 'bg-zinc-800 text-zinc-300 group-hover:bg-zinc-700'
-                  }
-                `}>
-                  {getNodeIcon(node.type)}
+            {/* Node Container */}
+            <div 
+              className={`
+                backdrop-blur-sm border transition-all duration-200 relative p-4
+                ${isFirstNode && isTrigger 
+                  ? `w-48 h-16 bg-zinc-900/90 ${errorNodeIds.includes(node.id) ? 'border-red-500 animate-pulse' : 'border-transparent'} rounded-xl`
+                  : selectedNode === node.id 
+                    ? `w-48 h-20 bg-zinc-900/90 ${errorNodeIds.includes(node.id) ? 'border-red-500 animate-pulse' : 'border-[#FF6900]'} shadow-[#FF6900]/20 shadow-lg rounded-xl` 
+                    : `w-48 h-20 bg-zinc-900/90 ${errorNodeIds.includes(node.id) ? 'border-red-500 animate-pulse' : 'border-zinc-700/60'} hover:border-zinc-600/80 hover:shadow-xl rounded-xl`
+                }
+              `}
+              style={isFirstNode && isTrigger ? {
+                // Keep the original body size and arrow shape; do not extend width
+                clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
+                WebkitClipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)',
+                filter: errorNodeIds.includes(node.id) 
+                  ? 'drop-shadow(0 0 2px rgba(239,68,68,0.9))' // red outline when invalid
+                  : 'drop-shadow(0 0 0.75px rgba(63,63,70,0.9))'
+              } : undefined}
+            >
+              {/* Content */}
+              {isFirstNode && isTrigger ? (
+                /* Minimal first node layout */
+                <div className="h-full flex items-center relative">
+                  {/* Icon */}
+                  <div className="flex-shrink-0 mr-3">
+                    <div className="w-6 h-6 bg-zinc-800 rounded border border-zinc-700 flex items-center justify-center">
+                      {getNodeIcon(node.type)}
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 mr-3">
+                    <h4 className="text-white text-sm font-medium truncate">{node.name}</h4>
+                  </div>
+                  
+                  {/* Status */}
+                  <div className="w-1.5 h-1.5 bg-[#FF6900] rounded-full" />
+                  {executingNodeId === node.id && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <div className="w-5 h-5 border-2 border-[#FF6900] border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 </div>
-                
-                {/* Node Title */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium text-sm truncate">{node.name}</h4>
-                  <p className="text-zinc-400 text-xs truncate">{node.type}</p>
-                </div>
-                
-                {/* Status Indicator */}
-                <div className={`w-2 h-2 rounded-full ${
-                  selectedNode === node.id ? 'bg-[#FF6900]' : 'bg-emerald-500'
-                }`}></div>
-              </div>
+              ) : (
+                /* Standard node layout */
+                <>
+                  {/* Node Header */}
+                  <div className="flex items-center gap-3 mb-3 relative">
+                    {/* Icon */}
+                    <div className={`
+                      w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200
+                      ${selectedNode === node.id 
+                        ? 'bg-[#FF6900] text-white' 
+                        : 'bg-zinc-800 text-zinc-300 group-hover:bg-zinc-700'
+                      }
+                    `}>
+                      {getNodeIcon(node.type)}
+                    </div>
+                    
+                    {/* Node Title */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-white font-medium text-sm truncate">{node.name}</h4>
+                      <p className="text-zinc-400 text-xs truncate">{node.type}</p>
+                    </div>
+                    
+                    {/* Status Indicator */}
+                    <div className={`w-2 h-2 rounded-full ${
+                      selectedNode === node.id ? 'bg-[#FF6900]' : 'bg-emerald-500'
+                    }`} />
+                    {executingNodeId === node.id && (
+                      <div className="absolute -right-1 -top-1">
+                        <div className="w-5 h-5 border-2 border-[#FF6900] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Node Description */}
+                  <div className="text-xs text-zinc-400 mb-3">
+                    Ready to configure
+                  </div>
+                </>
+              )}
               
-              {/* Node Description */}
-              <div className="text-xs text-zinc-400 mb-3">
-                Ready to configure
-              </div>
-              
-              {/* Connection Handles */}
-              {/* Input Handle - Drop Target */}
+              {/* Connection Handles are rendered as siblings of the clipped body to avoid clipping */}
+            </div>
+            
+            {/* Connection Handles (outside the clipped body) */}
+            {/* Input Handle - hidden for first trigger node */}
+            {!(isFirstNode && isTrigger) && (
               <div 
                 className={`absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg rounded-full ${
                   isConnecting ? 'border-[#FF6900] bg-[#FF6900]/20 scale-110' : 'border-zinc-700 hover:border-[#FF6900] hover:bg-[#FF6900]/20'
@@ -581,33 +739,34 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
               >
                 <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors"></div>
               </div>
-              
-              {/* Output Handle - Drag Source */}
-              <div 
-                className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 border-zinc-700 rounded-full hover:border-[#FF6900] hover:bg-[#FF6900]/20 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg"
-                onMouseDown={(e) => handleConnectionMouseDown(node.id, 'output', e)}
-                title="Output - Drag to connect"
+            )}
+
+            {/* Output Handle */}
+            <div 
+              className={`absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 border-zinc-700 rounded-full hover:border-[#FF6900] hover:bg-[#FF6900]/20 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg`}
+              onMouseDown={(e) => handleConnectionMouseDown(node.id, 'output', e)}
+              title="Output - Drag to connect"
+            >
+              <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors" />
+            </div>
+
+            {/* Delete Button on Hover */}
+            <div className={`absolute -top-2 ${isFirstNode && isTrigger ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+              <button 
+                className="bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium shadow-sm transition-colors duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNodeDelete(node.id);
+                }}
+                title="Delete Node"
               >
-                <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors"></div>
-              </div>
-              
-              {/* Delete Button on Hover */}
-              <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button 
-                  className="bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium shadow-sm transition-colors duration-200"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNodeDelete(node.id);
-                  }}
-                  title="Delete Node"
-                >
-                  ×
-                </button>
-              </div>
+                ×
+              </button>
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* Empty State */}
       {nodes.length === 0 && !isDragOver && (

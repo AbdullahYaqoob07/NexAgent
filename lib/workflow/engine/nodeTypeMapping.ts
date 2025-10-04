@@ -28,6 +28,7 @@ import { WebhookTriggerNode } from './nodes/WebhookTriggerNode';
 import { FileWatchTriggerNode } from './nodes/FileWatchTriggerNode';
 import { DatabaseTriggerNode } from './nodes/DatabaseTriggerNode';
 import { EmailTriggerNode } from './nodes/EmailTriggerNode';
+import { OnClickExecuteTriggerNode } from './nodes/OnClickExecuteTriggerNode';
 
 /**
  * Central mapping registry for sidebar node types to engine node classes
@@ -68,6 +69,12 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     sidebarType: 'Email Trigger',
     engineType: 'EmailTriggerNode',
     nodeClass: EmailTriggerNode,
+    category: 'trigger'
+  },
+  {
+    sidebarType: 'On Clicking Execute',
+    engineType: 'OnClickExecuteTriggerNode',
+    nodeClass: OnClickExecuteTriggerNode,
     category: 'trigger'
   },
 

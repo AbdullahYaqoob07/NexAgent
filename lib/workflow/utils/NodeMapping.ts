@@ -15,6 +15,16 @@ export interface NodeMapping {
 export const NODE_MAPPINGS: NodeMapping[] = [
   // Triggers
   {
+    displayName: 'On Clicking Execute',
+    nodeType: 'on_click_execute_trigger',
+    category: 'trigger',
+    defaultConfig: { executeOnRun: true, description: 'Triggered when Execute button is clicked' },
+    inputs: [],
+    outputs: [
+      { id: 'execute_data', name: 'Execute Data', type: 'object', required: true }
+    ]
+  },
+  {
     displayName: 'HTTP Request',
     nodeType: 'http_request_trigger',
     category: 'trigger',

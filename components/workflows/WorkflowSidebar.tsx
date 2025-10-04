@@ -69,6 +69,7 @@ const getNodeIcon = (nodeName: string): React.ReactNode => {
     'File Watch': <FileText className="w-4 h-4" />,
     'Database Trigger': <Database className="w-4 h-4" />,
     'Email Trigger': <Mail className="w-4 h-4" />,
+    'On Clicking Execute': <Zap className="w-4 h-4" />,
     
     // Actions
     'Database': <Database className="w-4 h-4" />,
@@ -105,13 +106,14 @@ const nodeCategories = getNodeCategories();
 interface WorkflowSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
+  canvasNodeCount?: number;
 }
 
 interface WorkflowSidebarHandle {
   openTriggersWithBlink: () => void;
 }
 
-const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(function WorkflowSidebar({ collapsed, onToggleCollapse }, ref) {
+const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(function WorkflowSidebar({ collapsed, onToggleCollapse, canvasNodeCount = 0 }, ref) {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["Triggers"]);
   const [isBlinking, setIsBlinking] = useState(false);
@@ -160,7 +162,22 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
     );
   };
 
+  // Check if a node should be disabled based on canvas state
+  const isNodeDisabled = (nodeName: string) => {
+    if (canvasNodeCount > 0) return false; // Allow all nodes if canvas has nodes
+    
+    // If canvas is empty, only allow trigger nodes
+    const mapping = getNodeMappingsByCategory('trigger').find(m => m.displayName === nodeName);
+    return !mapping; // Disable if not a trigger
+  };
+
   const handleNodeDragStart = (event: React.DragEvent, nodeName: string) => {
+    // Prevent drag if node is disabled
+    if (isNodeDisabled(nodeName)) {
+      event.preventDefault();
+      return;
+    }
+    
     console.log('Starting drag for:', nodeName);
     
     event.dataTransfer.setData("application/reactflow", nodeName);
@@ -250,23 +267,37 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
                         node.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         node.description.toLowerCase().includes(searchTerm.toLowerCase())
                       )
-                      .map((node, index) => (
+                      .map((node, index) => {
+                        const disabled = isNodeDisabled(node.name);
+                        return (
                         <div
                           key={node.name}
-                          draggable
+                          draggable={!disabled}
                           onDragStart={(e) => handleNodeDragStart(e, node.name)}
-                          className="mx-3 p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 cursor-move hover:bg-zinc-800 hover:border-zinc-700 transition-all duration-200 mb-2 group"
+                          className={`mx-3 p-2.5 rounded-lg border transition-all duration-200 mb-2 group ${
+                            disabled 
+                              ? 'bg-zinc-950 border-zinc-800 opacity-50 cursor-not-allowed'
+                              : 'bg-zinc-900 border-zinc-800 cursor-move hover:bg-zinc-800 hover:border-zinc-700'
+                          }`}
                           style={{
                             transitionDelay: expandedCategories.includes(category.name) ? `${index * 50}ms` : '0ms'
                           }}
+                          title={disabled ? "First node must be a trigger" : ""}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            {node.icon}
-                            <span className="text-xs font-medium text-white truncate">{node.name}</span>
+                            <div className={disabled ? 'opacity-50' : ''}>
+                              {node.icon}
+                            </div>
+                            <span className={`text-xs font-medium truncate ${
+                              disabled ? 'text-zinc-600' : 'text-white'
+                            }`}>{node.name}</span>
                           </div>
-                          <p className="text-xs text-zinc-500 leading-tight">{node.description}</p>
+                          <p className={`text-xs leading-tight ${
+                            disabled ? 'text-zinc-700' : 'text-zinc-500'
+                          }`}>{node.description}</p>
                         </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </div>
               </div>
