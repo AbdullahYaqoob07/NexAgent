@@ -18,60 +18,69 @@ import {
   X
 } from "lucide-react";
 import DashboardLayout from "./DashboardLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUserProfile } from '@/lib/useUserProfile';
 
-interface SerializedUser {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  emailAddresses: Array<{
-    emailAddress: string;
-    verification?: {
-      status?: string;
-    };
-  }>;
-  phoneNumbers: Array<{
-    phoneNumber: string;
-  }>;
-  createdAt: Date;
-  lastSignInAt: Date | null;
-  imageUrl: string;
-}
-
-interface ProfilePageProps {
-  user: SerializedUser | null;
-}
-
-export default function ProfilePage({ user }: ProfilePageProps) {
+export default function ProfilePage() {
+  const { profileData, loading, updateProfile, trackFeature } = useUserProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.emailAddresses[0]?.emailAddress || '',
-    phone: user?.phoneNumbers[0]?.phoneNumber || '',
-    bio: 'AI Engineer passionate about building the future of intelligent automation.',
-    location: 'San Francisco, CA',
-    website: 'https://nexagent.ai',
-    timezone: 'Pacific Standard Time (UTC-8)'
+    firstName: profileData?.profile.firstName || '',
+    lastName: profileData?.profile.lastName || '',
+    email: profileData?.email || '',
+    phone: profileData?.profile.phoneNumber || '',
+    bio: profileData?.profile.bio || '',
+    location: profileData?.profile.location || '',
+    website: profileData?.profile.website || '',
+    timezone: profileData?.profile.timezone || ''
   });
 
-  const handleSave = () => {
-    // Here you would typically update the user profile via Clerk or your API
-    setIsEditing(false);
-    console.log('Saving profile:', formData);
+  // Update form data when profile data changes
+  useEffect(() => {
+    if (profileData) {
+      setFormData({
+        firstName: profileData.profile.firstName || '',
+        lastName: profileData.profile.lastName || '',
+        email: profileData.email || '',
+        phone: profileData.profile.phoneNumber || '',
+        bio: profileData.profile.bio || '',
+        location: profileData.profile.location || '',
+        website: profileData.profile.website || '',
+        timezone: profileData.profile.timezone || ''
+      });
+    }
+  }, [profileData]);
+
+  const handleSave = async () => {
+    // Update profile using Firebase
+    const success = await updateProfile({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      bio: formData.bio,
+      location: formData.location,
+      website: formData.website,
+      timezone: formData.timezone
+    });
+    
+    if (success) {
+      setIsEditing(false);
+      console.log('Profile updated successfully');
+    } else {
+      console.error('Failed to update profile');
+    }
   };
 
   const handleCancel = () => {
     // Reset form data to original values
     setFormData({
-      firstName: user?.firstName || '',
-      lastName: user?.lastName || '',
-      email: user?.emailAddresses[0]?.emailAddress || '',
-      phone: user?.phoneNumbers[0]?.phoneNumber || '',
-      bio: 'AI Engineer passionate about building the future of intelligent automation.',
-      location: 'San Francisco, CA',
-      website: 'https://nexagent.ai',
-      timezone: 'Pacific Standard Time (UTC-8)'
+      firstName: profileData?.profile.firstName || '',
+      lastName: profileData?.profile.lastName || '',
+      email: profileData?.email || '',
+      phone: profileData?.profile.phoneNumber || '',
+      bio: profileData?.profile.bio || '',
+      location: profileData?.profile.location || '',
+      website: profileData?.profile.website || '',
+      timezone: profileData?.profile.timezone || ''
     });
     setIsEditing(false);
   };
@@ -102,25 +111,25 @@ export default function ProfilePage({ user }: ProfilePageProps) {
   const accountStats = [
     {
       title: "Member Since",
-      value: new Date(user?.createdAt || Date.now()).toLocaleDateString(),
+      value: profileData?.memberSince.toLocaleDateString() || 'Unknown',
       icon: Calendar,
       color: "from-[#FF6900] to-[#FF8555]"
     },
     {
       title: "Last Sign In",
-      value: new Date(user?.lastSignInAt || Date.now()).toLocaleDateString(),
+      value: profileData?.activity.lastActiveAt?.toDate().toLocaleDateString() || 'Unknown',
       icon: Shield,
       color: "from-blue-500 to-blue-600"
     },
     {
       title: "Email Verified",
-      value: user?.emailAddresses[0]?.verification?.status === "verified" ? "Yes" : "No",
+      value: profileData?.emailVerified ? "Yes" : "No",
       icon: Mail,
       color: "from-green-500 to-green-600"
     },
     {
       title: "Two-Factor Auth",
-      value: "Enabled",
+      value: profileData?.security.twoFactorEnabled ? "Enabled" : "Disabled",
       icon: Key,
       color: "from-purple-500 to-purple-600"
     }
@@ -186,7 +195,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
               <div className="text-center">
                 <div className="relative inline-block">
                   <div className="w-24 h-24 bg-gradient-to-br from-[#FF6900] to-[#FF8555] rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto">
-                    {user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress?.[0]?.toUpperCase() || 'U'}
+                    {profileData?.initials || 'U'}
                   </div>
                   {isEditing && (
                     <button className="absolute bottom-0 right-0 bg-[#FF6900] text-white p-2 rounded-full hover:bg-[#E55D00] transition-colors duration-300">
@@ -195,9 +204,9 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                   )}
                 </div>
                 <h2 className="text-xl font-bold text-white mt-4">
-                  {user?.firstName} {user?.lastName}
+                  {profileData?.fullName || 'User'}
                 </h2>
-                <p className="text-white/70">{user?.emailAddresses[0]?.emailAddress}</p>
+                <p className="text-white/70">{profileData?.email}</p>
               </div>
 
               {/* Account Stats */}

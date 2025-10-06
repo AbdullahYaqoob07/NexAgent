@@ -1,0 +1,122 @@
+// Firestore Security Rules for NexAgent
+// These rules secure user data and ensure proper access control
+// Deploy with: firebase deploy --only firestore:rules
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidUser(user) {
+      return user.keys().hasAll(['id', 'clerkId', 'email', 'createdAt', 'updatedAt']) &&
+             user.id is string &&
+             user.clerkId is string &&
+             user.email is string &&
+             user.createdAt is timestamp &&
+             user.updatedAt is timestamp;
+    }
+    
+    function isValidSubscription(subscription) {
+      return subscription.keys().hasAll(['plan', 'status']) &&
+             subscription.plan in ['free', 'pro', 'enterprise'] &&
+             subscription.status in ['active', 'canceled', 'past_due'];
+    }
+    
+    function isValidUsage(usage) {
+      return usage.keys().hasAll(['tokensUsed', 'workflowsCreated', 'apiCallsThisMonth']) &&
+             usage.tokensUsed is int &&
+             usage.tokensUsed >= 0 &&
+             usage.workflowsCreated is int &&
+             usage.workflowsCreated >= 0 &&
+             usage.apiCallsThisMonth is int &&
+             usage.apiCallsThisMonth >= 0;
+    }
+    
+    function isValidPreferences(preferences) {
+      return preferences.theme in ['dark', 'light'] &&
+             preferences.notifications is bool &&
+             preferences.language is string;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Allow users to read their own data
+      allow read: if isOwner(userId);
+      
+      // Allow users to update their own data (limited fields)
+      allow update: if isOwner(userId) && 
+                    // Only allow updating specific fields
+                    request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['firstName', 'lastName', 'fullName', 'imageUrl', 'preferences', 'updatedAt']) &&
+                    // Validate preferences if being updated
+                    (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['preferences']) ||
+                     isValidPreferences(request.resource.data.preferences)) &&
+                    // Ensure updatedAt is set to server timestamp
+                    request.resource.data.updatedAt == request.time;
+      
+      // Deny create and delete - these should only be done via server-side sync
+      allow create: if false;
+      allow delete: if false;
+      
+      // Admin users can read all users (if needed for admin dashboard)
+      allow read: if isAuthenticated() && 
+                  exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+                  get(/databases/$(database)/documents/users/$(request.auth.uid)).data.metadata.role == 'admin';
+    }
+    
+    // Workflows collection - users can only access their own workflows
+    match /workflows/{workflowId} {
+      allow read, write: if isAuthenticated() && 
+                         resource.data.userId == request.auth.uid;
+      
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Workflow executions collection - users can only access their own executions
+    match /executions/{executionId} {
+      allow read, write: if isAuthenticated() && 
+                         resource.data.userId == request.auth.uid;
+      
+      allow create: if isAuthenticated() && 
+                    request.resource.data.userId == request.auth.uid;
+    }
+    
+    // User activity logs - users can read their own logs, but not modify
+    match /userLogs/{userId}/activities/{activityId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Logs are write-only via server
+    }
+    
+    // Usage analytics - users can read their own analytics
+    match /analytics/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Analytics are updated via server
+    }
+    
+    // System collections (admin only)
+    match /system/{document=**} {
+      allow read, write: if false; // System data is server-only
+    }
+    
+    // Public templates/marketplace - read-only for all authenticated users
+    match /templates/{templateId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Templates are managed server-side
+    }
+    
+    // Default deny rule - blocks access to any other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
