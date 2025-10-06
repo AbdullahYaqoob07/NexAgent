@@ -28,6 +28,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [canvasNodeCount, setCanvasNodeCount] = useState(0);
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState<string>('Untitled Workflow');
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
   const sidebarRef = useRef<{ openTriggersWithBlink: () => void }>(null);
   const canvasRef = useRef<WorkflowCanvasRef>(null);
   const [activeTab, setActiveTab] = useState<'nexa' | 'executions'>('nexa');
@@ -92,6 +93,80 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     },
     localStorageKey: 'nexagent-workflow-editor-tour'
   });
+
+  // Save current workflow without executing
+  const saveCurrentWorkflow = async () => {
+    try {
+      if (!canvasRef.current) {
+        addToast('Canvas not ready', 'error');
+        return;
+      }
+      const workflowData = canvasRef.current.getWorkflowData();
+      if (!workflowData) {
+        addToast('Nothing to save yet', 'info');
+        return;
+      }
+
+      const nodesArr = workflowData.nodes;
+      const workflowNodes = nodesArr.map((canvasNode: any) => {
+        const nodeType = canvasNode.type || canvasNode.data?.type || 'Unknown';
+        const nodeMapping = getNodeMapping(nodeType);
+        if (!nodeMapping) {
+          return {
+            id: canvasNode.id,
+            type: nodeType,
+            category: 'action' as any,
+            name: canvasNode.name || canvasNode.data?.name || nodeType,
+            description: `Node: ${nodeType}`,
+            position: { x: canvasNode.x || 0, y: canvasNode.y || 0 },
+            config: canvasNode.config || canvasNode.data?.config || {},
+            inputs: [],
+            outputs: [],
+            version: '1.0.0',
+            enabled: true,
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return convertCanvasNodeToWorkflowNode(canvasNode, nodeMapping);
+      });
+
+      const now = new Date().toISOString();
+      const wfId = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
+      const workflow: Workflow = {
+        id: wfId,
+        name: workflowName || 'Untitled Workflow',
+        description: 'Workflow saved from editor',
+        nodes: workflowNodes,
+        connections: workflowData.connections.map((conn: any) => ({
+          id: conn.id,
+          sourceNodeId: conn.from,
+          sourcePortId: conn.fromPoint || 'output',
+          targetNodeId: conn.to,
+          targetPortId: conn.toPoint || 'input',
+          type: 'default' as any,
+          enabled: true
+        })),
+        settings: {
+          timeout: 300000,
+          retryCount: 3,
+          concurrency: 1,
+          errorHandling: 'stop'
+        },
+        createdAt: now,
+        updatedAt: now,
+        version: '1.0.0'
+      };
+
+      await workflowManager.saveWorkflow(workflow);
+      setCurrentWorkflowId(wfId);
+      addToast('Workflow saved', 'info');
+    } catch (e) {
+      console.error('Failed to save workflow:', e);
+      addToast('Failed to save workflow', 'error');
+    }
+  };
 
   // Execute workflow function
   const executeWorkflow = async () => {
@@ -209,8 +284,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
       // Create workflow definition
       const now = new Date().toISOString();
+      const wfId = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
       const workflow: Workflow = {
-        id: workflowId || `workflow_${Date.now()}`,
+        id: wfId,
         name: workflowName || 'Untitled Workflow',
         description: 'Workflow created in editor',
         nodes: workflowNodes,
@@ -266,6 +342,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       
       // Save the workflow
       await workflowManager.saveWorkflow(workflow);
+      setCurrentWorkflowId(wfId);
       
       // Set last execution id; remain on canvas (no navigation)
       setActiveNodeId(null);
@@ -299,6 +376,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           onToggleAssistant={() => setShowAssistant(!showAssistant)}
           assistantMinimized={assistantMinimized}
           onExecute={executeWorkflow}
+          onSave={saveCurrentWorkflow}
           isExecuting={isExecuting}
           workflowName={workflowName}
           onRenameWorkflow={setWorkflowName}

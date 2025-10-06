@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useUserProfile } from '@/lib/useUserProfile';
 import { 
   Settings,
   Building2,
@@ -163,6 +164,7 @@ interface SettingsViewProps {
 }
 
 export default function SettingsView({ user }: SettingsViewProps) {
+  const { profileData, loading, updateWorkspace, updateAPIKey, removeAPIKey, updateIntegration, updatePreferences, updateSecurity } = useUserProfile();
   const [toasts, setToasts] = useState<Array<{id: string, message: string, type: 'success' | 'error' | 'info'}>>([]);
   
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -173,158 +175,99 @@ export default function SettingsView({ user }: SettingsViewProps) {
     }, 3000);
   };
 
-  // Mock settings data
-  const [settings, setSettings] = useState<SettingsData>({
+  const [activeTab, setActiveTab] = useState<'workspace' | 'integrations' | 'team' | 'security' | 'notifications' | 'advanced'>('workspace');
+  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading settings...</div>
+      </div>
+    );
+  }
+
+  // Transform Firebase data to component-friendly format
+  const settings: SettingsData = {
     workspace: {
-      name: 'NexAgent Workspace',
-      description: 'AI-powered workflow automation workspace for enterprise operations',
-      timezone: 'America/New_York',
-      language: 'en-US',
-      region: 'us-east-1',
-      autoSave: true,
-      collaborationMode: 'restricted',
-      defaultExecutionTimeout: 300,
-      maxWorkflowNodes: 100,
-      enableAnalytics: true
+      name: profileData?.workspace.name || 'My Workspace',
+      description: profileData?.workspace.description || '',
+      timezone: profileData?.preferences.timezone || 'UTC',
+      language: profileData?.preferences.language || 'en-US',
+      region: profileData?.workspace.region || 'us-east-1',
+      autoSave: profileData?.workspace.autoSave ?? true,
+      collaborationMode: profileData?.workspace.collaborationMode || 'restricted',
+      defaultExecutionTimeout: profileData?.workspace.defaultExecutionTimeout || 300,
+      maxWorkflowNodes: profileData?.workspace.maxWorkflowNodes || 100,
+      enableAnalytics: profileData?.workspace.enableAnalytics ?? true
     },
-    integrations: [
-      {
-        id: 'slack-1',
-        name: 'Slack',
-        type: 'oauth',
-        status: 'connected',
-        lastUsed: '2024-01-20T14:22:00Z',
-        config: { workspace: 'nexagent-team', channels: ['#workflows', '#alerts'] },
-        enabled: true
-      },
-      {
-        id: 'github-1',
-        name: 'GitHub',
-        type: 'oauth',
-        status: 'connected',
-        lastUsed: '2024-01-19T10:15:00Z',
-        config: { organization: 'nexagent-org', repositories: ['workflow-templates'] },
-        enabled: true
-      },
-      {
-        id: 'google-1',
-        name: 'Google Workspace',
-        type: 'oauth',
-        status: 'disconnected',
-        lastUsed: null,
-        config: {},
-        enabled: false
-      },
-      {
-        id: 'aws-1',
-        name: 'AWS',
-        type: 'api_key',
-        status: 'connected',
-        lastUsed: '2024-01-20T16:30:00Z',
-        config: { region: 'us-east-1', services: ['s3', 'lambda', 'ses'] },
-        enabled: true
-      }
-    ],
-    apiKeys: [
-      {
-        id: 'key-1',
-        name: 'Production API Key',
-        key: 'nx_prod_abc123def456ghi789',
-        scopes: ['workflows.execute', 'analytics.read'],
-        environment: 'production',
-        status: 'active',
-        lastUsed: '2024-01-20T14:22:00Z',
-        expiresAt: '2024-12-31T23:59:59Z',
-        rateLimit: 10000
-      },
-      {
-        id: 'key-2',
-        name: 'Development Key',
-        key: 'nx_dev_xyz789abc012def345',
-        scopes: ['workflows.execute', 'workflows.write'],
-        environment: 'development',
-        status: 'active',
-        lastUsed: '2024-01-19T16:45:00Z',
-        expiresAt: null,
-        rateLimit: 1000
-      }
-    ],
+    integrations: profileData?.integrations?.map(integration => ({
+      id: integration.id,
+      name: integration.name,
+      type: integration.type,
+      status: integration.status,
+      lastUsed: integration.lastUsed?.toDate().toISOString() || null,
+      config: integration.config,
+      enabled: integration.enabled
+    })) || [],
+    apiKeys: profileData?.apiKeys?.map(key => ({
+      id: key.id,
+      name: key.name,
+      key: key.keyPreview, // Only preview, not full key
+      scopes: key.scopes,
+      environment: key.environment,
+      status: key.status,
+      lastUsed: key.lastUsed?.toDate().toISOString() || null,
+      expiresAt: key.expiresAt?.toDate().toISOString() || null,
+      rateLimit: key.rateLimit
+    })) || [],
     team: [
       {
         id: 'user-1',
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
+        name: profileData?.fullName || `${user.firstName} ${user.lastName}`,
+        email: profileData?.email || user.email,
         role: 'owner',
         status: 'active',
-        joinedAt: new Date(user.createdAt).toISOString(),
-        lastActive: new Date(user.lastSignInAt).toISOString(),
+        joinedAt: profileData?.memberSince.toISOString() || new Date(user.createdAt).toISOString(),
+        lastActive: profileData?.activity.lastActiveAt?.toDate().toISOString() || new Date(user.lastSignInAt).toISOString(),
         permissions: ['all']
-      },
-      {
-        id: 'user-2',
-        name: 'Sarah Johnson',
-        email: 'sarah.johnson@company.com',
-        role: 'admin',
-        status: 'active',
-        joinedAt: '2024-01-10T08:00:00Z',
-        lastActive: '2024-01-20T15:30:00Z',
-        permissions: ['workflows.manage', 'team.manage']
-      },
-      {
-        id: 'user-3',
-        name: 'Mike Chen',
-        email: 'mike.chen@company.com',
-        role: 'editor',
-        status: 'active',
-        joinedAt: '2024-01-12T10:00:00Z',
-        lastActive: '2024-01-19T14:20:00Z',
-        permissions: ['workflows.create', 'workflows.edit']
       }
     ],
     security: {
-      twoFactorRequired: true,
-      sessionTimeout: 8,
-      ipWhitelist: ['192.168.1.0/24', '10.0.0.0/16'],
-      auditLogging: true,
+      twoFactorRequired: profileData?.security.twoFactorEnabled ?? false,
+      sessionTimeout: 3600,
+      ipWhitelist: [],
+      auditLogging: profileData?.workspace.enableAnalytics ?? true,
       dataRetention: 90,
       encryptionEnabled: true
     },
     notifications: {
       email: {
-        workflowFailures: true,
+        workflowFailures: profileData?.preferences.notifications.workflow ?? true,
         teamInvites: true,
         systemUpdates: false,
-        securityAlerts: true,
+        securityAlerts: profileData?.preferences.notifications.security ?? true,
         usageAlerts: true
       },
       slack: {
-        enabled: true,
-        webhookUrl: 'https://hooks.slack.com/services/...',
-        channels: ['#workflows', '#alerts']
+        enabled: false,
+        webhookUrl: '',
+        channels: []
       },
-      webhooks: [
-        {
-          id: 'webhook-1',
-          url: 'https://api.company.com/nexagent/webhook',
-          events: ['workflow.completed', 'workflow.failed'],
-          enabled: true
-        }
-      ]
+      webhooks: []
     },
     advanced: {
       debugMode: false,
       experimentalFeatures: true,
-      customDomain: 'workflows.company.com',
-      ssoEnabled: true,
+      customDomain: '',
+      ssoEnabled: false,
       apiRateLimit: 10000,
-      storageQuota: 100,
+      storageQuota: profileData?.usage.limits.storageLimit || 100,
       backupEnabled: true,
       backupFrequency: 'daily'
     }
-  });
+  };
 
-  const [activeTab, setActiveTab] = useState<'workspace' | 'integrations' | 'team' | 'security' | 'notifications' | 'advanced'>('workspace');
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
   const tabs = [
     { id: 'workspace', label: 'Workspace', icon: Building2 },
@@ -352,6 +295,58 @@ export default function SettingsView({ user }: SettingsViewProps) {
     } catch (err) {
       addToast('Failed to copy', 'error');
     }
+  };
+
+  // Handlers to persist tab updates where supported
+  const handleSecurityUpdate = async (updates: Partial<SettingsData['security']>) => {
+    let ok = true;
+    if (Object.prototype.hasOwnProperty.call(updates, 'twoFactorRequired')) {
+      const res = await updateSecurity({ twoFactorEnabled: !!updates.twoFactorRequired });
+      ok = !!res && ok;
+      addToast(`2FA ${updates.twoFactorRequired ? 'enabled' : 'disabled'}`, res ? 'success' : 'error');
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'auditLogging')) {
+      const res = await updateWorkspace({ enableAnalytics: !!updates.auditLogging });
+      ok = !!res && ok;
+      addToast(`Audit logging ${updates.auditLogging ? 'enabled' : 'disabled'}`, res ? 'success' : 'error');
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'sessionTimeout') ||
+        Object.prototype.hasOwnProperty.call(updates, 'ipWhitelist') ||
+        Object.prototype.hasOwnProperty.call(updates, 'dataRetention') ||
+        Object.prototype.hasOwnProperty.call(updates, 'encryptionEnabled')) {
+      addToast('Some security settings are display-only for now.', 'info');
+    }
+    return ok;
+  };
+
+  const handleNotificationsUpdate = async (updates: Partial<SettingsData['notifications']>) => {
+    let ok = true;
+    if (updates.email) {
+      const notificationsUpdates: any = { notifications: {} };
+      if (typeof updates.email.workflowFailures === 'boolean') {
+        notificationsUpdates.notifications.workflow = updates.email.workflowFailures;
+      }
+      if (typeof updates.email.securityAlerts === 'boolean') {
+        notificationsUpdates.notifications.security = updates.email.securityAlerts;
+      }
+      if (Object.keys(notificationsUpdates.notifications).length > 0) {
+        const res = await updatePreferences(notificationsUpdates);
+        ok = !!res && ok;
+        addToast('Notification preferences updated', res ? 'success' : 'error');
+      }
+      if (typeof updates.email.teamInvites === 'boolean' || typeof updates.email.systemUpdates === 'boolean' || typeof updates.email.usageAlerts === 'boolean') {
+        addToast('Some notification toggles are not persisted yet.', 'info');
+      }
+    }
+    if (updates.slack || updates.webhooks) {
+      addToast('Slack and Webhook settings are coming soon.', 'info');
+    }
+    return ok;
+  };
+
+  const handleAdvancedUpdate = async () => {
+    addToast('Advanced settings save is coming soon.', 'info');
+    return false;
   };
 
   return (
@@ -402,7 +397,14 @@ export default function SettingsView({ user }: SettingsViewProps) {
         {activeTab === 'workspace' && (
           <WorkspaceTab 
             settings={settings.workspace} 
-            onUpdate={(updates) => setSettings(prev => ({ ...prev, workspace: { ...prev.workspace, ...updates } }))}
+            onUpdate={async (updates) => {
+              const success = await updateWorkspace(updates);
+              if (success) {
+                addToast('Workspace settings updated successfully!', 'success');
+              } else {
+                addToast('Failed to update workspace settings', 'error');
+              }
+            }}
             addToast={addToast}
           />
         )}
@@ -420,7 +422,7 @@ export default function SettingsView({ user }: SettingsViewProps) {
         
         {activeTab === 'team' && (
           <TeamTab 
-            team={settings.team} 
+            team={settings.team}
             addToast={addToast}
           />
         )}
@@ -428,7 +430,7 @@ export default function SettingsView({ user }: SettingsViewProps) {
         {activeTab === 'security' && (
           <SecurityTab 
             settings={settings.security}
-            onUpdate={(updates) => setSettings(prev => ({ ...prev, security: { ...prev.security, ...updates } }))}
+            onUpdate={handleSecurityUpdate}
             addToast={addToast}
           />
         )}
@@ -436,7 +438,7 @@ export default function SettingsView({ user }: SettingsViewProps) {
         {activeTab === 'notifications' && (
           <NotificationsTab 
             settings={settings.notifications}
-            onUpdate={(updates) => setSettings(prev => ({ ...prev, notifications: { ...prev.notifications, ...updates } }))}
+            onUpdate={handleNotificationsUpdate}
             addToast={addToast}
           />
         )}
@@ -444,7 +446,7 @@ export default function SettingsView({ user }: SettingsViewProps) {
         {activeTab === 'advanced' && (
           <AdvancedTab 
             settings={settings.advanced}
-            onUpdate={(updates) => setSettings(prev => ({ ...prev, advanced: { ...prev.advanced, ...updates } }))}
+            onUpdate={handleAdvancedUpdate}
             addToast={addToast}
           />
         )}
@@ -486,10 +488,9 @@ function WorkspaceTab({
   const [isEditing, setIsEditing] = useState(false);
   const [editedSettings, setEditedSettings] = useState(settings);
 
-  const handleSave = () => {
-    onUpdate(editedSettings);
+  const handleSave = async () => {
+    await onUpdate(editedSettings);
     setIsEditing(false);
-    addToast('Workspace settings updated successfully!', 'success');
   };
 
   const handleCancel = () => {
@@ -606,9 +607,8 @@ function WorkspaceTab({
               </div>
               <ToggleSwitch
                 enabled={settings.autoSave}
-                onToggle={(enabled) => {
-                  onUpdate({ autoSave: enabled });
-                  addToast(`Auto-save ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                onToggle={async (enabled) => {
+                  await onUpdate({ autoSave: enabled });
                 }}
               />
             </div>
@@ -620,9 +620,8 @@ function WorkspaceTab({
               </div>
               <ToggleSwitch
                 enabled={settings.enableAnalytics}
-                onToggle={(enabled) => {
-                  onUpdate({ enableAnalytics: enabled });
-                  addToast(`Analytics ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                onToggle={async (enabled) => {
+                  await onUpdate({ enableAnalytics: enabled });
                 }}
               />
             </div>
@@ -632,10 +631,10 @@ function WorkspaceTab({
               <input
                 type="number"
                 value={settings.defaultExecutionTimeout}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const value = parseInt(e.target.value);
                   if (!isNaN(value)) {
-                    onUpdate({ defaultExecutionTimeout: value });
+                    await onUpdate({ defaultExecutionTimeout: value });
                   }
                 }}
                 className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white focus:border-[#FF6900] focus:outline-none"
@@ -1005,21 +1004,23 @@ function SecurityTab({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">Session Timeout (hours)</label>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Session Timeout (hours)
+              <span title="Contact your admin to request changes" className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-white/10 text-white/60 bg-white/5 align-middle">
+                <Lock className="w-3 h-3" /> Admin-managed
+              </span>
+            </label>
             <input
               type="number"
               value={settings.sessionTimeout}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                  onUpdate({ sessionTimeout: value });
-                  addToast('Session timeout updated', 'success');
-                }
-              }}
+              readOnly
+              disabled
+              title="Contact your admin to request changes"
               min="1"
               max="24"
-              className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white focus:border-[#FF6900] focus:outline-none"
+              className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white opacity-60 cursor-not-allowed"
             />
+            <p className="text-xs text-white/50 mt-1">This setting is managed by your plan or administrator.</p>
           </div>
         </div>
       </div>
@@ -1043,21 +1044,21 @@ function SecurityTab({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">Data Retention (days)</label>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              Data Retention (days)
+              <span title="Contact your admin to request changes" className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-white/10 text-white/60 bg-white/5 align-middle">
+                <Lock className="w-3 h-3" /> Admin-managed
+              </span>
+            </label>
             <input
               type="number"
               value={settings.dataRetention}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                  onUpdate({ dataRetention: value });
-                  addToast('Data retention updated', 'success');
-                }
-              }}
-              min="30"
-              max="365"
-              className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white focus:border-[#FF6900] focus:outline-none"
+              readOnly
+              disabled
+              title="Contact your admin to request changes"
+              className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white opacity-60 cursor-not-allowed"
             />
+            <p className="text-xs text-white/50 mt-1">This setting is managed by your plan or administrator.</p>
           </div>
 
           <div>
@@ -1309,18 +1310,21 @@ function AdvancedTab({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">API Rate Limit (requests/hour)</label>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              API Rate Limit (requests/hour)
+              <span title="Contact your admin to request changes" className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-white/10 text-white/60 bg-white/5 align-middle">
+                <Lock className="w-3 h-3" /> Admin-managed
+              </span>
+            </label>
             <input
               type="number"
               value={settings.apiRateLimit}
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                if (!isNaN(value)) {
-                  onUpdate({ apiRateLimit: value });
-                }
-              }}
-              className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white focus:border-[#FF6900] focus:outline-none"
+              readOnly
+              disabled
+              title="Contact your admin to request changes"
+              className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white opacity-60 cursor-not-allowed"
             />
+            <p className="text-xs text-white/50 mt-1">This setting is managed by your plan or administrator.</p>
           </div>
 
           <div>
@@ -1356,18 +1360,21 @@ function AdvancedTab({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">Storage Quota (GB)</label>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Storage Quota (GB)
+                <span title="Contact your admin to request changes" className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-white/10 text-white/60 bg-white/5 align-middle">
+                  <Lock className="w-3 h-3" /> Admin-managed
+                </span>
+              </label>
               <input
                 type="number"
                 value={settings.storageQuota}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value)) {
-                    onUpdate({ storageQuota: value });
-                  }
-                }}
-                className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white focus:border-[#FF6900] focus:outline-none"
+                readOnly
+                disabled
+                title="Contact your admin to request changes"
+                className="w-full px-3 py-2 bg-white/5 border border-white/15 rounded-lg text-white opacity-60 cursor-not-allowed"
               />
+              <p className="text-xs text-white/50 mt-1">This setting is managed by your plan or administrator.</p>
             </div>
           </div>
         </div>

@@ -1,24 +1,33 @@
-import { currentUser } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import WorkflowEditor from '@/components/workflows/WorkflowEditor';
+'use client';
 
-interface WorkflowPageProps {
-  params: {
-    id: string;
-  };
-}
+import { useRequireAuth } from '@/lib/AuthContext';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import { useParams } from 'next/navigation';
 
-export default async function WorkflowPage({ params }: WorkflowPageProps) {
-  const user = await currentUser();
+export default function WorkflowPage() {
+  const { user, loading } = useRequireAuth();
+  const params = useParams();
+  const id = params?.id as string;
   
-  if (!user) {
-    redirect('/sign-in');
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 lg:p-8 flex items-center justify-center">
+          <div className="text-white">Loading...</div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
-  // Await params in Next.js 15
-  const { id } = await params;
-
-  // In a real app, you would fetch the workflow by ID here
-  // For now, we'll just show the editor with the workflow ID
-  return <WorkflowEditor workflowId={id} />;
+  return (
+    <DashboardLayout>
+      <div className="p-6 lg:p-8">
+        <div className="text-white">
+          <h1 className="text-2xl font-bold mb-4">Workflow Editor</h1>
+          <p className="text-white/70 mb-4">Editing workflow: {id}</p>
+          <p className="text-white/50">This page is being updated for Firebase authentication.</p>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
 }

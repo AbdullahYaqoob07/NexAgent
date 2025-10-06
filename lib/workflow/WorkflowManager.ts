@@ -5,16 +5,37 @@
 
 import { WorkflowEngine } from './engine/WorkflowEngine';
 import { InMemoryStorageProvider, LocalStorageProvider } from './storage/StorageProvider';
-import { Workflow, WorkflowExecution, ExecutionContext } from './types';
+import { FirestoreStorageProvider } from './storage/FirestoreStorageProvider';
+import { authService } from '../auth';
+import { Workflow, WorkflowExecution, ExecutionContext, StorageProvider as IStorageProvider } from './types';
 import { WorkflowConfig } from './engine/types';
 
 export class WorkflowManager {
   private engine: WorkflowEngine;
-  private storage: InMemoryStorageProvider | LocalStorageProvider;
+  private storage: IStorageProvider;
 
   constructor(useLocalStorage: boolean = false) {
-    this.storage = useLocalStorage ? new LocalStorageProvider() : new InMemoryStorageProvider();
+    if (typeof window !== 'undefined') {
+      // Prefer Firestore when authenticated, else fallback to LocalStorage for demo/dev
+      const uid = authService.getUserId();
+      if (uid && !useLocalStorage) {
+        this.storage = new FirestoreStorageProvider();
+      } else {
+        this.storage = new LocalStorageProvider();
+      }
+    } else {
+      // Server-side fallback (no browser APIs)
+      this.storage = new InMemoryStorageProvider();
+    }
     this.engine = new WorkflowEngine();
+  }
+
+  private ensureStorage() {
+    if (typeof window === 'undefined') return;
+    const uid = authService.getUserId();
+    if (uid && !(this.storage instanceof FirestoreStorageProvider)) {
+      this.storage = new FirestoreStorageProvider();
+    }
   }
 
   /**
@@ -84,6 +105,7 @@ export class WorkflowManager {
    * Save a workflow
    */
   async saveWorkflow(workflow: Workflow): Promise<void> {
+    this.ensureStorage();
     workflow.updatedAt = new Date().toISOString();
     await this.storage.saveWorkflow(workflow);
   }
@@ -92,6 +114,7 @@ export class WorkflowManager {
    * Load a workflow
    */
   async loadWorkflow(workflowId: string): Promise<Workflow | null> {
+    this.ensureStorage();
     return this.storage.loadWorkflow(workflowId);
   }
 
@@ -99,6 +122,7 @@ export class WorkflowManager {
    * List all workflows
    */
   async listWorkflows(): Promise<Workflow[]> {
+    this.ensureStorage();
     return this.storage.listWorkflows();
   }
 
@@ -153,6 +177,7 @@ export class WorkflowManager {
 
       // Save execution to storage
       try {
+        this.ensureStorage();
         await this.storage.saveExecution(execution);
       } catch (error) {
         console.error('Failed to save execution:', error);
@@ -170,6 +195,7 @@ export class WorkflowManager {
    * Get execution by ID
    */
   async getExecution(executionId: string): Promise<WorkflowExecution | null> {
+    this.ensureStorage();
     return this.storage.loadExecution(executionId);
   }
 
@@ -177,6 +203,7 @@ export class WorkflowManager {
    * List executions for a workflow
    */
   async listExecutions(workflowId: string): Promise<WorkflowExecution[]> {
+    this.ensureStorage();
     return this.storage.listExecutions(workflowId);
   }
 

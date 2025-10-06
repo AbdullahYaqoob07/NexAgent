@@ -14,14 +14,14 @@ import {
   Activity
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Demo() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
 
   const handleTryDemo = () => {
-    if (isSignedIn) {
+    if (user) {
       router.push('/demo/workflow-engine');
     } else {
       router.push('/sign-in');

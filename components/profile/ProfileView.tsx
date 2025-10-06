@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useUserProfile } from '@/lib/useUserProfile';
 import { 
   User as UserIcon, 
   Settings, 
@@ -103,7 +104,7 @@ interface ProfileData {
   };
   subscription: {
     plan: 'Free' | 'Pro' | 'Enterprise';
-    status: 'active' | 'cancelled' | 'past_due';
+    status: 'active' | 'cancelled' | 'past_due' | 'trialing';
     renewsAt: string;
     usage: {
       workflowExecutions: number;
@@ -139,6 +140,7 @@ interface ProfileViewProps {
 }
 
 export default function ProfileView({ user }: ProfileViewProps) {
+  const { profileData, loading, updateProfile, updateSocialLinks, updatePreferences } = useUserProfile();
   const [toasts, setToasts] = useState<Array<{id: string, message: string, type: 'success' | 'error' | 'info'}>>([]);
   
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -149,80 +151,89 @@ export default function ProfileView({ user }: ProfileViewProps) {
     }, 3000);
   };
   
-  // Enhanced mock profile data
-  const [profile] = useState<ProfileData>({
-    id: user.id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    username: user.username,
-    profileImageUrl: user.profileImageUrl,
-    createdAt: new Date(user.createdAt).toISOString(),
-    lastSignInAt: new Date(user.lastSignInAt).toISOString(),
-    emailVerified: user.emailVerified,
-    phoneVerified: user.phoneVerified,
-    bio: "AI Workflow Engineer passionate about automation and intelligent systems. Building the future of work with NexAgent.",
-    title: "Senior AI Engineer",
-    company: "TechCorp Inc.",
-    location: "San Francisco, CA",
-    website: "https://example.com",
-    timezone: "America/Los_Angeles",
-    phoneNumber: "+1 (555) 123-4567",
+  // If still loading, show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading profile...</div>
+      </div>
+    );
+  }
+  
+  // Transform Firebase data to component-friendly format
+  const profile: ProfileData = {
+    id: profileData?.uid || user.id,
+    email: profileData?.email || user.email,
+    firstName: profileData?.profile.firstName || user.firstName,
+    lastName: profileData?.profile.lastName || user.lastName,
+    username: profileData?.profile.username || user.username,
+    profileImageUrl: profileData?.photoURL || user.profileImageUrl,
+    createdAt: profileData?.memberSince.toISOString() || new Date(user.createdAt).toISOString(),
+    lastSignInAt: profileData?.activity.lastActiveAt?.toDate().toISOString() || new Date(user.lastSignInAt).toISOString(),
+    emailVerified: profileData?.emailVerified || user.emailVerified,
+    phoneVerified: false, // Not tracked in Firebase schema yet
+    bio: profileData?.profile.bio || '',
+    title: profileData?.profile.title || '',
+    company: profileData?.profile.company || '',
+    location: profileData?.profile.location || '',
+    website: profileData?.profile.website || '',
+    timezone: profileData?.profile.timezone || '',
+    phoneNumber: profileData?.profile.phoneNumber || '',
     socialLinks: {
-      github: "https://github.com/username",
-      twitter: "https://twitter.com/username",
-      linkedin: "https://linkedin.com/in/username"
+      github: profileData?.socialLinks.github || '',
+      twitter: profileData?.socialLinks.twitter || '',
+      linkedin: profileData?.socialLinks.linkedin || ''
     },
     preferences: {
-      theme: 'dark',
+      theme: profileData?.preferences.theme || 'dark',
       notifications: {
-        email: true,
-        push: true,
-        sms: false,
-        workflow: true,
-        security: true,
-        marketing: false
+        email: profileData?.preferences.notifications.email || false,
+        push: profileData?.preferences.notifications.push || false,
+        sms: profileData?.preferences.notifications.sms || false,
+        workflow: profileData?.preferences.notifications.workflow || false,
+        security: profileData?.preferences.notifications.security || false,
+        marketing: profileData?.preferences.notifications.marketing || false
       },
       privacy: {
-        profileVisibility: 'public',
-        activityVisibility: true,
-        allowIndexing: true
+        profileVisibility: profileData?.preferences.privacy.profileVisibility || 'private',
+        activityVisibility: profileData?.preferences.privacy.activityVisibility || false,
+        allowIndexing: profileData?.preferences.privacy.allowIndexing || false
       },
-      language: 'en-US',
-      timezone: 'America/Los_Angeles'
+      language: profileData?.preferences.language || 'en-US',
+      timezone: profileData?.preferences.timezone || ''
     },
     subscription: {
-      plan: 'Pro',
-      status: 'active',
-      renewsAt: '2024-02-15T00:00:00Z',
+      plan: (profileData?.subscription.plan ? (profileData.subscription.plan.charAt(0).toUpperCase() + profileData.subscription.plan.slice(1)) as 'Free' | 'Pro' | 'Enterprise' : 'Free'),
+      status: profileData?.subscription.status || 'active',
+      renewsAt: profileData?.subscription.currentPeriodEnd?.toDate().toISOString() || '',
       usage: {
-        workflowExecutions: 8450,
-        apiCalls: 125000,
-        storageUsed: 2.8,
-        teamMembers: 5
+        workflowExecutions: profileData?.usage.workflowExecutions || 0,
+        apiCalls: profileData?.usage.apiCallsThisMonth || 0,
+        storageUsed: profileData?.usage.storageUsed || 0,
+        teamMembers: 1 // TODO: Add team member tracking
       },
       limits: {
-        workflowExecutions: 50000,
-        apiCalls: 500000,
-        storageLimit: 10,
-        teamMembers: 10
+        workflowExecutions: profileData?.usage.limits.executionsPerMonth || 0,
+        apiCalls: profileData?.usage.limits.apiCallsPerMonth || 0,
+        storageLimit: profileData?.usage.limits.storageLimit || 0,
+        teamMembers: profileData?.usage.limits.teamMembers || 1
       }
     },
     security: {
-      twoFactorEnabled: true,
-      lastPasswordChange: '2023-12-15T00:00:00Z',
-      activeSessions: 3,
-      securityScore: 85
+      twoFactorEnabled: profileData?.security.twoFactorEnabled || false,
+      lastPasswordChange: profileData?.security.lastPasswordChange?.toDate().toISOString() || '',
+      activeSessions: profileData?.security.activeSessions || 1,
+      securityScore: profileData?.security.securityScore || 50
     },
     stats: {
-      workflowsCreated: 47,
-      totalExecutions: 8450,
-      successRate: 97.3,
-      avgResponseTime: 245,
-      joinedDays: 127
+      workflowsCreated: profileData?.usage.totalWorkflows || 0,
+      totalExecutions: profileData?.usage.totalExecutions || 0,
+      successRate: profileData?.usage.successRate || 0,
+      avgResponseTime: profileData?.usage.avgResponseTime || 0,
+      joinedDays: Math.floor((Date.now() - (profileData?.memberSince.getTime() || Date.now())) / (1000 * 60 * 60 * 24))
     },
-    joinedDays: Math.floor((Date.now() - (user.createdAt || Date.now())) / (1000 * 60 * 60 * 24))
-  });
+    joinedDays: Math.floor((Date.now() - (profileData?.memberSince.getTime() || Date.now())) / (1000 * 60 * 60 * 24))
+  };
 
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing' | 'preferences'>('profile');
   const [editingProfile, setEditingProfile] = useState(false);
@@ -235,11 +246,32 @@ export default function ProfileView({ user }: ProfileViewProps) {
     { id: 'preferences', label: 'Preferences', icon: Settings }
   ] as const;
 
-  const handleSaveProfile = () => {
-    // Here you would save the profile data
-    console.log('Saving profile:', editedData);
-    setEditingProfile(false);
-    addToast('Profile updated successfully!', 'success');
+  const handleSaveProfile = async () => {
+    try {
+      // Update profile data in Firebase
+      const profileUpdates = {
+        firstName: editedData.firstName,
+        lastName: editedData.lastName,
+        bio: editedData.bio,
+        title: editedData.title,
+        company: editedData.company,
+        location: editedData.location,
+        website: editedData.website,
+        timezone: editedData.timezone
+      };
+      
+      const success = await updateProfile(profileUpdates);
+      
+      if (success) {
+        setEditingProfile(false);
+        addToast('Profile updated successfully!', 'success');
+      } else {
+        addToast('Failed to update profile', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      addToast('Failed to update profile', 'error');
+    }
   };
 
   const handleCancelEdit = () => {

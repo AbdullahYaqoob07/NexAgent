@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Menu, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
   { name: "Home", id: "hero" },
@@ -17,7 +17,7 @@ const navItems = [
 
 export default function Navbar() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("hero");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -82,7 +82,7 @@ export default function Navbar() {
   };
 
   const handleGetStarted = () => {
-    if (isSignedIn) {
+    if (user) {
       router.push('/dashboard');
     } else {
       router.push('/sign-in');
@@ -91,7 +91,7 @@ export default function Navbar() {
   };
 
   const handleWorkflowsClick = () => {
-    if (isSignedIn) {
+    if (user) {
       router.push('/workflows');
     } else {
       router.push('/sign-in');

@@ -24,6 +24,7 @@ interface WorkflowToolbarProps {
   onToggleAssistant?: () => void;
   assistantMinimized?: boolean;
   onExecute?: () => void;
+  onSave?: () => void;
   isExecuting?: boolean;
   workflowName: string;
   onRenameWorkflow: (name: string) => void;
@@ -34,6 +35,7 @@ export function WorkflowToolbar({
   onToggleAssistant,
   assistantMinimized = false,
   onExecute,
+  onSave,
   isExecuting = false,
   workflowName,
   onRenameWorkflow
@@ -126,6 +128,7 @@ export function WorkflowToolbar({
         <div className="w-px h-6 bg-zinc-700" />
         
         <Button
+          onClick={onSave}
           variant="ghost"
           size="sm"
           className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 px-3 gap-2"
