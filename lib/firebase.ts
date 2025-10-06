@@ -39,8 +39,16 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // Initialize Analytics (only in browser environment)
-export const analytics = typeof window !== "undefined" && isSupported() 
-  ? getAnalytics(app) 
-  : null;
+export let analytics: any = null;
+
+if (typeof window !== "undefined") {
+  isSupported().then(supported => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  }).catch(() => {
+    console.warn('Firebase Analytics not supported');
+  });
+}
 
 export default app;

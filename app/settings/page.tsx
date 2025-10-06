@@ -1,33 +1,40 @@
-import { currentUser } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useRequireAuth } from '@/lib/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import SettingsView from '@/components/settings/SettingsView';
 
-export default async function SettingsPage() {
-  const user = await currentUser();
+export default function SettingsPage() {
+  const { user, loading } = useRequireAuth();
   
-  if (!user) {
-    redirect('/sign-in');
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 lg:p-8 flex items-center justify-center">
+          <div className="text-white">Loading...</div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
-  // Extract only serializable data from the Clerk user object
-  const userData = {
-    id: user.id,
-    email: user.emailAddresses[0]?.emailAddress || '',
-    firstName: user.firstName || '',
-    lastName: user.lastName || '',
-    username: user.username || '',
-    profileImageUrl: user.imageUrl || '',
-    createdAt: user.createdAt || Date.now(),
-    lastSignInAt: user.lastSignInAt || Date.now(),
-    emailVerified: user.emailAddresses[0]?.verification?.status === 'verified',
-    phoneVerified: user.phoneNumbers[0]?.verification?.status === 'verified'
+  // Transform user to serializable format for SettingsView
+  const serializableUser = {
+    id: user?.uid || '',
+    email: user?.email || '',
+    firstName: user?.displayName?.split(' ')[0] || '',
+    lastName: user?.displayName?.split(' ').slice(1).join(' ') || '',
+    username: user?.displayName || '',
+    profileImageUrl: user?.photoURL || '',
+    createdAt: Date.now(),
+    lastSignInAt: Date.now(),
+    emailVerified: user?.emailVerified || false,
+    phoneVerified: false
   };
 
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
-        <SettingsView user={userData} />
+        <SettingsView user={serializableUser} />
       </div>
     </DashboardLayout>
   );
