@@ -3,16 +3,16 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import AnimatedBackground from "./AnimatedBackground";
 
 export default function Hero() {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   const handleGetStarted = () => {
-    if (isSignedIn) {
+    if (user) {
       router.push('/dashboard');
     } else {
       router.push('/sign-in');

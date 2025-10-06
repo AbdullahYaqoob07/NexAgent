@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { useAuth } from "@/lib/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LogOut, User as UserIcon } from "lucide-react";
 import {
   Home,
   Workflow,
@@ -33,6 +36,24 @@ const sidebarItems = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      window.location.href = '/sign-in';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const getUserInitials = () => {
+    if (!user) return 'U';
+    if (user.displayName) {
+      return user.displayName.split(' ').map(n => n[0]).join('').toUpperCase();
+    }
+    return user.email?.charAt(0).toUpperCase() || 'U';
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex">
@@ -94,19 +115,43 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* User Section */}
         <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: "w-8 h-8",
-                },
-              }}
-            />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white">Dashboard</p>
-              <p className="text-xs text-white/50">Manage Account</p>
-            </div>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="w-full">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.photoURL || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-[#FF6900] to-[#FF8555] text-white text-xs">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-white">{user?.displayName || user?.email}</p>
+                  <p className="text-xs text-white/50">Manage Account</p>
+                </div>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-black/90 backdrop-blur-xl border-white/10" align="end">
+              <DropdownMenuLabel className="text-white">{user?.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem asChild className="text-white hover:bg-white/10">
+                <Link href="/profile" className="flex items-center gap-2">
+                  <UserIcon className="w-4 h-4" />
+                  Profile
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="text-white hover:bg-white/10">
+                <Link href="/settings" className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem onClick={handleSignOut} className="text-red-400 hover:bg-red-400/10">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
@@ -147,13 +192,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Right Side - Desktop UserButton */}
             <div className="lg:block hidden">
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: "w-8 h-8",
-                  },
-                }}
-              />
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <Avatar className="w-8 h-8 hover:ring-2 hover:ring-[#FF6900] transition-all">
+                    <AvatarImage src={user?.photoURL || ''} />
+                    <AvatarFallback className="bg-gradient-to-br from-[#FF6900] to-[#FF8555] text-white text-xs">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-black/90 backdrop-blur-xl border-white/10" align="end">
+                  <DropdownMenuLabel className="text-white">{user?.email}</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem asChild className="text-white hover:bg-white/10">
+                    <Link href="/profile" className="flex items-center gap-2">
+                      <UserIcon className="w-4 h-4" />
+                      Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-white hover:bg-white/10">
+                    <Link href="/settings" className="flex items-center gap-2">
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-400 hover:bg-red-400/10">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>

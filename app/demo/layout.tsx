@@ -1,16 +1,23 @@
-import { currentUser } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useRequireAuth } from '@/lib/AuthContext';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
-export default async function DemoLayout({
+export default function DemoLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await currentUser();
+  const { user, loading } = useRequireAuth();
   
-  if (!user) {
-    redirect('/sign-in');
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 lg:p-8 flex items-center justify-center">
+          <div className="text-white">Loading...</div>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   return (
