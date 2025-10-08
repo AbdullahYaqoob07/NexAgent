@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -166,6 +168,69 @@ html {
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+  }
+  
+  /* Gradient border for navbar - variables will be set for diagonal gradient */
+  .border-gradient {
+    position: relative;
+    border: 1px solid transparent;
+  }
+  
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    padding: 1px;
+    /* Diagonal gradient stroke: bottom-left (white 60%) to top-right (#153E48)
+       and top-left (#153E48) to bottom-right (white 50%) */
+    background: conic-gradient(
+      from 45deg at center,
+      rgba(255, 255, 255, 0.6) 0deg,
+      #153E48 90deg,
+      #153E48 180deg,
+      rgba(255, 255, 255, 0.5) 270deg,
+      rgba(255, 255, 255, 0.6) 360deg
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: exclude;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    z-index: -1;
+  }
+  
+  /* Montserrat font utility */
+  .font-montserrat {
+    font-family: 'Montserrat', sans-serif;
+  }
+  /* Poppins font utility */
+  .font-poppins {
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  /* Bottom-only gradient border for scrolled navbar */
+  .border-gradient-bottom {
+    position: relative;
+    border-bottom: 1px solid transparent;
+  }
+  
+  .border-gradient-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.6) 0%,
+      #153E48 25%,
+      #153E48 75%,
+      rgba(255, 255, 255, 0.5) 100%
+    );
   }
   
   .glass-card {
