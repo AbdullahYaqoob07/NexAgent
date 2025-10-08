@@ -4,15 +4,17 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Star } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { ArrowRight, Zap } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function Hero() {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
 
   const handleGetStarted = () => {
-    if (isSignedIn) {
+    if (user) {
       router.push('/dashboard');
     } else {
       router.push('/sign-in');
@@ -98,6 +100,8 @@ export default function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.55 }}
           className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20"
         >
           <button 
             onClick={handleGetStarted}
@@ -112,6 +116,16 @@ export default function Hero() {
           >
             See Details
           </button>
+            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold px-10 py-4 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
+          >
+                Get Started
+                <ArrowRight className="w-5 h-5" />
+              </button>
+          
+          <button className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-bold px-10 py-4 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg">
+                <Zap className="w-5 h-5" />
+                Learn More
+              </button>
         </motion.div>
 
         {/* Stats */}

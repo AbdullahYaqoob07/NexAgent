@@ -1,0 +1,159 @@
+{
+  "id": "xyz789abc123def456",
+  "uid": "xyz789abc123def456", 
+  "email": "sarah.smith@company.com",
+  "displayName": "sarah.smith",
+  "photoURL": null,
+  "phoneNumber": null,
+  "emailVerified": false,
+  "createdAt": {
+    "_seconds": 1704067200,
+    "_nanoseconds": 0
+  },
+  "updatedAt": {
+    "_seconds": 1704067200,
+    "_nanoseconds": 0
+  },
+  "lastSignInAt": {
+    "_seconds": 1704067200,
+    "_nanoseconds": 0
+  },
+  
+  "profile": {
+    "firstName": "sarah.smith",
+    "lastName": null,
+    "username": null,
+    "bio": null,
+    "title": null,
+    "company": null,
+    "location": null,
+    "website": null,
+    "timezone": "UTC",
+    "avatar": {
+      "url": null,
+      "initials": "SA"
+    }
+  },
+  
+  "socialLinks": {
+    "github": null,
+    "twitter": null,
+    "linkedin": null,
+    "website": null
+  },
+  
+  "subscription": {
+    "plan": "free",
+    "status": "active",
+    "currentPeriodStart": {
+      "_seconds": 1704067200,
+      "_nanoseconds": 0
+    },
+    "currentPeriodEnd": null,
+    "cancelAtPeriodEnd": false,
+    "trialEndsAt": null,
+    "customerId": null
+  },
+  
+  "usage": {
+    "tokensUsed": 0,
+    "workflowsCreated": 0,
+    "apiCallsThisMonth": 0,
+    "workflowExecutions": 0,
+    "storageUsed": 0,
+    "totalWorkflows": 0,
+    "totalExecutions": 0,
+    "totalApiCalls": 0,
+    "successRate": 0,
+    "avgResponseTime": 0,
+    "limits": {
+      "tokensPerMonth": 1000,
+      "workflowsMax": 5,
+      "apiCallsPerMonth": 100,
+      "executionsPerMonth": 50,
+      "storageLimit": 100,
+      "teamMembers": 1
+    }
+  },
+  
+  "preferences": {
+    "theme": "dark",
+    "language": "en-US",
+    "timezone": "UTC",
+    "dateFormat": "MM/dd/yyyy",
+    "notifications": {
+      "email": true,
+      "push": false,
+      "sms": false,
+      "workflow": true,
+      "security": true,
+      "marketing": false,
+      "weeklyReport": true
+    },
+    "privacy": {
+      "profileVisibility": "private",
+      "activityVisibility": false,
+      "allowIndexing": false,
+      "shareAnalytics": true
+    },
+    "dashboard": {
+      "defaultView": "overview",
+      "showWelcome": true,
+      "compactMode": false
+    }
+  },
+  
+  "security": {
+    "twoFactorEnabled": false,
+    "lastPasswordChange": {
+      "_seconds": 1704067200,
+      "_nanoseconds": 0
+    },
+    "activeSessions": 1,
+    "securityScore": 50,
+    "loginAttempts": {
+      "count": 0,
+      "lastAttempt": null,
+      "lockedUntil": null
+    },
+    "trustedDevices": []
+  },
+  
+  "team": null,
+  
+  "onboarding": {
+    "completed": false,
+    "currentStep": 1,
+    "completedSteps": [],
+    "skippedSteps": [],
+    "completedAt": null
+  },
+  
+  "activity": {
+    "lastActiveAt": {
+      "_seconds": 1704067200,
+      "_nanoseconds": 0
+    },
+    "loginCount": 1,
+    "firstLoginAt": {
+      "_seconds": 1704067200,
+      "_nanoseconds": 0
+    },
+    "lastSeenFeatures": [],
+    "featuresUsed": {},
+    "feedbackGiven": []
+  },
+  
+  "metadata": {
+    "source": "email",
+    "referrer": null,
+    "utmSource": null,
+    "utmMedium": null,
+    "utmCampaign": null,
+    "ipAddress": null,
+    "userAgent": null,
+    "initialPlan": "free",
+    "tags": [],
+    "notes": null
+  }
+}

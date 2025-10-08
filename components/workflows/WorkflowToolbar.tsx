@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { 
   Play, 
   Save, 
@@ -22,13 +23,23 @@ interface WorkflowToolbarProps {
   showAssistant?: boolean;
   onToggleAssistant?: () => void;
   assistantMinimized?: boolean;
+  onExecute?: () => void;
+  onSave?: () => void;
+  isExecuting?: boolean;
+  workflowName: string;
+  onRenameWorkflow: (name: string) => void;
 }
 
 export function WorkflowToolbar({ 
   showAssistant = true, 
   onToggleAssistant,
-  assistantMinimized = false 
-}: WorkflowToolbarProps = {}) {
+  assistantMinimized = false,
+  onExecute,
+  onSave,
+  isExecuting = false,
+  workflowName,
+  onRenameWorkflow
+}: WorkflowToolbarProps) {
   const router = useRouter();
 
   return (
@@ -45,8 +56,8 @@ export function WorkflowToolbar({
         
         <div className="text-zinc-400 text-sm">|</div>
         
-        <div className="flex items-center gap-1">
-          <span className="text-sm text-white">Untitled Workflow</span>
+      <div className="flex items-center gap-1">
+          <EditableWorkflowName name={workflowName} onRename={onRenameWorkflow} />
           <ChevronDown className="w-4 h-4 text-zinc-400" />
         </div>
       </div>
@@ -117,6 +128,7 @@ export function WorkflowToolbar({
         <div className="w-px h-6 bg-zinc-700" />
         
         <Button
+          onClick={onSave}
           variant="ghost"
           size="sm"
           className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 px-3 gap-2"
@@ -126,11 +138,22 @@ export function WorkflowToolbar({
         </Button>
         
         <Button
+          onClick={onExecute}
+          disabled={isExecuting}
           size="sm"
-          className="bg-[#FF6900] hover:bg-[#E55D00] text-white h-8 px-4 gap-2"
+          className="bg-[#FF6900] hover:bg-[#E55D00] text-white h-8 px-4 gap-2 disabled:opacity-50"
         >
-          <Play className="w-4 h-4" />
-          <span className="text-sm">Execute</span>
+          {isExecuting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Executing...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4" />
+              <span className="text-sm">Execute</span>
+            </>
+          )}
         </Button>
         
         <Button
@@ -144,3 +167,33 @@ export function WorkflowToolbar({
     </div>
   );
 }
+
+function EditableWorkflowName({ name, onRename }: { name: string; onRename: (n: string) => void }) {
+  const [editing, setEditing] = React.useState(false);
+  const [value, setValue] = React.useState(name);
+  React.useEffect(() => setValue(name), [name]);
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => { setEditing(false); onRename(value.trim() || 'Untitled Workflow'); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+          if (e.key === 'Escape') { setEditing(false); setValue(name); }
+        }}
+        className="bg-transparent border-b border-zinc-600 focus:border-[#FF6900] outline-none text-sm text-white px-1"
+        placeholder="Workflow name"
+      />
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)} className="text-sm text-white hover:text-[#FF6900]">
+      {name}
+    </button>
+  );
+}
+
+export default WorkflowToolbar;
