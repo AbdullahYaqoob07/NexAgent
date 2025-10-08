@@ -29,6 +29,14 @@ import { FileWatchTriggerNode } from './nodes/FileWatchTriggerNode';
 import { DatabaseTriggerNode } from './nodes/DatabaseTriggerNode';
 import { EmailTriggerNode } from './nodes/EmailTriggerNode';
 import { OnClickExecuteTriggerNode } from './nodes/OnClickExecuteTriggerNode';
+import { ShopifyNode } from './nodes/ShopifyNode';
+import { InstagramNode } from './nodes/InstagramNode';
+import { FacebookNode } from './nodes/FacebookNode';
+import { WhatsAppNode } from './nodes/WhatsAppNode';
+import { DoubleForkNode } from './nodes/DoubleForkNode';
+import { TripleForkNode } from './nodes/TripleForkNode';
+import { QuadraForkNode } from './nodes/QuadraForkNode';
+import { CustomForkNode } from './nodes/CustomForkNode';
 
 /**
  * Central mapping registry for sidebar node types to engine node classes
@@ -198,6 +206,58 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'DataFilterNode',
     nodeClass: DataFilterNode,
     category: 'data'
+  },
+
+  // Ecommerce
+  {
+    sidebarType: 'Shopify',
+    engineType: 'ShopifyNode',
+    nodeClass: ShopifyNode,
+    category: 'ecommerce'
+  },
+  {
+    sidebarType: 'Instagram',
+    engineType: 'InstagramNode',
+    nodeClass: InstagramNode,
+    category: 'ecommerce'
+  },
+  {
+    sidebarType: 'Facebook',
+    engineType: 'FacebookNode',
+    nodeClass: FacebookNode,
+    category: 'ecommerce'
+  },
+  {
+    sidebarType: 'WhatsApp',
+    engineType: 'WhatsAppNode',
+    nodeClass: WhatsAppNode,
+    category: 'ecommerce'
+  },
+
+  // Fork
+  {
+    sidebarType: 'Double',
+    engineType: 'DoubleForkNode',
+    nodeClass: DoubleForkNode,
+    category: 'fork'
+  },
+  {
+    sidebarType: 'Triple',
+    engineType: 'TripleForkNode',
+    nodeClass: TripleForkNode,
+    category: 'fork'
+  },
+  {
+    sidebarType: 'Quadra',
+    engineType: 'QuadraForkNode',
+    nodeClass: QuadraForkNode,
+    category: 'fork'
+  },
+  {
+    sidebarType: 'Custom',
+    engineType: 'CustomForkNode',
+    nodeClass: CustomForkNode,
+    category: 'fork'
   }
 ];
 
@@ -211,7 +271,7 @@ export function getNodeMapping(sidebarType: string): NodeTypeMapping | undefined
 /**
  * Get all node mappings by category
  */
-export function getNodeMappingsByCategory(category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data'): NodeTypeMapping[] {
+export function getNodeMappingsByCategory(category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data' | 'ecommerce' | 'fork'): NodeTypeMapping[] {
   return NODE_TYPE_MAPPINGS.filter(mapping => mapping.category === category);
 }
 

@@ -234,6 +234,49 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         addToast(`${emptyTriggers.length} trigger(s) have no outgoing connections.`, 'info');
       }
 
+      // Check fork nodes - they should have connections from each output port
+      const forkNodes = nodesArr.filter(n => {
+        const m = getNodeMapping(n.type);
+        return m?.category === 'fork';
+      });
+      
+      const incompleteForkNodes = [];
+      for (const forkNode of forkNodes) {
+        const forkConnections = conns.filter(c => c.from === forkNode.id);
+        
+        // Get expected output count for this fork type
+        let expectedOutputs = 2;
+        if (forkNode.type === 'Double') expectedOutputs = 2;
+        else if (forkNode.type === 'Triple') expectedOutputs = 3;
+        else if (forkNode.type === 'Quadra') expectedOutputs = 4;
+        else if (forkNode.type === 'Custom') {
+          // Check if node has config with outputCount
+          expectedOutputs = (forkNode as any).config?.outputCount || 2;
+        }
+        
+        // Check if we have connections from each required output port
+        const outputPorts = new Set();
+        forkConnections.forEach(conn => {
+          if (conn.fromPoint && conn.fromPoint.startsWith('output_')) {
+            outputPorts.add(conn.fromPoint);
+          }
+        });
+        
+        // For fork nodes, we need at least 2 connections total, ideally from different ports
+        if (forkConnections.length < 2) {
+          incompleteForkNodes.push(forkNode);
+        }
+      }
+      
+      if (incompleteForkNodes.length > 0) {
+        const forkIds = incompleteForkNodes.map(n => n.id);
+        setErrorNodeIds(forkIds);
+        try { canvasRef.current?.setErrorNodes?.(forkIds); } catch {}
+        addToast('Fork nodes must have at least 2 outgoing connections to create parallel branches.', 'error');
+        try { canvasRef.current?.setExecutingNode(null); } catch {}
+        return;
+      }
+
       // Block execution if unreachable or isolated exist
       const errorIds = Array.from(new Set([...unreachable.map(n => n.id), ...isolated.map(n => n.id)]));
       if (errorIds.length > 0) {

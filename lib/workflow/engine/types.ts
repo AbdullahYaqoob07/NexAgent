@@ -23,7 +23,7 @@ export interface WorkflowNodeConfig {
   config: Record<string, any>;
   position: { x: number; y: number };
   enabled: boolean;
-  category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data';
+  category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data' | 'fork' | 'ecommerce';
 }
 
 export interface WorkflowConnectionConfig {
@@ -92,7 +92,7 @@ export interface NodeClass {
   type: string;
   name: string;
   description: string;
-  category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data';
+  category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data' | 'fork' | 'ecommerce';
   execute(context: ExecutionContext, config: Record<string, any>): Promise<NodeExecutionResult>;
   validate?(config: Record<string, any>): string[];
 }
@@ -101,7 +101,7 @@ export interface NodeTypeMapping {
   sidebarType: string;
   engineType: string;
   nodeClass: new () => NodeClass;
-  category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data';
+  category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data' | 'fork' | 'ecommerce';
 }
 
 export interface LoggerConfig {
