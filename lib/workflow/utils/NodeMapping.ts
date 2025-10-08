@@ -348,6 +348,159 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     outputs: [
       { id: 'filtered_data', name: 'Filtered Data', type: 'array', required: true }
     ]
+  },
+
+  // Ecommerce
+  {
+    displayName: 'Shopify',
+    nodeType: 'shopify_action',
+    category: 'ecommerce',
+    defaultConfig: { 
+      operation: 'get_products', 
+      shopName: 'your-shop', 
+      apiKey: '', 
+      accessToken: '',
+      limit: 10 
+    },
+    inputs: [
+      { id: 'operation', name: 'Operation', type: 'string', required: true },
+      { id: 'shop_name', name: 'Shop Name', type: 'string', required: true },
+      { id: 'api_key', name: 'API Key', type: 'string', required: true },
+      { id: 'access_token', name: 'Access Token', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'shopify_result', name: 'Shopify Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'Instagram',
+    nodeType: 'instagram_action',
+    category: 'ecommerce',
+    defaultConfig: { 
+      operation: 'get_media', 
+      accessToken: '', 
+      userId: '',
+      mediaType: 'IMAGE' 
+    },
+    inputs: [
+      { id: 'operation', name: 'Operation', type: 'string', required: true },
+      { id: 'access_token', name: 'Access Token', type: 'string', required: true },
+      { id: 'user_id', name: 'User ID', type: 'string', required: true },
+      { id: 'media_type', name: 'Media Type', type: 'string', required: false }
+    ],
+    outputs: [
+      { id: 'instagram_result', name: 'Instagram Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'Facebook',
+    nodeType: 'facebook_action',
+    category: 'ecommerce',
+    defaultConfig: { 
+      operation: 'post_to_page', 
+      pageId: '', 
+      accessToken: '',
+      message: 'Hello from NexAgent!' 
+    },
+    inputs: [
+      { id: 'operation', name: 'Operation', type: 'string', required: true },
+      { id: 'page_id', name: 'Page ID', type: 'string', required: true },
+      { id: 'access_token', name: 'Access Token', type: 'string', required: true },
+      { id: 'message', name: 'Message', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'facebook_result', name: 'Facebook Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'WhatsApp',
+    nodeType: 'whatsapp_action',
+    category: 'ecommerce',
+    defaultConfig: { 
+      operation: 'send_message', 
+      phoneNumber: '', 
+      message: 'Hello from NexAgent!',
+      apiKey: '' 
+    },
+    inputs: [
+      { id: 'operation', name: 'Operation', type: 'string', required: true },
+      { id: 'phone_number', name: 'Phone Number', type: 'string', required: true },
+      { id: 'message', name: 'Message', type: 'string', required: true },
+      { id: 'api_key', name: 'API Key', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'whatsapp_result', name: 'WhatsApp Result', type: 'object', required: true }
+    ]
+  },
+
+  // Fork
+  {
+    displayName: 'Double',
+    nodeType: 'double_fork',
+    category: 'fork',
+    defaultConfig: { 
+      splitType: 'duplicate',
+      description: 'Splits input into 2 parallel paths'
+    },
+    inputs: [
+      { id: 'input', name: 'Input', type: 'any', required: true }
+    ],
+    outputs: [
+      { id: 'output_1', name: 'Output 1', type: 'any', required: true },
+      { id: 'output_2', name: 'Output 2', type: 'any', required: true }
+    ]
+  },
+  {
+    displayName: 'Triple',
+    nodeType: 'triple_fork',
+    category: 'fork',
+    defaultConfig: { 
+      splitType: 'duplicate',
+      description: 'Splits input into 3 parallel paths'
+    },
+    inputs: [
+      { id: 'input', name: 'Input', type: 'any', required: true }
+    ],
+    outputs: [
+      { id: 'output_1', name: 'Output 1', type: 'any', required: true },
+      { id: 'output_2', name: 'Output 2', type: 'any', required: true },
+      { id: 'output_3', name: 'Output 3', type: 'any', required: true }
+    ]
+  },
+  {
+    displayName: 'Quadra',
+    nodeType: 'quadra_fork',
+    category: 'fork',
+    defaultConfig: { 
+      splitType: 'duplicate',
+      description: 'Splits input into 4 parallel paths'
+    },
+    inputs: [
+      { id: 'input', name: 'Input', type: 'any', required: true }
+    ],
+    outputs: [
+      { id: 'output_1', name: 'Output 1', type: 'any', required: true },
+      { id: 'output_2', name: 'Output 2', type: 'any', required: true },
+      { id: 'output_3', name: 'Output 3', type: 'any', required: true },
+      { id: 'output_4', name: 'Output 4', type: 'any', required: true }
+    ]
+  },
+  {
+    displayName: 'Custom',
+    nodeType: 'custom_fork',
+    category: 'fork',
+    defaultConfig: { 
+      splitType: 'duplicate',
+      outputCount: 2,
+      description: 'Splits input into custom number of parallel paths'
+    },
+    inputs: [
+      { id: 'input', name: 'Input', type: 'any', required: true },
+      { id: 'output_count', name: 'Output Count', type: 'number', required: true }
+    ],
+    outputs: [
+      { id: 'dynamic_outputs', name: 'Dynamic Outputs', type: 'array', required: true }
+    ]
   }
 ];
 

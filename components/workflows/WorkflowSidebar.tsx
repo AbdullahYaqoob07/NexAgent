@@ -17,11 +17,19 @@ import {
   GitBranch,
   Code,
   Bot,
-  Settings
+  Settings,
+  ShoppingCart,
+  Instagram,
+  Facebook,
+  Phone,
+  GitFork,
+  Copy,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getNodeMappingsByCategory } from "@/lib/workflow/utils/NodeMapping";
+import { getBrandLogo } from "@/lib/workflow/utils/BrandLogoMapping";
 
 interface NodeCategory {
   name: string;
@@ -37,6 +45,8 @@ interface NodeCategory {
 const getNodeCategories = (): NodeCategory[] => {
   const categoryConfig = [
     { name: "Triggers", icon: <Zap className="w-4 h-4" />, key: "trigger" },
+    { name: "Ecommerce", icon: <ShoppingCart className="w-4 h-4" />, key: "ecommerce" },
+    { name: "Fork", icon: <GitFork className="w-4 h-4" />, key: "fork" },
     { name: "Actions", icon: <Settings className="w-4 h-4" />, key: "action" },
     { name: "Logic", icon: <GitBranch className="w-4 h-4" />, key: "logic" },
     { name: "AI/ML", icon: <Bot className="w-4 h-4" />, key: "ai_ml" },
@@ -48,7 +58,7 @@ const getNodeCategories = (): NodeCategory[] => {
     const nodes = mappings.map(mapping => ({
       name: mapping.displayName,
       description: mapping.nodeType,
-      icon: getNodeIcon(mapping.displayName)
+      icon: getBrandLogoComponent(mapping.displayName) // Now uses brand logos
     }));
 
     return {
@@ -59,46 +69,17 @@ const getNodeCategories = (): NodeCategory[] => {
   });
 };
 
-// Get appropriate icon for node type
-const getNodeIcon = (nodeName: string): React.ReactNode => {
-  const iconMap: Record<string, React.ReactNode> = {
-    // Triggers
-    'HTTP Request': <Globe className="w-4 h-4" />,
-    'Schedule': <Calendar className="w-4 h-4" />,
-    'Webhook': <GitBranch className="w-4 h-4" />,
-    'File Watch': <FileText className="w-4 h-4" />,
-    'Database Trigger': <Database className="w-4 h-4" />,
-    'Email Trigger': <Mail className="w-4 h-4" />,
-    'On Clicking Execute': <Zap className="w-4 h-4" />,
-    
-    // Actions
-    'Database': <Database className="w-4 h-4" />,
-    'Email': <Mail className="w-4 h-4" />,
-    'Slack': <MessageSquare className="w-4 h-4" />,
-    'Save': <FileText className="w-4 h-4" />,
-    'File Operation': <FileText className="w-4 h-4" />,
-    
-    // Logic
-    'If': <GitBranch className="w-4 h-4" />,
-    'Switch': <Filter className="w-4 h-4" />,
-    'Loop': <Code className="w-4 h-4" />,
-    'Merge': <Users className="w-4 h-4" />,
-    'Delay': <Calendar className="w-4 h-4" />,
-    
-    // AI/ML
-    'OpenAI': <Bot className="w-4 h-4" />,
-    'Text Analysis': <FileText className="w-4 h-4" />,
-    'Image Processing': <Zap className="w-4 h-4" />,
-    'Data Transform': <Code className="w-4 h-4" />,
-    
-    // Data
-    'JSON Parse': <FileText className="w-4 h-4" />,
-    'XML Parse': <FileText className="w-4 h-4" />,
-    'CSV Parse': <FileText className="w-4 h-4" />,
-    'Data Filter': <Filter className="w-4 h-4" />
-  };
-
-  return iconMap[nodeName] || <FileText className="w-4 h-4" />;
+// Get brand logo component for node preview
+const getBrandLogoComponent = (nodeName: string) => {
+  const LogoComponent = getBrandLogo(nodeName);
+  
+  // Special handling for CustomForkLogo in sidebar preview
+  if (nodeName === 'Custom') {
+    const CustomComponent = LogoComponent as any;
+    return <CustomComponent size={40} outputCount={5} />;
+  }
+  
+  return <LogoComponent size={40} />;
 };
 
 const nodeCategories = getNodeCategories();
@@ -274,27 +255,32 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
                           key={node.name}
                           draggable={!disabled}
                           onDragStart={(e) => handleNodeDragStart(e, node.name)}
-                          className={`mx-3 p-2.5 rounded-lg border transition-all duration-200 mb-2 group ${
+                          className={`mx-3 p-3 rounded-lg border transition-all duration-200 mb-2 group ${
                             disabled 
                               ? 'bg-zinc-950 border-zinc-800 opacity-50 cursor-not-allowed'
-                              : 'bg-zinc-900 border-zinc-800 cursor-move hover:bg-zinc-800 hover:border-zinc-700'
+                              : 'bg-zinc-900 border-zinc-800 cursor-move hover:bg-zinc-800 hover:border-zinc-700 hover:border-[#FF6900]/30'
                           }`}
                           style={{
                             transitionDelay: expandedCategories.includes(category.name) ? `${index * 50}ms` : '0ms'
                           }}
                           title={disabled ? "First node must be a trigger" : ""}
                         >
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className={disabled ? 'opacity-50' : ''}>
-                              {node.icon}
+                          {/* Square Brand Logo Preview */}
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`relative ${disabled ? 'opacity-50' : ''}`}>
+                              <div className="w-10 h-10 rounded-lg border border-zinc-700 bg-black/20 flex items-center justify-center overflow-hidden">
+                                {getBrandLogoComponent(node.name)}
+                              </div>
                             </div>
-                            <span className={`text-xs font-medium truncate ${
-                              disabled ? 'text-zinc-600' : 'text-white'
-                            }`}>{node.name}</span>
+                            <div className="flex-1 min-w-0">
+                              <span className={`text-xs font-medium block truncate ${
+                                disabled ? 'text-zinc-600' : 'text-white'
+                              }`}>{node.name}</span>
+                              <p className={`text-xs leading-tight ${
+                                disabled ? 'text-zinc-700' : 'text-zinc-500'
+                              }`}>Drag to canvas</p>
+                            </div>
                           </div>
-                          <p className={`text-xs leading-tight ${
-                            disabled ? 'text-zinc-700' : 'text-zinc-500'
-                          }`}>{node.description}</p>
                         </div>
                         );
                       })}
