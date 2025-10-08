@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { 
   Plus, 
   Grid3x3, 
@@ -18,13 +18,32 @@ import {
   Filter,
   GitBranch,
   Code,
-  Bot
+  Bot,
+  ShoppingCart,
+  Instagram,
+  Facebook,
+  Phone
 } from "lucide-react";
+import { getNodeMapping } from "@/lib/workflow/utils/NodeMapping";
+import { getBrandLogo, getBrandColor } from "@/lib/workflow/utils/BrandLogoMapping";
 
 interface WorkflowCanvasProps {
   selectedNode: string | null;
   onNodeSelect: (nodeId: string | null) => void;
   onOpenTriggers?: () => void;
+  onNodeCountChange?: (count: number) => void;
+  executingNodeId?: string | null; // externally-controlled active node
+  errorNodeIds?: string[]; // nodes to highlight as invalid
+}
+
+export interface WorkflowCanvasRef {
+  getWorkflowData: () => {
+    nodes: WorkflowNode[];
+    connections: Connection[];
+  };
+  setExecutingNode: (nodeId: string | null) => void;
+  setErrorNodes: (ids: string[]) => void;
+  applyLayout: (layout: 'serpentine' | 'row' | 'column' | 'radial') => void;
 }
 
 interface WorkflowNode {
@@ -33,17 +52,18 @@ interface WorkflowNode {
   name: string;
   x: number;
   y: number;
+  config?: any; // For custom node configurations like fork outputs
 }
 
 interface Connection {
   id: string;
   from: string;
   to: string;
-  fromPoint: 'output';
+  fromPoint: string; // Can be 'output', 'output_1', 'output_2', etc.
   toPoint: 'input';
 }
 
-export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: WorkflowCanvasProps) {
+const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers, onNodeCountChange, executingNodeId: executingNodeIdProp, errorNodeIds: errorNodeIdsProp }, ref) => {
   // Canvas ref for precise measurements
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -51,16 +71,102 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
   const [nodes, setNodes] = useState<WorkflowNode[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [isConnecting, setIsConnecting] = useState<{ nodeId: string; point: 'output' } | null>(null);
+  const [isConnecting, setIsConnecting] = useState<{ nodeId: string; point: string } | null>(null);
   const [tempConnection, setTempConnection] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [draggedNode, setDraggedNode] = useState<{ id: string; startX: number; startY: number; offsetX: number; offsetY: number } | null>(null);
   const [forceConnectionUpdate, setForceConnectionUpdate] = useState(0);
+  const [executingNodeIdState, setExecutingNodeIdState] = useState<string | null>(null);
+  const executingNodeId = executingNodeIdProp ?? executingNodeIdState;
+  const [errorNodeIdsState, setErrorNodeIdsState] = useState<string[]>([]);
+  const errorNodeIds = errorNodeIdsProp ?? errorNodeIdsState;
+  const [customForkModal, setCustomForkModal] = useState<{ open: boolean; nodeId: string | null }>({ open: false, nodeId: null });
+  const [customForkOutputs, setCustomForkOutputs] = useState(2);
   
   // Constants for precise node dimensions
-  const NODE_WIDTH = 192;
-  const NODE_HEIGHT = 80;
+  const NODE_SIZE = 64; // Square nodes like n8n/Make.com
   const CONNECTION_HANDLE_SIZE = 6;
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    getWorkflowData: () => ({
+      nodes,
+      connections
+    }),
+    setExecutingNode: (nodeId: string | null) => {
+      setExecutingNodeIdState(nodeId);
+    },
+    setErrorNodes: (ids: string[]) => {
+      setErrorNodeIdsState(ids);
+      // auto clear after few seconds
+      if (ids && ids.length > 0) {
+        setTimeout(() => setErrorNodeIdsState([]), 4000);
+      }
+    },
+    applyLayout: (layout: 'serpentine' | 'row' | 'column' | 'radial') => {
+      const canvasEl = canvasRef.current;
+      const width = canvasEl?.clientWidth || 1200;
+      const height = canvasEl?.clientHeight || 800;
+      const padding = 40;
+      const hGap = 80;
+      const vGap = 60;
+      const colWidth = NODE_SIZE + hGap;
+      const rowHeight = NODE_SIZE + vGap;
+      const cols = Math.max(1, Math.floor((width - padding * 2) / colWidth));
+      const centerX = width / 2 - NODE_SIZE / 2;
+      const centerY = height / 2 - NODE_SIZE / 2;
+
+      setNodes(prev => {
+        const arr = [...prev];
+        if (arr.length === 0) return arr;
+        switch (layout) {
+          case 'row': {
+            return arr.map((n, i) => ({
+              ...n,
+              x: padding + (i % cols) * colWidth,
+              y: padding + Math.floor(i / cols) * rowHeight,
+            }));
+          }
+          case 'column': {
+            const rows = Math.max(1, Math.floor((height - padding * 2) / rowHeight));
+            return arr.map((n, i) => ({
+              ...n,
+              x: padding + Math.floor(i / rows) * colWidth,
+              y: padding + (i % rows) * rowHeight,
+            }));
+          }
+          case 'radial': {
+            const radius = Math.min(width, height) / 3;
+            const cx = centerX; const cy = centerY;
+            return arr.map((n, i) => {
+              const angle = (i / arr.length) * Math.PI * 2;
+              return { ...n, x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+            });
+          }
+          case 'serpentine':
+          default: {
+            // Zig-zag rows: left->right on even rows, right->left on odd rows
+            return arr.map((n, i) => {
+              const row = Math.floor(i / cols);
+              const idxInRow = i % cols;
+              const isOdd = row % 2 === 1;
+              const xBase = padding;
+              const y = padding + row * rowHeight;
+              const x = isOdd
+                ? padding + (cols - 1 - idxInRow) * colWidth
+                : xBase + idxInRow * colWidth;
+              return { ...n, x, y };
+            });
+          }
+        }
+      });
+    }
+  }));
+
+  // Notify parent of node count changes
+  useEffect(() => {
+    onNodeCountChange?.(nodes.length);
+  }, [nodes.length, onNodeCountChange]);
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
@@ -91,6 +197,15 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
       return;
     }
 
+    // Validation: If this is the first node, it must be a trigger
+    if (nodes.length === 0) {
+      const nodeMapping = getNodeMapping(nodeType);
+      if (!nodeMapping || nodeMapping.category !== 'trigger') {
+        alert('The first node must be a trigger! Please select a node from the Triggers section.');
+        return;
+      }
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -105,6 +220,11 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
 
     console.log('Adding new node:', newNode); // Debug log
     setNodes(prev => [...prev, newNode]);
+    
+    // Show modal for Custom fork nodes
+    if (nodeType === 'Custom') {
+      setCustomForkModal({ open: true, nodeId: newNode.id });
+    }
   };
 
   const handleNodeClick = (nodeId: string) => {
@@ -119,7 +239,7 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
     }
   };
 
-  const handleConnectionMouseDown = (nodeId: string, point: 'output', event: React.MouseEvent) => {
+  const handleConnectionMouseDown = (nodeId: string, point: string, event: React.MouseEvent) => {
     event.stopPropagation();
     event.preventDefault();
     
@@ -141,7 +261,7 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
   };
 
   const handleConnectionDrop = (nodeId: string, point: 'input') => {
-    if (isConnecting && isConnecting.nodeId !== nodeId && isConnecting.point === 'output') {
+    if (isConnecting && isConnecting.nodeId !== nodeId && isConnecting.point.startsWith('output')) {
       // Check if connection already exists
       const existingConnection = connections.find(
         c => c.from === isConnecting.nodeId && c.to === nodeId
@@ -208,17 +328,48 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
   // Enhanced connection point calculation with proper anchoring
   const getNodeCenter = (node: WorkflowNode) => {
     return {
-      x: node.x + (NODE_WIDTH / 2), // Precise center calculation
-      y: node.y + (NODE_HEIGHT / 2)  // Precise center calculation
+      x: node.x + (NODE_SIZE / 2), // Precise center calculation
+      y: node.y + (NODE_SIZE / 2)  // Precise center calculation
     };
   };
 
   // Get the exact position of connection handles with real node positions
-  const getConnectionPoint = useCallback((node: WorkflowNode, type: 'input' | 'output') => {
-    const centerY = node.y + (NODE_HEIGHT / 2);
+  const getConnectionPoint = useCallback((node: WorkflowNode, type: string) => {
+    if (type === 'input') {
+      return {
+        x: node.x,
+        y: node.y + (NODE_SIZE / 2)
+      };
+    }
+    
+    if (type === 'output') {
+      return {
+        x: node.x + NODE_SIZE,
+        y: node.y + (NODE_SIZE / 2)
+      };
+    }
+    
+    // Handle multiple outputs (output_1, output_2, etc.)
+    if (type.startsWith('output_')) {
+      const outputIndex = parseInt(type.split('_')[1]) - 1;
+      const isCurrentFork = isForkNode(node.type);
+      
+      if (isCurrentFork) {
+        const outputCount = getForkOutputCount(node.type, (node as any).config);
+        const handleSpacing = NODE_SIZE / (outputCount + 1);
+        const yOffset = handleSpacing * (outputIndex + 1);
+        
+        return {
+          x: node.x + NODE_SIZE,
+          y: node.y + yOffset
+        };
+      }
+    }
+    
+    // Fallback to default output position
     return {
-      x: type === 'output' ? node.x + NODE_WIDTH : node.x, // Precise edge positions
-      y: centerY // Vertically centered on node
+      x: node.x + NODE_SIZE,
+      y: node.y + (NODE_SIZE / 2)
     };
   }, []);
   
@@ -305,6 +456,7 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
       path = `M ${startX} ${startY} C ${startX + controlOffset} ${startY}, ${endX - controlOffset} ${endY}, ${endX} ${endY}`;
     }
 
+    const isActiveFlow = executingNodeId && connection.from === executingNodeId;
     return (
       <g key={connection.id} className="group">
         {/* Invisible wider path for easier clicking */}
@@ -327,9 +479,21 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
           stroke="#FF6900"
           strokeWidth="3"
           fill="none"
-          className="opacity-80 group-hover:opacity-100 transition-all duration-200"
+          className={`opacity-80 group-hover:opacity-100 transition-all duration-200 ${isActiveFlow ? 'glow' : ''}`}
           style={{ pointerEvents: 'none' }}
         />
+        n        {/* Active flow overlay */}
+        {isActiveFlow && (
+          <path
+            d={path}
+            stroke="#FFB080"
+            strokeWidth="3"
+            fill="none"
+            strokeDasharray="48 16"
+            className="flow-active"
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
         
         {/* Connection flow animation */}
         <path
@@ -382,26 +546,34 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
     );
   }, [nodes, getConnectionPoint]);
 
-  const getNodeIcon = (nodeType: string) => {
-    const iconMap: { [key: string]: React.ReactNode } = {
-      "HTTP Request": <Globe className="w-4 h-4" />,
-      "Schedule": <Calendar className="w-4 h-4" />,
-      "Webhook": <GitBranch className="w-4 h-4" />,
-      "File Watch": <FileText className="w-4 h-4" />,
-      "Database": <Database className="w-4 h-4" />,
-      "Email": <Mail className="w-4 h-4" />,
-      "Slack": <MessageSquare className="w-4 h-4" />,
-      "If": <GitBranch className="w-4 h-4" />,
-      "Switch": <Filter className="w-4 h-4" />,
-      "Loop": <Code className="w-4 h-4" />,
-      "Merge": <Users className="w-4 h-4" />,
-      "OpenAI": <Bot className="w-4 h-4" />,
-      "Text Analysis": <FileText className="w-4 h-4" />,
-      "Image Processing": <Zap className="w-4 h-4" />,
-      "Data Transform": <Code className="w-4 h-4" />
-    };
+  // Helper functions for fork nodes
+  const isForkNode = (nodeType: string): boolean => {
+    return ['Double', 'Triple', 'Quadra', 'Custom'].includes(nodeType);
+  };
+
+  const getForkOutputCount = (nodeType: string, config?: any): number => {
+    switch (nodeType) {
+      case 'Double': return 2;
+      case 'Triple': return 3;
+      case 'Quadra': return 4;
+      case 'Custom': return config?.outputCount || 2;
+      default: return 1;
+    }
+  };
+
+  // Get brand logo component for node
+  const getBrandLogoComponent = (nodeType: string, node?: WorkflowNode) => {
+    const LogoComponent = getBrandLogo(nodeType);
     
-    return iconMap[nodeType] || <Settings className="w-4 h-4" />;
+    // Special handling for CustomForkLogo to pass output count
+    if (nodeType === 'Custom') {
+      const outputCount = node?.config?.outputCount || 5;
+      // Cast to any to handle the outputCount prop
+      const CustomComponent = LogoComponent as any;
+      return <CustomComponent size={NODE_SIZE} outputCount={outputCount} />;
+    }
+    
+    return <LogoComponent size={NODE_SIZE} />;
   };
 
   return (
@@ -423,11 +595,10 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
       >
         <defs>
           <style>{`
-            @keyframes dash {
-              to {
-                stroke-dashoffset: -16;
-              }
-            }
+            @keyframes dash { to { stroke-dashoffset: -16; } }
+            @keyframes flow { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -48; } }
+            .flow-active { animation: flow 1.2s linear infinite; }
+            .glow { filter: drop-shadow(0 0 6px rgba(255,105,0,0.35)); }
           `}</style>
         </defs>
         {connections.map(renderConnection)}
@@ -480,16 +651,20 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
           </div>
         </div>
       )}
-
       {/* Workflow Nodes */}
-      {nodes.map((node) => (
+      {nodes.map((node, index) => {
+        const isFirstNode = index === 0;
+        const nodeMapping = getNodeMapping(node.type);
+        const isTrigger = nodeMapping?.category === 'trigger';
+        
+        return (
         <div
           key={node.id}
-          className={`absolute cursor-pointer transition-all duration-200 z-20 ${
-            selectedNode === node.id
-              ? "transform scale-[1.02]"
-              : "hover:transform hover:scale-[1.01]"
-          }`}
+          className={`absolute cursor-pointer transition-all duration-200 z-20 group
+            ${selectedNode === node.id
+              ? "transform scale-[1.05]" 
+              : "hover:transform hover:scale-[1.02]"
+            }`}
           style={{
             left: node.x,
             top: node.y,
@@ -501,50 +676,48 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
             handleNodeDelete(node.id);
           }}
         >
-          {/* Clean Minimalistic Enterprise Node */}
-          <div className="relative group">
-            {/* Main Node Container */}
-            <div className={`
-              bg-zinc-900/90 backdrop-blur-sm border transition-all duration-200
-              rounded-xl p-4 w-48 shadow-lg
-              ${selectedNode === node.id 
-                ? 'border-[#FF6900] shadow-[#FF6900]/20 shadow-lg' 
-                : 'border-zinc-700/60 hover:border-zinc-600/80 hover:shadow-xl'
-              }
-            `}>
-              
-              {/* Node Header */}
-              <div className="flex items-center gap-3 mb-3">
-                {/* Icon */}
-                <div className={`
-                  w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200
-                  ${selectedNode === node.id 
-                    ? 'bg-[#FF6900] text-white' 
-                    : 'bg-zinc-800 text-zinc-300 group-hover:bg-zinc-700'
-                  }
-                `}>
-                  {getNodeIcon(node.type)}
-                </div>
-                
-                {/* Node Title */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium text-sm truncate">{node.name}</h4>
-                  <p className="text-zinc-400 text-xs truncate">{node.type}</p>
-                </div>
-                
-                {/* Status Indicator */}
-                <div className={`w-2 h-2 rounded-full ${
-                  selectedNode === node.id ? 'bg-[#FF6900]' : 'bg-emerald-500'
-                }`}></div>
+          {/* Square Brand Logo Node */}
+          <div className="relative">
+            {/* Main Square Node Container */}
+            <div 
+              className={`
+                relative transition-all duration-200 border-2 bg-black/20 backdrop-blur-sm
+                ${selectedNode === node.id 
+                  ? 'border-[#FF6900] shadow-[#FF6900]/40 shadow-lg' 
+                  : errorNodeIds.includes(node.id) 
+                    ? 'border-red-500 animate-pulse' 
+                    : 'border-zinc-700 hover:border-zinc-600'
+                }
+              `}
+              style={{
+                width: NODE_SIZE,
+                height: NODE_SIZE,
+                borderRadius: '12px'
+              }}
+            >
+              {/* Brand Logo */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                {getBrandLogoComponent(node.type, node)}
               </div>
               
-              {/* Node Description */}
-              <div className="text-xs text-zinc-400 mb-3">
-                Ready to configure
-              </div>
+              {/* Execution indicator */}
+              {executingNodeId === node.id && (
+                <div className="absolute -top-2 -right-2">
+                  <div className="w-4 h-4 border-2 border-[#FF6900] border-t-transparent rounded-full animate-spin bg-black" />
+                </div>
+              )}
               
-              {/* Connection Handles */}
-              {/* Input Handle - Drop Target */}
+              {/* Node label (appears on hover) */}
+              <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                <div className="bg-black/90 border border-zinc-700 rounded px-2 py-1 text-xs text-white font-medium whitespace-nowrap">
+                  {node.name}
+                </div>
+              </div>
+            </div>
+            
+            {/* Connection Handles (outside the clipped body) */}
+            {/* Input Handle - hidden for first trigger node */}
+            {!(isFirstNode && isTrigger) && (
               <div 
                 className={`absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg rounded-full ${
                   isConnecting ? 'border-[#FF6900] bg-[#FF6900]/20 scale-110' : 'border-zinc-700 hover:border-[#FF6900] hover:bg-[#FF6900]/20'
@@ -566,33 +739,70 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
               >
                 <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors"></div>
               </div>
+            )}
+
+            {/* Output Handle(s) */}
+            {(() => {
+              const isCurrentFork = isForkNode(node.type);
+              const outputCount = isCurrentFork ? getForkOutputCount(node.type, node.config) : 1;
               
-              {/* Output Handle - Drag Source */}
-              <div 
-                className="absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 border-zinc-700 rounded-full hover:border-[#FF6900] hover:bg-[#FF6900]/20 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg"
-                onMouseDown={(e) => handleConnectionMouseDown(node.id, 'output', e)}
-                title="Output - Drag to connect"
+              if (isCurrentFork) {
+                // Multiple output handles for fork nodes
+                const handles = [];
+                const nodeHeight = NODE_SIZE;
+                const handleSpacing = nodeHeight / (outputCount + 1);
+                
+                for (let i = 0; i < outputCount; i++) {
+                  const yOffset = handleSpacing * (i + 1) - (nodeHeight / 2);
+                  const outputPort = `output_${i + 1}`;
+                  
+                  handles.push(
+                    <div 
+                      key={`output-${i}`}
+                      className={`absolute -right-3 w-6 h-6 bg-zinc-800 border-2 border-zinc-700 rounded-full hover:border-[#FF6900] hover:bg-[#FF6900]/20 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg`}
+                      style={{ 
+                        top: '50%',
+                        transform: `translate(0, ${yOffset}px)` 
+                      }}
+                      onMouseDown={(e) => handleConnectionMouseDown(node.id, outputPort, e)}
+                      title={`Output ${i + 1} - Drag to connect`}
+                    >
+                      <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors" />
+                    </div>
+                  );
+                }
+                return handles;
+              } else {
+                // Single output handle for regular nodes
+                return (
+                  <div 
+                    className={`absolute -right-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 border-zinc-700 rounded-full hover:border-[#FF6900] hover:bg-[#FF6900]/20 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg`}
+                    onMouseDown={(e) => handleConnectionMouseDown(node.id, 'output', e)}
+                    title="Output - Drag to connect"
+                  >
+                    <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors" />
+                  </div>
+                );
+              }
+            })()}
+
+            {/* Delete Button on Hover */}
+            <div className={`absolute -top-2 ${isFirstNode && isTrigger ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+              <button 
+                className="bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium shadow-sm transition-colors duration-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNodeDelete(node.id);
+                }}
+                title="Delete Node"
               >
-                <div className="w-2 h-2 bg-zinc-400 hover:bg-[#FF6900] rounded-full transition-colors"></div>
-              </div>
-              
-              {/* Delete Button on Hover */}
-              <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <button 
-                  className="bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium shadow-sm transition-colors duration-200"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleNodeDelete(node.id);
-                  }}
-                  title="Delete Node"
-                >
-                  ×
-                </button>
-              </div>
+                ×
+              </button>
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {/* Empty State */}
       {nodes.length === 0 && !isDragOver && (
@@ -633,38 +843,143 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
       )}
 
       {/* Properties Panel */}
-      {selectedNode && (
-        <div className="absolute top-6 right-6 w-80 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/50 rounded-2xl p-6 shadow-2xl z-30">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-[#FF6900] rounded-full"></div>
-            Node Properties
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-zinc-300 block mb-2 font-medium">Node Name</label>
-              <input 
-                type="text" 
-                className="w-full bg-zinc-800 border border-zinc-600 text-white text-sm rounded-lg px-4 py-3 focus:border-[#FF6900] focus:outline-none transition-colors"
-                defaultValue={nodes.find(n => n.id === selectedNode)?.name || ""}
-                placeholder="Enter node name..."
-              />
+      {selectedNode && (() => {
+        const selectedNodeData = nodes.find(n => n.id === selectedNode);
+        const isCustomFork = selectedNodeData?.type === 'Custom';
+        
+        return (
+          <div className="absolute top-6 right-6 w-80 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/50 rounded-2xl p-6 shadow-2xl z-30">
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-[#FF6900] rounded-full"></div>
+              Node Properties
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-zinc-300 block mb-2 font-medium">Node Name</label>
+                <input 
+                  type="text" 
+                  className="w-full bg-zinc-800 border border-zinc-600 text-white text-sm rounded-lg px-4 py-3 focus:border-[#FF6900] focus:outline-none transition-colors"
+                  defaultValue={selectedNodeData?.name || ""}
+                  placeholder="Enter node name..."
+                />
+              </div>
+              <div>
+                <label className="text-sm text-zinc-300 block mb-2 font-medium">Description</label>
+                <textarea 
+                  className="w-full bg-zinc-800 border border-zinc-600 text-white text-sm rounded-lg px-4 py-3 h-24 resize-none focus:border-[#FF6900] focus:outline-none transition-colors"
+                  placeholder="Describe what this node does..."
+                />
+              </div>
+              
+              {/* Custom Fork - use dedicated modal for configuration */}
+              {isCustomFork && (
+                <div className="bg-zinc-800/30 border border-zinc-700 rounded-lg p-4">
+                  <div className="text-sm text-zinc-300 mb-2">Custom Fork Node</div>
+                  <div className="text-xs text-zinc-400 mb-3">
+                    This node splits data into multiple parallel paths. 
+                    Configure the number of outputs when placing the node.
+                  </div>
+                  <button 
+                    onClick={() => setCustomForkModal({ open: true, nodeId: selectedNode })}
+                    className="w-full px-3 py-2 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold rounded-lg transition-colors"
+                  >
+                    Configure Outputs
+                  </button>
+                </div>
+              )}
+              
+              <div className="flex gap-3 pt-2">
+                <button className="flex-1 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+                  Save Changes
+                </button>
+                <button 
+                  onClick={() => onNodeSelect(null)}
+                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="text-sm text-zinc-300 block mb-2 font-medium">Description</label>
-              <textarea 
-                className="w-full bg-zinc-800 border border-zinc-600 text-white text-sm rounded-lg px-4 py-3 h-24 resize-none focus:border-[#FF6900] focus:outline-none transition-colors"
-                placeholder="Describe what this node does..."
-              />
+          </div>
+        );
+      })()}
+
+      {/* Custom Fork Configuration Modal */}
+      {customForkModal.open && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-md">
+            <div className="p-6 border-b border-zinc-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <GitBranch className="w-5 h-5 text-[#FF6900]" />
+                  Configure Custom Fork
+                </h3>
+                <button
+                  onClick={() => setCustomForkModal({ open: false, nodeId: null })}
+                  className="text-zinc-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            <div className="flex gap-3 pt-2">
-              <button className="flex-1 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-                Save Changes
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm text-zinc-300 block mb-3 font-medium">
+                  How many output branches do you need?
+                </label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white text-sm">Number of Outputs</span>
+                    <span className="text-[#FF6900] font-bold text-lg">{customForkOutputs}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max="6"
+                    value={customForkOutputs}
+                    onChange={(e) => setCustomForkOutputs(parseInt(e.target.value))}
+                    className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      background: `linear-gradient(to right, #FF6900 0%, #FF6900 ${((customForkOutputs - 2) / 4) * 100}%, #27272a ${((customForkOutputs - 2) / 4) * 100}%, #27272a 100%)`
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-zinc-500">
+                    <span>2 outputs</span>
+                    <span>6 outputs</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-zinc-800/50 rounded-lg p-4">
+                <div className="text-sm text-zinc-300 mb-2">Preview:</div>
+                <div className="text-xs text-zinc-400">
+                  This fork will split incoming data into <strong className="text-[#FF6900]">{customForkOutputs}</strong> parallel branches, 
+                  allowing for simultaneous processing across multiple workflow paths.
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-zinc-700 flex gap-3">
+              <button 
+                onClick={() => setCustomForkModal({ open: false, nodeId: null })}
+                className="flex-1 px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                Cancel
               </button>
               <button 
-                onClick={() => onNodeSelect(null)}
-                className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                onClick={() => {
+                  if (customForkModal.nodeId) {
+                    // Update the node with the selected output count
+                    setNodes(prev => prev.map(node => 
+                      node.id === customForkModal.nodeId 
+                        ? { ...node, config: { outputCount: customForkOutputs } }
+                        : node
+                    ));
+                  }
+                  setCustomForkModal({ open: false, nodeId: null });
+                }}
+                className="flex-1 px-4 py-2 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold rounded-lg transition-colors"
               >
-                Close
+                Apply Configuration
               </button>
             </div>
           </div>
@@ -672,4 +987,8 @@ export function WorkflowCanvas({ selectedNode, onNodeSelect, onOpenTriggers }: W
       )}
     </div>
   );
-}
+});
+
+WorkflowCanvas.displayName = 'WorkflowCanvas';
+
+export default WorkflowCanvas;

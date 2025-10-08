@@ -1,27 +1,18 @@
-import { currentUser } from '@clerk/nextjs/server'
+'use client';
+
+import { useRequireAuth } from '@/lib/AuthContext'
 import DashboardHome from '@/components/dashboard/DashboardHome'
 
-export default async function DashboardPage() {
-  const user = await currentUser()
+export default function DashboardPage() {
+  const { user, loading } = useRequireAuth()
   
-  // Serialize user data to avoid passing class instances to client components
-  const userData = user ? {
-    id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    emailAddresses: user.emailAddresses.map(email => ({
-      emailAddress: email.emailAddress,
-      verification: {
-        status: email.verification?.status
-      }
-    })),
-    phoneNumbers: user.phoneNumbers.map(phone => ({
-      phoneNumber: phone.phoneNumber
-    })),
-    createdAt: user.createdAt,
-    lastSignInAt: user.lastSignInAt,
-    imageUrl: user.imageUrl
-  } : null
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    )
+  }
 
-  return <DashboardHome user={userData} />
+  return <DashboardHome />
 }

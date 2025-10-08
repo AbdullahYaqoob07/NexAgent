@@ -1,35 +1,48 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Define public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
+const publicRoutes = [
   '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhooks(.*)',
-  '/api/auth(.*)'
-])
+  '/sign-in',
+  '/sign-up',
+  '/reset-password',
+  '/api/auth'
+]
 
 // Define protected routes that require authentication
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/workflows(.*)',
-  '/marketplace(.*)',
-  '/tokens(.*)',
-  '/profile(.*)',
-  '/settings(.*)'
-])
+const protectedRoutes = [
+  '/dashboard',
+  '/workflows',
+  '/marketplace',
+  '/tokens',
+  '/profile',
+  '/settings',
+  '/demo'
+]
 
-export default clerkMiddleware(async (auth, req) => {
-  // Protect routes that require authentication
-  if (isProtectedRoute(req)) {
-    await auth.protect()
+// Helper function to check if route matches pattern
+function matchesRoute(pathname: string, routes: string[]): boolean {
+  return routes.some(route => 
+    pathname === route || pathname.startsWith(route + '/')
+  )
+}
+
+export default function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // Allow public routes
+  if (matchesRoute(pathname, publicRoutes)) {
+    return NextResponse.next()
   }
   
-  // Allow public routes to pass through
-  if (isPublicRoute(req)) {
-    return
+  // For protected routes, we'll handle auth on the client side
+  // since Firebase auth state is managed in the browser
+  if (matchesRoute(pathname, protectedRoutes)) {
+    return NextResponse.next()
   }
-})
+  
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [

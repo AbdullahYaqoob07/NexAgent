@@ -279,9 +279,10 @@ export function WorkflowAssistant({
 
               <div className="flex items-center justify-between mt-2">
                 <div className="text-xs text-zinc-500">
-                  {message.timestamp.toLocaleTimeString([], { 
+                  {new Date(message.timestamp).toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
-                    minute: '2-digit' 
+                    minute: '2-digit',
+                    hour12: false
                   })}
                 </div>
                 {message.type === "user" && (
@@ -373,3 +374,5 @@ export function WorkflowAssistant({
     </div>
   );
 }
+
+export default WorkflowAssistant;

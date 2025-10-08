@@ -231,21 +231,24 @@ export function WorkflowDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      <div className="p-8 lg:p-12 space-y-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl lg:text-4xl font-bold text-white">Workflows</h1>
-            <p className="text-white/70 text-lg mt-1">Create and manage your automated workflows</p>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-2">Workflows</h1>
+            <p className="text-white/70 text-xl">Create and manage your automated workflows</p>
           </div>
-          <Button
-            onClick={handleCreateWorkflow}
-            className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-6 gap-2"
-            data-tour-id="new-workflow-button"
-          >
-            <Plus className="w-4 h-4" />
-            New Workflow
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={handleCreateWorkflow}
+              size="lg"
+              className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-8 gap-3"
+              data-tour-id="new-workflow-button"
+            >
+              <Plus className="w-5 h-5" />
+              New Workflow
+            </Button>
+          </div>
         </div>
 
         {/* Filters and Search */}

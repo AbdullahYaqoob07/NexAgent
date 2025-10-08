@@ -1,5 +1,6 @@
 "use client";
 
+import React from 'react';
 import { motion } from "framer-motion";
 import { 
   Workflow, 
@@ -17,127 +18,101 @@ import {
 import DashboardLayout from "./DashboardLayout";
 import Link from "next/link";
 
-interface SerializedUser {
-  id: string;
-  firstName: string | null;
-  lastName: string | null;
-  emailAddresses: Array<{
-    emailAddress: string;
-    verification?: {
-      status?: string;
-    };
-  }>;
-  phoneNumbers: Array<{
-    phoneNumber: string;
-  }>;
-  createdAt: Date;
-  lastSignInAt: Date | null;
-  imageUrl: string;
-}
+import { useUserProfile } from '@/lib/useUserProfile';
 
 interface DashboardHomeProps {
-  user: SerializedUser | null;
+  // No longer need user prop since we'll get it from the hook
 }
 
-const statsCards = [
-  {
-    title: "Active Workflows",
-    value: "12",
-    change: "+3 this week",
-    icon: Workflow,
-    color: "from-[#FF6900] to-[#FF8555]",
-    bgColor: "bg-[#FF6900]/10",
-    borderColor: "border-[#FF6900]/20"
-  },
-  {
-    title: "API Calls",
-    value: "24.5K",
-    change: "+12% today",
-    icon: Activity,
-    color: "from-blue-500 to-blue-600",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/20"
-  },
-  {
-    title: "Tokens Used",
-    value: "1.2M",
-    change: "+8% this month",
-    icon: Coins,
-    color: "from-green-500 to-green-600",
-    bgColor: "bg-green-500/10",
-    borderColor: "border-green-500/20"
-  },
-  {
-    title: "Success Rate",
-    value: "99.2%",
-    change: "+0.5% this week",
-    icon: TrendingUp,
-    color: "from-purple-500 to-purple-600",
-    bgColor: "bg-purple-500/10",
-    borderColor: "border-purple-500/20"
+export default function DashboardHome({}: DashboardHomeProps) {
+  const { profileData, loading, displayName, trackFeature } = useUserProfile();
+  
+  // Track dashboard view
+  React.useEffect(() => {
+    trackFeature('dashboard_viewed');
+  }, [trackFeature]);
+  
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 lg:p-8 flex items-center justify-center min-h-[400px]">
+          <div className="text-white text-lg">Loading dashboard...</div>
+        </div>
+      </DashboardLayout>
+    );
   }
-];
-
-const quickActions = [
-  {
-    title: "Workflows",
-    description: "Create and manage AI workflows",
-    icon: Workflow,
-    href: "/workflows",
-    color: "from-[#FF6900] to-[#FF8555]"
-  },
-  {
-    title: "Marketplace",
-    description: "Browse AI models and tools",
-    icon: Store,
-    href: "/marketplace",
-    color: "from-blue-500 to-blue-600"
-  },
-  {
-    title: "Tokens",
-    description: "Manage your API tokens",
-    icon: Coins,
-    href: "/tokens",
-    color: "from-green-500 to-green-600"
-  },
-  {
-    title: "Analytics",
-    description: "View performance metrics",
-    icon: BarChart3,
-    href: "/analytics",
-    color: "from-purple-500 to-purple-600"
-  }
-];
-
-const recentActivity = [
-  {
-    title: "Workflow 'Data Analysis' completed",
-    time: "2 minutes ago",
-    icon: Bot,
-    color: "text-green-400"
-  },
-  {
-    title: "New model added to marketplace",
-    time: "15 minutes ago",
-    icon: Store,
-    color: "text-blue-400"
-  },
-  {
-    title: "API limit increased to 100K calls",
-    time: "1 hour ago",
-    icon: TrendingUp,
-    color: "text-[#FF6900]"
-  },
-  {
-    title: "Scheduled workflow started",
-    time: "2 hours ago",
-    icon: Calendar,
-    color: "text-purple-400"
-  }
-];
-
-export default function DashboardHome({ user }: DashboardHomeProps) {
-  const firstName = user?.firstName || user?.emailAddresses[0]?.emailAddress?.split('@')[0] || 'User';
+  
+  // Create dynamic stats from user data
+  const statsCards = [
+    {
+      title: "Workflows Created",
+      value: profileData?.usage.totalWorkflows.toString() || "0",
+      change: `${profileData?.usage.workflowsCreated || 0} this month`,
+      icon: Workflow,
+      color: "from-[#FF6900] to-[#FF8555]",
+      bgColor: "bg-[#FF6900]/10",
+      borderColor: "border-[#FF6900]/20"
+    },
+    {
+      title: "API Calls",
+      value: profileData?.usage.totalApiCalls.toLocaleString() || "0",
+      change: `${profileData?.usage.apiCallsThisMonth || 0} this month`,
+      icon: Activity,
+      color: "from-blue-500 to-blue-600",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/20"
+    },
+    {
+      title: "Tokens Used",
+      value: profileData?.usage.tokensUsed.toLocaleString() || "0",
+      change: `of ${profileData?.usage.limits.tokensPerMonth.toLocaleString() || 0} limit`,
+      icon: Coins,
+      color: "from-green-500 to-green-600",
+      bgColor: "bg-green-500/10",
+      borderColor: "border-green-500/20"
+    },
+    {
+      title: "Success Rate",
+      value: `${profileData?.usage.successRate || 0}%`,
+      change: `Avg ${profileData?.usage.avgResponseTime || 0}ms response`,
+      icon: TrendingUp,
+      color: "from-purple-500 to-purple-600",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/20"
+    }
+  ];
+  
+  // Quick actions for the dashboard
+  const quickActions = [
+    {
+      title: "Workflows",
+      description: "Create and manage AI workflows",
+      icon: Workflow,
+      href: "/workflows",
+      color: "from-[#FF6900] to-[#FF8555]"
+    },
+    {
+      title: "Workflow Demo",
+      description: "Try the interactive workflow engine",
+      icon: Bot,
+      href: "/demo/workflow-engine",
+      color: "from-green-500 to-green-600"
+    },
+    {
+      title: "Marketplace",
+      description: "Browse AI models and tools",
+      icon: Store,
+      href: "/marketplace",
+      color: "from-blue-500 to-blue-600"
+    },
+    {
+      title: "Tokens",
+      description: "Manage your API tokens",
+      icon: Coins,
+      href: "/tokens",
+      color: "from-yellow-500 to-yellow-600"
+    }
+  ];
 
   return (
     <DashboardLayout>
@@ -150,7 +125,7 @@ export default function DashboardHome({ user }: DashboardHomeProps) {
           className="space-y-2"
         >
           <h1 className="text-3xl lg:text-4xl font-bold text-white">
-            Welcome back, <span className="text-[#FF6900]">{firstName}</span>
+            Welcome back, <span className="text-[#FF6900]">{displayName}</span>
           </h1>
           <p className="text-white/70 text-lg">
             Here&apos;s what&apos;s happening in your AI workspace today
@@ -236,29 +211,58 @@ export default function DashboardHome({ user }: DashboardHomeProps) {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="space-y-6"
           >
-            <h2 className="text-2xl font-bold text-white">Recent Activity</h2>
+            <h2 className="text-2xl font-bold text-white">Account Overview</h2>
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
               <div className="space-y-4">
-                {recentActivity.map((activity, index) => {
-                  const Icon = activity.icon;
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-white/5 transition-colors duration-300"
-                    >
-                      <div className={`p-2 rounded-full bg-white/10 ${activity.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-white text-sm font-medium">{activity.title}</p>
-                        <p className="text-white/50 text-xs">{activity.time}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                <div className="flex items-center gap-4 p-3 rounded-lg">
+                  <div className="p-2 rounded-full bg-white/10 text-green-400">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">Member since</p>
+                    <p className="text-white/50 text-xs">
+                      {profileData?.memberSince.toLocaleDateString() || 'Today'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-3 rounded-lg">
+                  <div className="p-2 rounded-full bg-white/10 text-[#FF6900]">
+                    <Workflow className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">Current Plan</p>
+                    <p className="text-white/50 text-xs capitalize">
+                      {profileData?.subscription.plan || 'Free'} Plan
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-3 rounded-lg">
+                  <div className="p-2 rounded-full bg-white/10 text-blue-400">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm font-medium">Login Count</p>
+                    <p className="text-white/50 text-xs">
+                      {profileData?.activity.loginCount || 1} total logins
+                    </p>
+                  </div>
+                </div>
+                
+                {profileData?.onboarding && !profileData.onboarding.completed && (
+                  <div className="flex items-center gap-4 p-3 rounded-lg bg-yellow-400/10 border border-yellow-400/20">
+                    <div className="p-2 rounded-full bg-yellow-400/20 text-yellow-400">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-yellow-300 text-sm font-medium">Complete your setup</p>
+                      <p className="text-yellow-400/70 text-xs">
+                        Step {profileData.onboarding.currentStep} of 5
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
