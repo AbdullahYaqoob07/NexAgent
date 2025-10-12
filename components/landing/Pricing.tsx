@@ -227,7 +227,7 @@ const Pricing = () => {
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-medium text-white mb-4 max-w-xl mx-auto" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Choose the Plan That's Right for You
           </h2>
-          <p className="text-lg md:text-base text-white/80 max-w-2xl mx-auto">
+          <p className="text-lg md:text-base text-white/80 max-w-2xl mx-auto" style={{ fontFamily: 'Poppins, sans-serif' }}>
             Giving you access to essential features and over 1,000 creative tools. Upgrade to the Pro Plan to unlock powerful AI capabilities, cloud syncing, and a whole new level of creative freedom.
           </p>
         </motion.div>

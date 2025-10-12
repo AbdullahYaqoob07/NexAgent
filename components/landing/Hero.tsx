@@ -3,8 +3,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Star } from "lucide-react";
-import { useAuth } from "@clerk/nextjs";
-import { ArrowRight, Zap } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -99,33 +97,24 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.55 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
-          transition={{ duration: 0.8, delay: 0.8 }}
           className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20"
         >
           <button 
             onClick={handleGetStarted}
-            className="h-12 px-8 rounded-lg bg-[#FF6900] text-white font-medium shadow-[0_8px_24px_rgba(255,105,0,0.35)] hover:shadow-[0_10px_28px_rgba(255,105,0,0.45)] hover:bg-[#E55D00] transition-all duration-300 flex items-center justify-center"
+            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-medium px-10 py-3 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
             style={{ fontFamily: 'Poppins, sans-serif' }}
           >
             Get Started
+            <ArrowRight className="w-5 h-5" />
           </button>
+          
           <button 
-            className="h-12 px-8 rounded-lg bg-black/40 border border-white/25 text-white font-medium hover:bg-black/55 transition-all duration-300 flex items-center justify-center"
+            className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-medium px-10 py-3 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
             style={{ fontFamily: 'Poppins, sans-serif' }}
           >
-            See Details
+            <Zap className="w-5 h-5" />
+            Learn More
           </button>
-            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold px-10 py-4 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
-          >
-                Get Started
-                <ArrowRight className="w-5 h-5" />
-              </button>
-          
-          <button className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-bold px-10 py-4 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg">
-                <Zap className="w-5 h-5" />
-                Learn More
-              </button>
         </motion.div>
 
         {/* Stats */}

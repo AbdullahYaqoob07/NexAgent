@@ -26,8 +26,6 @@ export default function HomePage() {
       <Pricing />
       <FAQ />
       <CTA />
-      {/* <DocsPreview />
-      <Testimonials /> */}
       <Footer />
     </main>
   );

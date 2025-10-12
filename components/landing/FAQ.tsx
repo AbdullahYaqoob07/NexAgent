@@ -36,11 +36,11 @@ const FAQ = () => {
   };
 
   return (
-    <>
-      {/* Fixed Background Elements - Won't move when content expands */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        {/* Rounded Rectangle Orange - Left Top (touching screen border) */}
-        <div className="absolute w-32 h-20 lg:w-48 lg:h-32" style={{ top: 'calc(100vh * 0.4)', left: '-40px', transform: 'translateY(-50%)' }}>
+    <section className="relative py-24 overflow-hidden">
+      {/* FAQ Background Elements - Scoped to this section only */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {/* Rounded Rectangle Orange - Left Top */}
+        <div className="absolute w-32 h-20 lg:w-48 lg:h-32 top-35 -left-10 transform -translate-y-1/2">
           <Image
             src="/assets/FAQ/Rounded-rectangle-orange.svg"
             alt="Orange Rectangle"
@@ -49,8 +49,8 @@ const FAQ = () => {
           />
         </div>
         
-        {/* Circle Orange - Right Side (touching screen border) */}
-        <div className="absolute w-24 h-24 lg:w-36 lg:h-36" style={{ top: 'calc(100vh * 0.5)', right: '-40px', transform: 'translateY(-50%)' }}>
+        {/* Circle Orange - Right Side */}
+        <div className="absolute w-24 h-24 lg:w-36 lg:h-36 top-1/2 -right-10 transform -translate-y-1/2">
           <Image
             src="/assets/FAQ/Circle-orange.svg"
             alt="Orange Circle"
@@ -59,8 +59,8 @@ const FAQ = () => {
           />
         </div>
         
-        {/* Rounded Rectangle White - Left Bottom (touching screen border) */}
-        <div className="absolute w-28 h-16 lg:w-40 lg:h-24" style={{ top: 'calc(100vh * 0.7)', left: '-40px', transform: 'translateY(50%)' }}>
+        {/* Rounded Rectangle White - Left Bottom */}
+        <div className="absolute w-28 h-16 lg:w-40 lg:h-24 bottom-10 -left-10">
           <Image
             src="/assets/FAQ/Rounded-rectangle-white.svg"
             alt="White Rectangle"
@@ -69,10 +69,10 @@ const FAQ = () => {
           />
         </div>
         
-        {/* CTA Background - Bottom Right with top blend */}
-        <div className="absolute" style={{ top: 'calc(100vh * 0.6)', right: '-100px', width: '600px', height: '600px' }}>
+        {/* CTA Background - Bottom Right */}
+        {/* <div className="absolute bottom-[-40] -right-4 w-96 h-96 lg:w-[600px] lg:h-[600px]"> */}
           {/* Top blend overlay */}
-          <div 
+          {/* <div 
             className="absolute inset-0 z-10"
             style={{
               background: 'linear-gradient(to bottom, #000000 0%, transparent 30%)',
@@ -82,14 +82,10 @@ const FAQ = () => {
             src="/assets/CTA/gradient blob.svg"
             alt="CTA Background"
             fill
-            className="object-cover opacity-30"
+            className="object-fill opacity-100"
           />
-        </div>
+        </div> */}
       </div>
-      
-      <section className="relative py-24 z-10">
-      
-      {/* Old backgrounds removed - now using fixed positioned ones above */}
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section header */}
@@ -101,10 +97,10 @@ const FAQ = () => {
           className="text-center mb-16"
         >
           <h2 
-            className="text-4xl sm:text-5xl font-medium text-white mb-4 max-w-4xl mx-auto text-center" 
+            className="text-4xl sm:text-5xl font-medium text-white mb-4 max-w-xl mx-auto text-center" 
             style={{ fontFamily: 'Poppins, sans-serif' }}
           >
-            Got questions? We've got answers.
+            Frequently Asked Questions.
           </h2>
           <p className="text-lg text-white/80 max-w-2xl mx-auto">
           Got questions? We've got answers. Find everything you need to know about using our platform, plans, and features.
@@ -120,7 +116,7 @@ const FAQ = () => {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
-              className="border-b border-zinc-800 last:border-b-0"
+              className="border-b border-zinc-800 last:border-b-1"
             >
               <button
                 onClick={() => toggleFAQ(index)}
@@ -161,7 +157,6 @@ const FAQ = () => {
         </div>
       </div>
     </section>
-    </>
   );
 };
 
