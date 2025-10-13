@@ -18,6 +18,7 @@ import {
   X,
   Zap,
   ChevronRight,
+  Key,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -27,6 +28,7 @@ interface DashboardLayoutProps {
 const sidebarItems = [
   { name: "Dashboard", icon: Home, href: "/dashboard" },
   { name: "Workflows", icon: Workflow, href: "/workflows" },
+  { name: "Credentials", icon: Key, href: "/credentials" },
   { name: "Marketplace", icon: Store, href: "/marketplace" },
   { name: "Tokens", icon: Coins, href: "/tokens" },
   { name: "Profile", icon: User, href: "/profile" },
