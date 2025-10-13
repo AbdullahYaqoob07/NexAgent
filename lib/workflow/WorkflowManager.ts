@@ -4,6 +4,7 @@
  */
 
 import { WorkflowEngine } from './engine/WorkflowEngine';
+import { AdvancedWorkflowEngine } from './engine/AdvancedWorkflowEngine';
 import { InMemoryStorageProvider, LocalStorageProvider } from './storage/StorageProvider';
 import { FirestoreStorageProvider } from './storage/FirestoreStorageProvider';
 import { authService } from '../auth';
@@ -12,7 +13,9 @@ import { WorkflowConfig } from './engine/types';
 
 export class WorkflowManager {
   private engine: WorkflowEngine;
+  private advancedEngine: AdvancedWorkflowEngine;
   private storage: IStorageProvider;
+  private useAdvancedEngine: boolean = true; // Use advanced engine by default
 
   constructor(useLocalStorage: boolean = false) {
     if (typeof window !== 'undefined') {
@@ -28,6 +31,7 @@ export class WorkflowManager {
       this.storage = new InMemoryStorageProvider();
     }
     this.engine = new WorkflowEngine();
+    this.advancedEngine = new AdvancedWorkflowEngine();
   }
 
   private ensureStorage() {
@@ -135,10 +139,56 @@ export class WorkflowManager {
     options: import('./engine/types').ExecuteOptions = {}
   ): Promise<WorkflowExecution> {
     try {
-      // Convert Workflow to WorkflowConfig
-      const workflowConfig = this.convertToWorkflowConfig(workflow);
+      // Use advanced engine for better execution
+      if (this.useAdvancedEngine) {
+        console.log('🚀 Using Advanced Workflow Engine');
+        const execution = await this.advancedEngine.execute(workflow, input, {
+          timeout: options.timeout,
+          retryCount: options.retryCount,
+          errorHandling: options.errorHandling,
+          onStepStart: options.onStepStart ? (nodeLog) => {
+            // Convert NodeExecutionLog to ExecutionLog format
+            const executionLog = {
+              ...nodeLog,
+              stepNumber: 0, // We'll need to track this
+              sidebarNodeType: nodeLog.nodeType,
+              engineNodeClass: nodeLog.nodeType
+            };
+            options.onStepStart!(executionLog as any);
+          } : undefined,
+          onStepComplete: options.onStepComplete ? (nodeLog) => {
+            const executionLog = {
+              ...nodeLog,
+              stepNumber: 0,
+              sidebarNodeType: nodeLog.nodeType,
+              engineNodeClass: nodeLog.nodeType
+            };
+            options.onStepComplete!(executionLog as any);
+          } : undefined,
+          onStepFail: options.onStepFail ? (nodeLog) => {
+            const executionLog = {
+              ...nodeLog,
+              stepNumber: 0,
+              sidebarNodeType: nodeLog.nodeType,
+              engineNodeClass: nodeLog.nodeType
+            };
+            options.onStepFail!(executionLog as any);
+          } : undefined
+        });
+        
+        // Save execution to storage
+        try {
+          this.ensureStorage();
+          await this.storage.saveExecution(execution);
+        } catch (error) {
+          console.error('Failed to save execution:', error);
+        }
+        
+        return execution;
+      }
       
-      // Execute using the new engine
+      // Fallback to old engine
+      const workflowConfig = this.convertToWorkflowConfig(workflow);
       const result = await this.engine.executeWorkflow(workflowConfig, input, options);
     
     // Convert result back to WorkflowExecution format

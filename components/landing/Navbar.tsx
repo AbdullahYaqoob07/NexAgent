@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
 import Image from "next/image";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -102,7 +101,6 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   };
 
-
   return (
     <>
       <motion.nav className="fixed inset-x-0 top-0 z-50">
@@ -127,83 +125,14 @@ export default function Navbar() {
           <div className={`${isScrolled ? 'px-4 sm:px-6 xl:px-[160px] max-w-none mx-auto' : 'px-4 sm:px-6 lg:px-8'}`}>
             <div className={`flex justify-between items-center h-[70px] transition-all duration-300`}>
               {/* Logo */}
-              <motion.div
-                className="flex items-center"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300 }}
-      <motion.nav
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-          isScrolled ? "glass-card border-b border-white/10" : "bg-transparent"
-        }`}
-        initial={{ y: -80 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <motion.div
-              className="flex items-center gap-2"
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-[#FF6900] to-[#FF8555] rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">
-                Nex<span className="text-[#FF6900]">Agent</span>
-              </span>
-            </motion.div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <ul className="flex space-x-6">
-                {navItems.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      onClick={() => scrollToSection(item.id)}
-                      className={`relative px-3 py-2 text-sm font-medium transition-all duration-300 ${
-                        activeSection === item.id
-                          ? "text-[#FF6900]"
-                          : "text-white/80 hover:text-white"
-                      }`}
-                    >
-                      {item.name}
-                      {activeSection === item.id && (
-                        <motion.div
-                          className="absolute bottom-0 left-0 w-full h-0.5 bg-[#FF6900] rounded-full"
-                          layoutId="activeTab"
-                          initial={false}
-                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                      )}
-                    </button>
-                  </li>
-                ))}
-                <li>
-                  <button
-                    onClick={handleWorkflowsClick}
-                    className="relative px-3 py-2 text-sm font-medium text-white/80 hover:text-white transition-all duration-300"
-                  >
-                    Workflows
-                  </button>
-                </li>
-              </ul>
-
-              <Button
-                onClick={handleGetStarted}
-                size="sm"
-                className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold px-8 py-2 rounded-xl hover-lift transition-all duration-300 group"
-              >
-                <Image
-                  src="/assets/logo/Logo.svg"
-                  alt="NEXAGENT Logo"
-                  width={120}
-                  height={40}
-                  className="h-7 w-auto"
-                  priority
-                />
-              </motion.div>
+              <Image
+                src="/assets/logo/Logo.svg"
+                alt="NEXAGENT Logo"
+                width={120}
+                height={40}
+                className="h-7 w-auto"
+                priority
+              />
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center">
@@ -299,32 +228,15 @@ export default function Navbar() {
               {item.name}
             </button>
           ))}
-          <div className="pt-4 border-t border-white/10">
-            <div className="border-gradient rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-[#153E48]/20 hover:scale-105">
-              <Button
-                onClick={handleGetStarted}
-                variant="ghost"
-                size="sm"
-                className="w-full bg-transparent hover:bg-gradient-to-r hover:from-white/5 hover:to-white/10 text-white font-medium rounded-lg flex items-center justify-center gap-2 border-0 transition-all duration-300 group"
-                style={{ fontFamily: 'Montserrat, sans-serif' }}
-              >
-                <Image
-                  src="/assets/navbar/person-icon.svg"
-                  alt="User Icon"
-                  width={16}
-                  height={16}
-                  className="w-4 h-4 transition-transform duration-300 group-hover:scale-110"
-                />
-                <span className="transition-all duration-300 group-hover:text-white/95">Sign up</span>
-              </Button>
-            </div>
+          
           <button
             onClick={handleWorkflowsClick}
             className="block w-full text-left px-3 py-2 text-base font-medium text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"
           >
             Workflows
           </button>
-          <div className="pt-4">
+          
+          <div className="pt-4 border-t border-white/10">
             <Button
               onClick={handleGetStarted}
               size="sm"
