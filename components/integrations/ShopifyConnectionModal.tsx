@@ -85,7 +85,7 @@ export const ShopifyConnectionModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+<DialogContent className="max-w-md bg-neutral-900 text-white border border-white/10">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="w-8 h-8 bg-[#96bf48] rounded-lg flex items-center justify-center">
@@ -100,7 +100,7 @@ export const ShopifyConnectionModal = ({
 
         <div className="space-y-4">
           {/* Connection Steps */}
-          <Card>
+<Card className="bg-white/5 border border-white/10 text-white">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">How it works:</CardTitle>
             </CardHeader>
@@ -150,7 +150,7 @@ export const ShopifyConnectionModal = ({
           )}
 
           {/* Permissions Info */}
-          <Card>
+<Card className="bg-white/5 border border-white/10 text-white">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />

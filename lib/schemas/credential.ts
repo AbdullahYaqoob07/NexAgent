@@ -76,12 +76,30 @@ export const WebhookCredentialSchema = BaseCredentialSchema.extend({
   }),
 });
 
+// WhatsApp credential schema (Cloud API)
+export const WhatsAppCredentialSchema = BaseCredentialSchema.extend({
+  platform: z.literal('whatsapp'),
+  type: z.literal('api_key'),
+  data: z.object({
+    businessAccountId: z.string().min(1, 'Business Account ID is required'),
+    phoneNumberId: z.string().min(1, 'Phone Number ID is required'),
+    token: z.string().min(1, 'Access token is required'), // Encrypted
+    defaultTemplateLanguage: z.string().default('en_US'),
+    webhookVerifyToken: z.string().min(1, 'Webhook verify token is required'), // Encrypted optional? we encrypt for safety
+  }),
+  metadata: z.object({
+    phoneNumber: z.string().optional(),
+    displayName: z.string().optional(),
+  }).optional(),
+});
+
 // Union type for all credentials
 export const CredentialSchema = z.discriminatedUnion('platform', [
   ShopifyCredentialSchema,
   ApiKeyCredentialSchema,
   OAuth2CredentialSchema,
   WebhookCredentialSchema,
+  WhatsAppCredentialSchema,
 ]);
 
 // Types
@@ -90,6 +108,7 @@ export type ShopifyCredential = z.infer<typeof ShopifyCredentialSchema>;
 export type ApiKeyCredential = z.infer<typeof ApiKeyCredentialSchema>;
 export type OAuth2Credential = z.infer<typeof OAuth2CredentialSchema>;
 export type WebhookCredential = z.infer<typeof WebhookCredentialSchema>;
+export type WhatsAppCredential = z.infer<typeof WhatsAppCredentialSchema>;
 export type Credential = z.infer<typeof CredentialSchema>;
 
 // Credential creation schemas (without auto-generated fields)
@@ -105,6 +124,7 @@ export const CreateCredentialSchema = z.discriminatedUnion('platform', [
   ApiKeyCredentialSchema.omit(OMIT_AUTO_FIELDS),
   OAuth2CredentialSchema.omit(OMIT_AUTO_FIELDS),
   WebhookCredentialSchema.omit(OMIT_AUTO_FIELDS),
+  WhatsAppCredentialSchema.omit(OMIT_AUTO_FIELDS),
 ]);
 
 export type CreateCredential = z.infer<typeof CreateCredentialSchema>;
