@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { ShopifyConnectionModal } from "@/components/integrations/ShopifyConnectionModal";
 import { WhatsAppConnectionModal } from "@/components/integrations/WhatsAppConnectionModal";
+import { OpenAIConnectionModal } from "@/components/integrations/OpenAIConnectionModal";
 import { FacebookConnectionModal } from "@/components/integrations/FacebookConnectionModal";
 import { InstagramConnectionModal } from "@/components/integrations/InstagramConnectionModal";
 import { toast } from "sonner";
@@ -100,6 +101,7 @@ export default function CredentialsPage() {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [showFacebookModal, setShowFacebookModal] = useState(false);
   const [showInstagramModal, setShowInstagramModal] = useState(false);
+  const [showOpenAIModal, setShowOpenAIModal] = useState(false);
 
   // Filters & search
   const [search, setSearch] = useState("");
@@ -398,6 +400,7 @@ export default function CredentialsPage() {
                       else if (platform === 'whatsapp') setShowWhatsAppModal(true);
                       else if (platform === 'facebook') setShowFacebookModal(true);
                       else if (platform === 'instagram') setShowInstagramModal(true);
+                      else if (platform === 'openai') setShowOpenAIModal(true);
                     }}
                   >
                     <Plus className="w-4 h-4 mr-1 text-white" /> Connect
@@ -439,6 +442,17 @@ export default function CredentialsPage() {
           setShowFacebookModal(false);
           fetchCredentials();
           toast.success('Facebook connected successfully!');
+        }}
+      />
+
+      {/* OpenAI Connection Modal */}
+      <OpenAIConnectionModal
+        open={showOpenAIModal}
+        onClose={() => setShowOpenAIModal(false)}
+        onConnectionSuccess={() => {
+          setShowOpenAIModal(false);
+          fetchCredentials();
+          toast.success('OpenAI connected successfully!');
         }}
       />
 

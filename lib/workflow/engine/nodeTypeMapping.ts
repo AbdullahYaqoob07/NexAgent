@@ -44,7 +44,7 @@ import { CustomForkNode } from './nodes/CustomForkNode';
 export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   // Triggers
   {
-    sidebarType: 'HTTP Request',
+    sidebarType: 'Incoming Webhook',
     engineType: 'HttpRequestTriggerNode',
     nodeClass: HttpRequestTriggerNode,
     category: 'trigger'

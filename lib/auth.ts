@@ -85,6 +85,30 @@ class FirebaseAuthService {
       await sendEmailVerification(userCredential.user);
       
       console.log('✅ User created successfully:', userCredential.user.email);
+      
+      // Call backend API to create user profile
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/auth/signup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: password,
+            display_name: displayName || null
+          })
+        });
+        
+        if (!response.ok) {
+          console.warn('⚠️ Backend signup failed:', await response.text());
+        } else {
+          console.log('✅ Backend user profile created');
+        }
+      } catch (backendError) {
+        console.warn('⚠️ Backend API unavailable:', backendError);
+      }
+      
       return this.transformUser(userCredential.user);
     } catch (error: any) {
       console.error('❌ Sign up error:', error);
@@ -99,6 +123,30 @@ class FirebaseAuthService {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('✅ User signed in successfully:', userCredential.user.email);
+      
+      // Get ID token and verify with backend
+      try {
+        const idToken = await userCredential.user.getIdToken();
+        const response = await fetch('http://localhost:8000/api/v1/auth/verify-token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: idToken
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Backend token verified:', data.user);
+        } else {
+          console.warn('⚠️ Backend token verification failed:', await response.text());
+        }
+      } catch (backendError) {
+        console.warn('⚠️ Backend API unavailable:', backendError);
+      }
+      
       return this.transformUser(userCredential.user);
     } catch (error: any) {
       console.error('❌ Sign in error:', error);

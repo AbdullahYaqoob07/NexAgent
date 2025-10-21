@@ -22,6 +22,7 @@ interface ExecutionOptions {
   onStepComplete?: (log: NodeExecutionLog) => void;
   onStepFail?: (log: NodeExecutionLog) => void;
   onExecutionUpdate?: (execution: WorkflowExecution) => void;
+  allowNoTrigger?: boolean; // allow single-node or no-trigger workflows (e.g., test mode)
 }
 
 interface NodeExecutor {
@@ -58,8 +59,9 @@ export class AdvancedWorkflowEngine {
       // Build execution graph
       this.buildExecutionGraph(workflow);
       
-      // Validate workflow
-      this.validateWorkflow(workflow);
+// Validate workflow (allow single-node tests if option or input.testMode set)
+      const allowNoTrigger = options.allowNoTrigger || Boolean(initialContext && (initialContext as any).testMode);
+      this.validateWorkflow(workflow, { allowNoTrigger });
       
       // Get execution plan using topological sort
       const executionPlan = this.getExecutionPlan(workflow);
@@ -153,12 +155,12 @@ export class AdvancedWorkflowEngine {
   /**
    * Validate workflow structure
    */
-  private validateWorkflow(workflow: Workflow): void {
+private validateWorkflow(workflow: Workflow, opts: { allowNoTrigger?: boolean } = {}): void {
     const errors: string[] = [];
     
-    // Check for at least one trigger node
+// Check for at least one trigger node (unless allowed)
     const triggerNodes = workflow.nodes.filter(n => n.category === NodeCategory.TRIGGER);
-    if (triggerNodes.length === 0) {
+    if (!opts.allowNoTrigger && triggerNodes.length === 0) {
       errors.push('Workflow must have at least one trigger node');
     }
     
@@ -166,8 +168,8 @@ export class AdvancedWorkflowEngine {
     workflow.nodes.forEach(node => {
       if (node.category !== NodeCategory.TRIGGER) {
         const executor = this.nodeExecutors.get(node.id);
-        if (!executor?.dependencies.length) {
-          errors.push(`Node "${node.name}" is not connected to any input`);
+        if (!executor?.dependencies.length && !opts.allowNoTrigger) {
+          errors.push(`Node \"${node.name}\" is not connected to any input`);
         }
       }
     });

@@ -25,7 +25,7 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     ]
   },
   {
-    displayName: 'HTTP Request',
+    displayName: 'Incoming Webhook',
     nodeType: 'http_request_trigger',
     category: 'trigger',
     defaultConfig: { url: 'https://api.example.com', method: 'GET' },
