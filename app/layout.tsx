@@ -24,10 +24,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}>
+    <html lang="en" className="h-full">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased h-full bg-black`}>
         <AuthProvider>
-          {children}
+          <div className="h-full">
+            {children}
+          </div>
         </AuthProvider>
       </body>
     </html>

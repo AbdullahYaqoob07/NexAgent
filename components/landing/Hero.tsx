@@ -101,17 +101,13 @@ export default function Hero() {
         >
           <button 
             onClick={handleGetStarted}
-            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-medium px-10 py-3 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
+            className="bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold px-10 py-4 rounded-xl neon-glow hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
           >
             Get Started
             <ArrowRight className="w-5 h-5" />
           </button>
           
-          <button 
-            className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-medium px-10 py-3 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
-            style={{ fontFamily: 'Poppins, sans-serif' }}
-          >
+          <button className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-bold px-10 py-4 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg">
             <Zap className="w-5 h-5" />
             Learn More
           </button>

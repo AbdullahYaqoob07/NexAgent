@@ -1,5 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -41,18 +42,12 @@ export const storage = getStorage(app);
 export let analytics: any = null;
 
 if (typeof window !== "undefined") {
-  // Use dynamic import to avoid SSR issues
-  import("firebase/analytics").then(({ getAnalytics, isSupported }) => {
-    isSupported().then(supported => {
-      if (supported) {
-        analytics = getAnalytics(app);
-        console.log('✅ Firebase Analytics initialized');
-      }
-    }).catch(() => {
-      console.warn('Firebase Analytics not supported');
-    });
+  isSupported().then(supported => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
   }).catch(() => {
-    console.warn('Failed to load Firebase Analytics');
+    console.warn('Firebase Analytics not supported');
   });
 }
 

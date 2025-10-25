@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { WorkflowToolbar } from "./WorkflowToolbar";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import WorkflowCanvas, { WorkflowCanvasRef } from "./WorkflowCanvas";
 import { WorkflowAssistant } from "./WorkflowAssistant";
 import ExecutionModal from "./ExecutionModal";
-import { useTour, TourStep } from "@/hooks/useTour";
-import { TourSpotlight } from "@/components/tour/TourSpotlight";
+// Removed tour components
 import { Workflow } from "@/lib/workflow/types";
 import { workflowManager } from "@/lib/workflow/WorkflowManager";
 import { getNodeMapping, convertCanvasNodeToWorkflowNode } from "@/lib/workflow/utils/NodeMapping";
@@ -43,56 +42,83 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
 
-  // Workflow editor tour steps (2-4)
-  const tourSteps: TourStep[] = [
-    {
-      id: "workflow-sidebar",
-      title: "Node Library",
-      content: "This sidebar contains all the available nodes you can use to build your workflow. You'll find triggers, actions, and conditions organized by category. Drag nodes from here onto the canvas to get started.",
-      target: "[data-tour-id='workflow-sidebar']",
-      placement: "right",
-      action: "none"
-    },
-    {
-      id: "workflow-canvas",
-      title: "Workflow Canvas",
-      content: "This is your workflow canvas where you'll build your automation flow. Drop nodes here from the sidebar and connect them to create a sequence of actions. You can drag nodes around and connect them with lines to define the flow.",
-      target: "[data-tour-id='workflow-canvas']",
-      placement: "top",
-      action: "none"
-    },
-    {
-      id: "workflow-assistant",
-      title: "AI Assistant",
-      content: "Your AI assistant is here to help! Ask questions about building workflows, get suggestions for nodes to use, or request help with complex automation logic. The assistant can guide you through creating powerful workflows.",
-      target: "[data-tour-id='workflow-assistant']",
-      placement: "left",
-      action: "none"
-    }
-  ];
+  // Tour disabled for now
 
-  const {
-    isActive: isTourActive,
-    isVisible: isTourVisible,
-    currentStepData,
-    targetElement,
-    currentStep,
-    totalSteps,
-    isFirstStep,
-    isLastStep,
-    nextStep,
-    prevStep,
-    skipTour,
-    completeTour
-  } = useTour(tourSteps, {
-    onComplete: () => {
-      console.log('Workflow editor tour completed!');
-    },
-    onSkip: () => {
-      console.log('Workflow editor tour skipped!');
-    },
-    localStorageKey: 'nexagent-workflow-editor-tour'
-  });
+  // Tour removed for now
+
+  // Save current workflow without executing
+  const saveCurrentWorkflow = async () => {
+    try {
+      if (!canvasRef.current) {
+        addToast('Canvas not ready', 'error');
+        return;
+      }
+      const workflowData = canvasRef.current.getWorkflowData();
+      if (!workflowData) {
+        addToast('Nothing to save yet', 'info');
+        return;
+      }
+
+      const nodesArr = workflowData.nodes;
+      const workflowNodes = nodesArr.map((canvasNode: any) => {
+        const nodeType = canvasNode.type || canvasNode.data?.type || 'Unknown';
+        const nodeMapping = getNodeMapping(nodeType);
+        if (!nodeMapping) {
+          return {
+            id: canvasNode.id,
+            type: nodeType,
+            category: 'action' as any,
+            name: canvasNode.name || canvasNode.data?.name || nodeType,
+            description: `Node: ${nodeType}`,
+            position: { x: canvasNode.x || 0, y: canvasNode.y || 0 },
+            config: canvasNode.config || canvasNode.data?.config || {},
+            inputs: [],
+            outputs: [],
+            version: '1.0.0',
+            enabled: true,
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return convertCanvasNodeToWorkflowNode(canvasNode, nodeMapping);
+      });
+
+      const now = new Date().toISOString();
+      const wfId = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
+      const workflow: Workflow = {
+        id: wfId,
+        name: workflowName || 'Untitled Workflow',
+        description: 'Workflow saved from editor',
+        nodes: workflowNodes,
+        connections: workflowData.connections.map((conn: any) => ({
+          id: conn.id,
+          sourceNodeId: conn.from,
+          sourcePortId: conn.fromPoint || 'output',
+          targetNodeId: conn.to,
+          targetPortId: conn.toPoint || 'input',
+          type: 'default' as any,
+          enabled: true
+        })),
+        settings: {
+          timeout: 300000,
+          retryCount: 3,
+          concurrency: 1,
+          errorHandling: 'stop'
+        },
+        createdAt: now,
+        updatedAt: now,
+        version: '1.0.0'
+      };
+
+      await workflowManager.saveWorkflow(workflow);
+      setCurrentWorkflowId(wfId);
+      addToast('Workflow saved', 'info');
+    } catch (e) {
+      console.error('Failed to save workflow:', e);
+      addToast('Failed to save workflow', 'error');
+    }
+  };
 
   // Save current workflow without executing
   const saveCurrentWorkflow = async () => {
@@ -400,16 +426,14 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   };
 
   return (
-    <div className="flex h-screen bg-black text-white">
+    <div className="flex h-screen bg-black text-white overflow-hidden">
       {/* Left Sidebar - Nodes */}
-      <div data-tour-id="workflow-sidebar">
-        <WorkflowSidebar 
-          ref={sidebarRef}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          canvasNodeCount={canvasNodeCount}
-        />
-      </div>
+      <WorkflowSidebar 
+        ref={sidebarRef}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        canvasNodeCount={canvasNodeCount}
+      />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -426,7 +450,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         />
         
         {/* Canvas */}
-        <div className="flex-1 relative" data-tour-id="workflow-canvas">
+        <div className="flex-1 relative">
           {/* Tabs bar on top-left over canvas */}
           <div className="absolute top-3 left-4 z-30 bg-black/60 backdrop-blur-sm border border-zinc-800 rounded-xl overflow-hidden flex">
             <button
@@ -466,13 +490,11 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
       {/* Right Sidebar - AI Assistant */}
       {showAssistant && (
-        <div data-tour-id="workflow-assistant">
-          <WorkflowAssistant 
-            onClose={() => setShowAssistant(false)}
-            isMinimized={assistantMinimized}
-            onToggleMinimize={() => setAssistantMinimized(!assistantMinimized)}
-          />
-        </div>
+        <WorkflowAssistant 
+          onClose={() => setShowAssistant(false)}
+          isMinimized={assistantMinimized}
+          onToggleMinimize={() => setAssistantMinimized(!assistantMinimized)}
+        />
       )}
       
       {/* Error Display */}
@@ -500,22 +522,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         </div>
       )}
 
-      {/* Tour Spotlight */}
-      {isTourVisible && targetElement && currentStepData && (
-        <TourSpotlight
-          isVisible={isTourVisible}
-          targetElement={targetElement}
-          step={currentStepData}
-          currentStep={currentStep}
-          totalSteps={totalSteps}
-          isFirstStep={isFirstStep}
-          isLastStep={isLastStep}
-          onNext={nextStep}
-          onPrevious={prevStep}
-          onSkip={skipTour}
-          onComplete={completeTour}
-        />
-      )}
+      {/* Tour removed */}
       {/* Toasts (top-right) */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(t => (

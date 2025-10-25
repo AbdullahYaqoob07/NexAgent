@@ -3,17 +3,17 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/AuthContext";
 import Image from "next/image";
+import { useAuth } from "@/lib/AuthContext";
 
 const navItems = [
   { name: "Home", id: "hero" },
   { name: "Product", id: "features" },
   { name: "Solution", id: "workflow" },
-  { name: "Marketplace", id: "marketplace" },
   { name: "Pricing", id: "pricing" },
+  { name: "About us", id: "about" },
   { name: "Contact", id: "contact" },
 ];
 
@@ -52,8 +52,8 @@ export default function Navbar() {
         }
       },
       { 
-        threshold: [0, 0.1, 0.25], 
-        rootMargin: "-15% 0px -35% 0px" 
+        threshold: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], 
+        rootMargin: "-100px 0px -100px 0px" 
       }
     );
 
@@ -64,14 +64,6 @@ export default function Navbar() {
           observer.observe(el);
         }
       });
-
-      // Edge case: when scrolled to bottom, ensure Contact is active
-      const onScrollEnd = () => {
-        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 2) {
-          setActiveSection('contact');
-        }
-      };
-      window.addEventListener('scroll', onScrollEnd);
     };
 
     // Add a small delay to ensure all elements are mounted
@@ -84,7 +76,6 @@ export default function Navbar() {
   }, []);
 
   const scrollToSection = (id: string) => {
-    setActiveSection(id); // immediately reflect active tab
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: "smooth" });
@@ -110,7 +101,6 @@ export default function Navbar() {
     setIsMobileMenuOpen(false);
   };
 
-
   return (
     <>
       <motion.nav className="fixed inset-x-0 top-0 z-50">
@@ -135,20 +125,14 @@ export default function Navbar() {
           <div className={`${isScrolled ? 'px-4 sm:px-6 xl:px-[160px] max-w-none mx-auto' : 'px-4 sm:px-6 lg:px-8'}`}>
             <div className={`flex justify-between items-center h-[70px] transition-all duration-300`}>
               {/* Logo */}
-              <motion.div
-                className="flex items-center"
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <Image
-                  src="/assets/logo/Logo.svg"
-                  alt="NEXAGENT Logo"
-                  width={120}
-                  height={40}
-                  className="h-7 w-auto"
-                  priority
-                />
-              </motion.div>
+              <Image
+                src="/assets/logo/Logo.svg"
+                alt="NEXAGENT Logo"
+                width={120}
+                height={40}
+                className="h-7 w-auto"
+                priority
+              />
 
               {/* Desktop Navigation */}
               <div className="hidden md:flex items-center">
@@ -244,9 +228,10 @@ export default function Navbar() {
               {item.name}
             </button>
           ))}
+          
           <button
             onClick={handleWorkflowsClick}
-            className="block w-full text-left px-3 py-3 text-base font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"
+            className="block w-full text-left px-3 py-2 text-base font-medium text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-300"
           >
             Workflows
           </button>
@@ -255,7 +240,7 @@ export default function Navbar() {
             <Button
               onClick={handleGetStarted}
               size="sm"
-              className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold rounded-xl py-3 transition-all duration-300"
+              className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-bold rounded-xl py-3"
             >
               Get Started
             </Button>

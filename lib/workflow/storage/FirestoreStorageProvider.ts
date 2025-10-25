@@ -25,6 +25,42 @@ export class FirestoreStorageProvider implements IStorageProvider {
   private EXECUTIONS_COLLECTION = 'workflowExecutions';
   private USERS_COLLECTION = 'users';
 
+  /**
+   * Sanitize data for Firestore by converting Maps, Sets, and other non-serializable objects
+   */
+  private sanitizeForFirestore(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+    
+    // Handle Maps
+    if (obj instanceof Map) {
+      return Object.fromEntries(obj);
+    }
+    
+    // Handle Sets
+    if (obj instanceof Set) {
+      return Array.from(obj);
+    }
+    
+    // Handle Arrays
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.sanitizeForFirestore(item));
+    }
+    
+    // Handle plain objects
+    if (typeof obj === 'object' && obj.constructor === Object) {
+      const sanitized: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          sanitized[key] = this.sanitizeForFirestore(obj[key]);
+        }
+      }
+      return sanitized;
+    }
+    
+    // Return primitives as-is
+    return obj;
+  }
+
   private getUserIdOrThrow(): string {
     const uid = authService.getUserId();
     if (!uid) throw new Error('User not authenticated');
@@ -34,11 +70,14 @@ export class FirestoreStorageProvider implements IStorageProvider {
   async saveWorkflow(workflow: Workflow): Promise<void> {
     const uid = this.getUserIdOrThrow();
 
+    // Sanitize the workflow data for Firestore
+    const sanitizedWorkflow = this.sanitizeForFirestore(workflow);
+
     const workflowRef = doc(db, this.WORKFLOWS_COLLECTION, workflow.id);
 
     // Persist workflow with ownerId for querying
     await setDoc(workflowRef, {
-      ...workflow,
+      ...sanitizedWorkflow,
       ownerId: uid,
       updatedAt: new Date().toISOString(),
       // Optionally record server timestamp for backend-side auditing
@@ -79,9 +118,12 @@ export class FirestoreStorageProvider implements IStorageProvider {
   async saveExecution(execution: WorkflowExecution): Promise<void> {
     const uid = this.getUserIdOrThrow();
 
+    // Sanitize the execution data for Firestore
+    const sanitizedExecution = this.sanitizeForFirestore(execution);
+
     const execRef = doc(db, this.EXECUTIONS_COLLECTION, execution.id);
     await setDoc(execRef, {
-      ...execution,
+      ...sanitizedExecution,
       ownerId: uid,
       _createdAtTs: serverTimestamp(),
     }, { merge: true });

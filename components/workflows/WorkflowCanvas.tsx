@@ -22,10 +22,13 @@ import {
   ShoppingCart,
   Instagram,
   Facebook,
-  Phone
+  Phone,
+  X
 } from "lucide-react";
 import { getNodeMapping } from "@/lib/workflow/utils/NodeMapping";
 import { getBrandLogo, getBrandColor } from "@/lib/workflow/utils/BrandLogoMapping";
+import NodeConfigModal from "./NodeConfigModal";
+import { WorkflowNode as WorkflowNodeType } from "@/lib/workflow/types";
 
 interface WorkflowCanvasProps {
   selectedNode: string | null;
@@ -82,6 +85,9 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
   const errorNodeIds = errorNodeIdsProp ?? errorNodeIdsState;
   const [customForkModal, setCustomForkModal] = useState<{ open: boolean; nodeId: string | null }>({ open: false, nodeId: null });
   const [customForkOutputs, setCustomForkOutputs] = useState(2);
+  const [selectedNodeForConfig, setSelectedNodeForConfig] = useState<WorkflowNodeType | null>(null);
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'error' | 'warning' | 'info' } | null>(null);
   
   // Constants for precise node dimensions
   const NODE_SIZE = 64; // Square nodes like n8n/Make.com
@@ -184,26 +190,53 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     event.preventDefault();
     setIsDragOver(false);
     
-    // Try both data formats
-    let nodeType = event.dataTransfer.getData("application/reactflow");
-    if (!nodeType) {
-      nodeType = event.dataTransfer.getData("text/plain");
-    }
+    // Try to get JSON data first (new format), then fall back to plain text (old format)
+    let nodeData: any = null;
+    let nodeType: string;
+    let nodeName: string;
+    let isStartNode = false;
     
-    console.log('Dropped node type:', nodeType); // Debug log
+    const jsonData = event.dataTransfer.getData("application/reactflow");
+    if (jsonData) {
+      try {
+        nodeData = JSON.parse(jsonData);
+        nodeType = nodeData.type;
+        nodeName = nodeData.name;
+        isStartNode = nodeData.category === 'Triggers' || false; // Check if it's from Triggers category
+        console.log('Dropped node data (JSON):', nodeData);
+      } catch (e) {
+        // If JSON parsing fails, treat as old format
+        nodeType = jsonData;
+        nodeName = jsonData;
+        const nodeMapping = getNodeMapping(nodeType);
+        isStartNode = nodeMapping?.category === 'trigger';
+        console.log('Dropped node type (legacy):', nodeType);
+      }
+    } else {
+      // Fallback to plain text
+      nodeType = event.dataTransfer.getData("text/plain");
+      nodeName = nodeType;
+      if (nodeType) {
+        const nodeMapping = getNodeMapping(nodeType);
+        isStartNode = nodeMapping?.category === 'trigger';
+        console.log('Dropped node type (text):', nodeType);
+      }
+    }
     
     if (!nodeType) {
       console.log('No node type found in drag data');
       return;
     }
 
-    // Validation: If this is the first node, it must be a trigger
-    if (nodes.length === 0) {
-      const nodeMapping = getNodeMapping(nodeType);
-      if (!nodeMapping || nodeMapping.category !== 'trigger') {
-        alert('The first node must be a trigger! Please select a node from the Triggers section.');
-        return;
-      }
+    // Validation: If this is the first node, it must be a trigger/start node
+    if (nodes.length === 0 && !isStartNode) {
+      setNotification({
+        message: 'The first node must be a trigger! Please select a node from the Triggers section.',
+        type: 'error'
+      });
+      // Clear notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
+      return;
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
@@ -213,9 +246,14 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     const newNode: WorkflowNode = {
       id: `node_${Date.now()}`,
       type: nodeType,
-      name: nodeType,
+      name: nodeName,
       x: Math.max(0, x - 80), // Center the node on cursor with bounds
       y: Math.max(0, y - 40),
+      // Store additional metadata from dynamic nodes
+      ...(nodeData && {
+        nodeDefinitionId: nodeData.id,
+        category: nodeData.category
+      })
     };
 
     console.log('Adding new node:', newNode); // Debug log
@@ -228,6 +266,28 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
   };
 
   const handleNodeClick = (nodeId: string) => {
+    const clickedNode = nodes.find(n => n.id === nodeId);
+    if (clickedNode) {
+      // Create WorkflowNodeType object for the modal
+      const workflowNode: WorkflowNodeType = {
+        id: clickedNode.id,
+        type: clickedNode.type,
+        name: clickedNode.name,
+        category: (clickedNode as any).category || getNodeMapping(clickedNode.type)?.category as any || 'action',
+        position: { x: clickedNode.x, y: clickedNode.y },
+        config: clickedNode.config || {},
+        inputs: [],
+        outputs: [],
+        enabled: true,
+        // Pass node definition ID if available for dynamic nodes
+        ...(clickedNode as any).nodeDefinitionId && {
+          nodeDefinitionId: (clickedNode as any).nodeDefinitionId
+        }
+      };
+      
+      setSelectedNodeForConfig(workflowNode);
+      setIsConfigModalOpen(true);
+    }
     onNodeSelect(selectedNode === nodeId ? null : nodeId);
   };
 
@@ -482,7 +542,8 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
           className={`opacity-80 group-hover:opacity-100 transition-all duration-200 ${isActiveFlow ? 'glow' : ''}`}
           style={{ pointerEvents: 'none' }}
         />
-        n        {/* Active flow overlay */}
+        
+        {/* Active flow overlay */}
         {isActiveFlow && (
           <path
             d={path}
@@ -579,7 +640,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
   return (
     <div 
       ref={canvasRef}
-      className="workflow-canvas flex-1 h-full relative bg-black border border-zinc-800 overflow-hidden"
+      className="workflow-canvas flex-1 h-full relative bg-black border border-zinc-800 overflow-hidden min-h-0"
       onDragOver={handleDragOver}
       onDragEnter={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -842,67 +903,71 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         </div>
       )}
 
-      {/* Properties Panel */}
-      {selectedNode && (() => {
-        const selectedNodeData = nodes.find(n => n.id === selectedNode);
-        const isCustomFork = selectedNodeData?.type === 'Custom';
-        
-        return (
-          <div className="absolute top-6 right-6 w-80 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/50 rounded-2xl p-6 shadow-2xl z-30">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-[#FF6900] rounded-full"></div>
-              Node Properties
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm text-zinc-300 block mb-2 font-medium">Node Name</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-zinc-800 border border-zinc-600 text-white text-sm rounded-lg px-4 py-3 focus:border-[#FF6900] focus:outline-none transition-colors"
-                  defaultValue={selectedNodeData?.name || ""}
-                  placeholder="Enter node name..."
-                />
-              </div>
-              <div>
-                <label className="text-sm text-zinc-300 block mb-2 font-medium">Description</label>
-                <textarea 
-                  className="w-full bg-zinc-800 border border-zinc-600 text-white text-sm rounded-lg px-4 py-3 h-24 resize-none focus:border-[#FF6900] focus:outline-none transition-colors"
-                  placeholder="Describe what this node does..."
-                />
-              </div>
-              
-              {/* Custom Fork - use dedicated modal for configuration */}
-              {isCustomFork && (
-                <div className="bg-zinc-800/30 border border-zinc-700 rounded-lg p-4">
-                  <div className="text-sm text-zinc-300 mb-2">Custom Fork Node</div>
-                  <div className="text-xs text-zinc-400 mb-3">
-                    This node splits data into multiple parallel paths. 
-                    Configure the number of outputs when placing the node.
-                  </div>
-                  <button 
-                    onClick={() => setCustomForkModal({ open: true, nodeId: selectedNode })}
-                    className="w-full px-3 py-2 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold rounded-lg transition-colors"
-                  >
-                    Configure Outputs
-                  </button>
-                </div>
-              )}
-              
-              <div className="flex gap-3 pt-2">
-                <button className="flex-1 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-                  Save Changes
-                </button>
-                <button 
-                  onClick={() => onNodeSelect(null)}
-                  className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Node Configuration Modal */}
+      <NodeConfigModal
+        node={selectedNodeForConfig}
+        isOpen={isConfigModalOpen}
+        onClose={() => {
+          setIsConfigModalOpen(false);
+          setSelectedNodeForConfig(null);
+          onNodeSelect(null);
+        }}
+        onSave={(nodeConfig) => {
+          if (selectedNodeForConfig) {
+            setNodes(prev => prev.map(node => 
+              node.id === selectedNodeForConfig.id
+                ? { ...node, config: nodeConfig }
+                : node
+            ));
+          }
+        }}
+        onTest={async (testWorkflow, config) => {
+          // Execute single node test using the workflow engine
+          try {
+            console.log('🧪 Testing node:', selectedNodeForConfig?.name, 'with config:', config);
+            
+            // Import the advanced workflow engine dynamically
+            const { AdvancedWorkflowEngine } = await import('../../lib/workflow/engine/AdvancedWorkflowEngine');
+            const engine = new AdvancedWorkflowEngine();
+            
+            // Execute the test workflow
+            const execution = await engine.execute(testWorkflow, { testMode: true }, {
+              timeout: 10000,
+              retryCount: 1,
+              errorHandling: 'stop'
+            });
+            
+            return {
+              success: execution.status === 'completed',
+              data: execution.output || execution.nodeLogs[0]?.output,
+              metadata: {
+                executionTime: execution.duration,
+                logs: execution.nodeLogs,
+                nodeCount: execution.nodeLogs.length
+              }
+            };
+            
+          } catch (error) {
+            console.error('Node test failed:', error);
+            return {
+              success: false,
+              error: error instanceof Error ? error.message : 'Test failed',
+              data: null
+            };
+          }
+        }}
+        onDelete={() => {
+          if (selectedNodeForConfig) {
+            setNodes(prev => prev.filter(node => node.id !== selectedNodeForConfig.id));
+            setConnections(prev => prev.filter(conn => 
+              conn.from !== selectedNodeForConfig.id && conn.to !== selectedNodeForConfig.id
+            ));
+            setIsConfigModalOpen(false);
+            setSelectedNodeForConfig(null);
+            onNodeSelect(null);
+          }
+        }}
+      />
 
       {/* Custom Fork Configuration Modal */}
       {customForkModal.open && (
@@ -980,6 +1045,44 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
                 className="flex-1 px-4 py-2 bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-semibold rounded-lg transition-colors"
               >
                 Apply Configuration
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Toast Notification */}
+      {notification && (
+        <div className="fixed top-4 right-4 z-[60] max-w-md">
+          <div className={`p-4 rounded-xl border-2 shadow-2xl backdrop-blur-sm animate-in slide-in-from-right duration-300 ${
+            notification.type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-100' :
+            notification.type === 'warning' ? 'bg-yellow-900/90 border-yellow-500/50 text-yellow-100' :
+            'bg-blue-900/90 border-blue-500/50 text-blue-100'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                {notification.type === 'error' ? (
+                  <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-sm font-bold">
+                    !
+                  </div>
+                ) : notification.type === 'warning' ? (
+                  <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center text-black text-sm font-bold">
+                    ⚠
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                    i
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium leading-relaxed">{notification.message}</p>
+              </div>
+              <button
+                onClick={() => setNotification(null)}
+                className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
           </div>
