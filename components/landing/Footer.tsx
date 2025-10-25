@@ -1,163 +1,105 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Github, Twitter, Linkedin, Mail, Zap, ArrowUp } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail, Facebook, Instagram } from "lucide-react";
 
-const socialLinks = [
-  { icon: Twitter, href: "#", label: "Twitter" },
-  { icon: Linkedin, href: "#", label: "LinkedIn" },
+const social = [
   { icon: Github, href: "#", label: "GitHub" },
-  { icon: Mail, href: "#", label: "Email" },
+  { icon: Linkedin, href: "#", label: "LinkedIn" },
+  { icon: Mail, href: "mailto:nexagent1@gmail.com", label: "Email" },
+  { icon: Facebook, href: "#", label: "Facebook" },
+  { icon: Instagram, href: "#", label: "Instagram" },
+  { icon: Twitter, href: "#", label: "Twitter" },
 ];
 
-const footerLinks = [
-  {
-    title: "Product",
-    links: [
-      { name: "Features", href: "#features" },
-      { name: "Workflow", href: "#workflow" },
-      { name: "API", href: "#" },
-      { name: "Documentation", href: "#" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { name: "About", href: "#" },
-      { name: "Blog", href: "#" },
-      { name: "Careers", href: "#" },
-      { name: "Contact", href: "#" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { name: "Community", href: "#" },
-      { name: "Help Center", href: "#" },
-      { name: "Status", href: "#" },
-      { name: "Security", href: "#" },
-    ],
-  },
+const usefulLinks = ["About", "Services", "Team", "Prices"];
+const helpLinks = [
+  "Customer Support",
+  "Terms & Conditions",
+  "Privacy Policy",
+  "Contact Us",
 ];
 
 const Footer = () => {
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   return (
-    <footer className="relative border-t border-white/10 overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#FF6900]/50 to-transparent" />
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-[#FF6900]/5 rounded-full blur-3xl" />
-      </div>
-      
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main footer content */}
-        <div className="py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12">
-            {/* Brand section */}
-            <div className="lg:col-span-2">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="space-y-6"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#FF6900] to-[#FF8555] rounded-xl flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-2xl font-bold text-white">
-                    Nex<span className="text-[#FF6900]">Agent</span>
-                  </span>
-                </div>
-                
-                <p className="text-white/70 max-w-md leading-relaxed">
-                  The future of artificial intelligence is here. Build, deploy, and scale 
-                  intelligent agents with quantum-powered infrastructure.
-                </p>
-                
-                {/* Social links */}
-                <div className="flex items-center gap-4">
-                  {socialLinks.map((link, index) => {
-                    const Icon = link.icon;
-                    return (
-                      <motion.a
-                        key={index}
-                        href={link.href}
-                        aria-label={link.label}
-                        className="w-10 h-10 glass-card rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-[#FF6900]/20 transition-all duration-300 hover-lift"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </motion.a>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            </div>
-            
-            {/* Links sections */}
-            <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-8">
-              {footerLinks.map((section, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <h3 className="text-white font-semibold mb-6">{section.title}</h3>
-                  <ul className="space-y-4">
-                    {section.links.map((link, linkIndex) => (
-                      <li key={linkIndex}>
-                        <a
-                          href={link.href}
-                          className="text-white/60 hover:text-[#FF6900] transition-colors duration-300 text-sm"
-                        >
-                          {link.name}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
+    <footer className="relative overflow-hidden">
+      {/* Gradient background from top-right to bottom-left */}
+      <div className="absolute inset-0 bg-gradient-to-bl from-[#340906] to-black z-0" />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Four column layout */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-18">
+          {/* About text */}
+          <div>
+            <h4 className="text-[#FFFFFF] text-2xl font-semibold mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>About us</h4>
+            <p className="text-white/80 leading-relaxed max-w-md" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              We're a team of designers, engineers, and innovators building AI tools that empower anyone to turn imagination
+              into stunning visuals—faster, smarter, and effortlessly.
+            </p>
+          </div>
+
+          {/* Useful Links */}
+          <div>
+            <h4 className="text-[#FF6900] text-xl font-medium mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Useful Links</h4>
+            <ul className="space-y-3">
+              {usefulLinks.map((t) => (
+                <li key={t}>
+                  <a className="text-white/70 hover:text-white transition-colors text-sm" href="#" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                    {t}
+                  </a>
+                </li>
               ))}
-            </div>
+            </ul>
+          </div>
+
+          {/* Help */}
+          <div>
+            <h4 className="text-[#FF6900] text-xl font-medium mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Help</h4>
+            <ul className="space-y-3">
+              {helpLinks.map((t) => (
+                <li key={t}>
+                  <a className="text-white/70 hover:text-white transition-colors text-sm" href="#" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                    {t}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Connect With Us */}
+          <div>
+            <h4 className="text-[#FF6900] text-xl font-medium mb-4" style={{ fontFamily: 'Poppins, sans-serif' }}>Connect With Us</h4>
+            <ul className="space-y-3 text-white/70 text-sm" style={{ fontFamily: 'Poppins, sans-serif' }}>
+              <li>AU, Islamabad, PK</li>
+              <li>+92 336 9539289</li>
+              <li>
+                <a href="mailto:nexagent1@gmail.com" className="hover:text-white transition-colors">
+                  nexagent1@gmail.com
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
-        
-        {/* Bottom bar */}
-        <div className="border-t border-white/10 py-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex flex-col sm:flex-row items-center gap-6 text-sm text-white/60">
-              <p>© {new Date().getFullYear()} NexAgent. All rights reserved.</p>
-              <div className="flex items-center gap-6">
-                <a href="#" className="hover:text-white transition-colors duration-300">
-                  Privacy Policy
+
+        {/* Orange divider line */}
+        <div className="mt-10 h-px w-full bg-[#FF6900]/80" />
+
+        {/* Bottom row: copyright and social icons */}
+        <div className="mt-6 flex items-center justify-between">
+          <p className="text-white text-md" style={{ fontFamily: 'Poppins, sans-serif' }}>© 2025 All Right Reserved.</p>
+          <div className="flex gap-3">
+            {social.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <a
+                  key={i}
+                  href={s.href}
+                  aria-label={s.label}
+                  className="w-10 h-10 rounded-full border border-[#FF6900] text-[#FF6900] flex items-center justify-center hover:bg-[#FF6900] hover:text-black transition-colors"
+                >
+                  <Icon className="w-4 h-4" />
                 </a>
-                <a href="#" className="hover:text-white transition-colors duration-300">
-                  Terms of Service
-                </a>
-                <a href="#" className="hover:text-white transition-colors duration-300">
-                  Security
-                </a>
-              </div>
-            </div>
-            
-            {/* Back to top button */}
-            <motion.button
-              onClick={scrollToTop}
-              className="w-10 h-10 glass-card rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-[#FF6900]/20 transition-all duration-300 hover-lift"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              aria-label="Back to top"
-            >
-              <ArrowUp className="w-4 h-4" />
-            </motion.button>
+              );
+            })}
           </div>
         </div>
       </div>
