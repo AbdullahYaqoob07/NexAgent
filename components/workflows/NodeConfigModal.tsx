@@ -33,7 +33,11 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+<<<<<<< HEAD
 import { WorkflowNode } from '@/lib/workflow/types';
+=======
+import { WorkflowNode, NodeCategory } from '@/lib/workflow/types';
+>>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 import { getNodeMapping } from '@/lib/workflow/utils/NodeMapping';
 import { getBrandLogo } from '@/lib/workflow/utils/BrandLogoMapping';
 
@@ -237,6 +241,55 @@ export default function NodeConfigModal({
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
   
+<<<<<<< HEAD
+=======
+  // Helpers for HTTP Request editor (Webhook/API)
+  const addHeaderRow = () => {
+    const list = Array.isArray(config.headersList) ? [...config.headersList] : [];
+    list.push({ key: '', value: '' });
+    setConfig(prev => ({ ...prev, headersList: list }));
+  };
+  const updateHeaderRow = (idx: number, field: 'key' | 'value', val: string) => {
+    const list = Array.isArray(config.headersList) ? [...config.headersList] : [];
+    if (list[idx]) list[idx][field] = val;
+    const headersObj: Record<string, string> = {};
+    list.filter((r: any) => r.key).forEach((r: any) => { headersObj[r.key] = r.value; });
+    setConfig(prev => ({ ...prev, headersList: list, headers: headersObj }));
+  };
+  const removeHeaderRow = (idx: number) => {
+    const list = Array.isArray(config.headersList) ? [...config.headersList] : [];
+    list.splice(idx, 1);
+    const headersObj: Record<string, string> = {};
+    list.filter((r: any) => r.key).forEach((r: any) => { headersObj[r.key] = r.value; });
+    setConfig(prev => ({ ...prev, headersList: list, headers: headersObj }));
+  };
+
+  const addParamRow = () => {
+    const list = Array.isArray(config.paramsList) ? [...config.paramsList] : [];
+    list.push({ key: '', value: '' });
+    setConfig(prev => ({ ...prev, paramsList: list }));
+  };
+  const updateParamRow = (idx: number, field: 'key' | 'value', val: string) => {
+    const list = Array.isArray(config.paramsList) ? [...config.paramsList] : [];
+    if (list[idx]) list[idx][field] = val;
+    setConfig(prev => ({ ...prev, paramsList: list }));
+  };
+  const removeParamRow = (idx: number) => {
+    const list = Array.isArray(config.paramsList) ? [...config.paramsList] : [];
+    list.splice(idx, 1);
+    setConfig(prev => ({ ...prev, paramsList: list }));
+  };
+  const buildUrlWithParams = (base: string, paramsList: any[]): string => {
+    try {
+      const url = new URL(base || '');
+      (paramsList || []).filter(p => p.key).forEach(p => url.searchParams.set(p.key, p.value));
+      return url.toString();
+    } catch {
+      return base;
+    }
+  };
+  
+>>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
   // Dynamic node data from API
   const [nodeCategories, setNodeCategories] = useState<any[]>([]);
   const [nodeDefinition, setNodeDefinition] = useState<any>(null);
@@ -244,7 +297,21 @@ export default function NodeConfigModal({
 
   useEffect(() => {
     if (node) {
+<<<<<<< HEAD
       setConfig(node.config || {});
+=======
+      const initial = node.config || {};
+      // Provide sensible defaults for HTTP/Webhook editor
+      if (node.type === 'HTTP Request' || node.type === 'Webhook') {
+        initial.method = initial.method || 'GET';
+        initial.url = initial.url || '';
+        initial.headers = initial.headers || {};
+        initial.headersList = Array.isArray(initial.headersList) ? initial.headersList : [];
+        initial.paramsList = Array.isArray(initial.paramsList) ? initial.paramsList : [];
+        initial.timeout = initial.timeout || 30000;
+      }
+      setConfig(initial);
+>>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
       setTestResult(null);
       loadNodeDefinition(node.type);
     }
@@ -333,6 +400,7 @@ export default function NodeConfigModal({
       const testWorkflow = {
         id: `test_${Date.now()}`,
         name: `Test ${node.name}`,
+<<<<<<< HEAD
         nodes: [{
           id: node.id,
           type: node.type,
@@ -344,6 +412,21 @@ export default function NodeConfigModal({
           outputs: node.outputs,
           enabled: true
         }],
+=======
+        nodes: [
+          {
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            category: node.category,
+            position: node.position,
+            config: config, // Use current config from modal
+            inputs: node.inputs,
+            outputs: node.outputs,
+            enabled: true,
+          }
+        ],
+>>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
         connections: [],
         settings: {
           timeout: 30000,
@@ -600,6 +683,122 @@ export default function NodeConfigModal({
                       />
                     </div>
 
+<<<<<<< HEAD
+=======
+                    {/* HTTP Request (Webhook/API) Editor */}
+                    {(node.type === 'HTTP Request' || node.type === 'Webhook') && (
+                      <div className="space-y-4">
+                        <div className="grid md:grid-cols-5 gap-3 items-end">
+                          <div className="md:col-span-1">
+                            <Label className="text-white text-sm">Method</Label>
+                            <Select value={config.method || 'GET'} onValueChange={(v) => setConfig(prev => ({ ...prev, method: v }))}>
+                              <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-zinc-900 border-zinc-700 text-white">
+                                {['GET','POST','PUT','PATCH','DELETE','HEAD'].map(m => (
+                                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="md:col-span-4">
+                            <Label className="text-white text-sm">URL</Label>
+                            <Input
+                              value={config.url || ''}
+                              onChange={(e) => setConfig(prev => ({ ...prev, url: e.target.value }))}
+                              placeholder="https://api.example.com/resource"
+                              className="bg-zinc-900 border-zinc-700 text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-white text-sm">Headers</Label>
+                              <Button size="sm" variant="outline" className="border-zinc-600 text-zinc-300 hover:bg-zinc-800" onClick={addHeaderRow}>+ Add</Button>
+                            </div>
+                            <div className="space-y-2">
+                              {(config.headersList || [{key: '', value: ''}]).map((row: any, idx: number) => (
+                                <div key={idx} className="grid grid-cols-5 gap-2">
+                                  <Input placeholder="Key" value={row.key} onChange={(e) => updateHeaderRow(idx, 'key', e.target.value)} className="col-span-2 bg-zinc-900 border-zinc-700 text-white" />
+                                  <Input placeholder="Value" value={row.value} onChange={(e) => updateHeaderRow(idx, 'value', e.target.value)} className="col-span-3 bg-zinc-900 border-zinc-700 text-white" />
+                                  <div className="col-span-5 text-right">
+                                    <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white" onClick={() => removeHeaderRow(idx)}>Remove</Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-white text-sm">Query Params</Label>
+                              <Button size="sm" variant="outline" className="border-zinc-600 text-zinc-300 hover:bg-zinc-800" onClick={addParamRow}>+ Add</Button>
+                            </div>
+                            <div className="space-y-2">
+                              {(config.paramsList || [{key: '', value: ''}]).map((row: any, idx: number) => (
+                                <div key={idx} className="grid grid-cols-5 gap-2">
+                                  <Input placeholder="Key" value={row.key} onChange={(e) => updateParamRow(idx, 'key', e.target.value)} className="col-span-2 bg-zinc-900 border-zinc-700 text-white" />
+                                  <Input placeholder="Value" value={row.value} onChange={(e) => updateParamRow(idx, 'value', e.target.value)} className="col-span-3 bg-zinc-900 border-zinc-700 text-white" />
+                                  <div className="col-span-5 text-right">
+                                    <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white" onClick={() => removeParamRow(idx)}>Remove</Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label className="text-white text-sm">Bearer Token (Authorization)</Label>
+                            <Input
+                              type="password"
+                              value={config.bearerToken || ''}
+                              onChange={(e) => {
+                                const token = e.target.value;
+                                const current = Array.isArray(config.headersList) ? [...config.headersList] : [];
+                                const idx = current.findIndex((r: any) => r.key.toLowerCase() === 'authorization');
+                                const val = token ? `Bearer ${token}` : '';
+                                if (idx >= 0) current[idx].value = val; else current.push({ key: 'Authorization', value: val });
+                                const headersObj: Record<string,string> = {};
+                                current.filter((r: any) => r.key).forEach((r: any) => { headersObj[r.key] = r.value; });
+                                setConfig(prev => ({ ...prev, bearerToken: token, headersList: current, headers: headersObj }));
+                              }}
+                              placeholder="sk-..."
+                              className="bg-zinc-900 border-zinc-700 text-white"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-white text-sm">Timeout (ms)</Label>
+                            <Input type="number" value={config.timeout || 30000} onChange={(e) => setConfig(prev => ({ ...prev, timeout: parseInt(e.target.value) }))} className="bg-zinc-900 border-zinc-700 text-white" />
+                          </div>
+                        </div>
+
+                        {!(config.method || 'GET').match(/GET|HEAD/) && (
+                          <div className="space-y-2">
+                            <Label className="text-white text-sm">Body (JSON)</Label>
+                            <Textarea
+                              rows={6}
+                              value={typeof config.body === 'string' ? config.body : JSON.stringify(config.body || {}, null, 2)}
+                              onChange={(e) => {
+                                try { setConfig(prev => ({ ...prev, body: JSON.parse(e.target.value) })); }
+                                catch { setConfig(prev => ({ ...prev, body: e.target.value })); }
+                              }}
+                              placeholder='{"name":"John"}'
+                              className="bg-zinc-900 border-zinc-700 text-white font-mono text-sm"
+                            />
+                          </div>
+                        )}
+
+                        <div className="text-xs text-zinc-400">
+                          Final URL used on test/save: {buildUrlWithParams(config.url || '', config.paramsList || [])}
+                        </div>
+                      </div>
+                    )}
+
+>>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
                     {/* Dynamic Config Fields from Node Definition */}
                     {isLoadingNodeData ? (
                       <div className="text-center py-8 text-zinc-400">

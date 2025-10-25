@@ -45,6 +45,83 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   // Tour disabled for now
 
   // Tour removed for now
+<<<<<<< HEAD
+=======
+
+  // Save current workflow without executing
+  const saveCurrentWorkflow = async () => {
+    try {
+      if (!canvasRef.current) {
+        addToast('Canvas not ready', 'error');
+        return;
+      }
+      const workflowData = canvasRef.current.getWorkflowData();
+      if (!workflowData) {
+        addToast('Nothing to save yet', 'info');
+        return;
+      }
+
+      const nodesArr = workflowData.nodes;
+      const workflowNodes = nodesArr.map((canvasNode: any) => {
+        const nodeType = canvasNode.type || canvasNode.data?.type || 'Unknown';
+        const nodeMapping = getNodeMapping(nodeType);
+        if (!nodeMapping) {
+          return {
+            id: canvasNode.id,
+            type: nodeType,
+            category: 'action' as any,
+            name: canvasNode.name || canvasNode.data?.name || nodeType,
+            description: `Node: ${nodeType}`,
+            position: { x: canvasNode.x || 0, y: canvasNode.y || 0 },
+            config: canvasNode.config || canvasNode.data?.config || {},
+            inputs: [],
+            outputs: [],
+            version: '1.0.0',
+            enabled: true,
+            tags: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return convertCanvasNodeToWorkflowNode(canvasNode, nodeMapping);
+      });
+
+      const now = new Date().toISOString();
+      const wfId = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
+      const workflow: Workflow = {
+        id: wfId,
+        name: workflowName || 'Untitled Workflow',
+        description: 'Workflow saved from editor',
+        nodes: workflowNodes,
+        connections: workflowData.connections.map((conn: any) => ({
+          id: conn.id,
+          sourceNodeId: conn.from,
+          sourcePortId: conn.fromPoint || 'output',
+          targetNodeId: conn.to,
+          targetPortId: conn.toPoint || 'input',
+          type: 'default' as any,
+          enabled: true
+        })),
+        settings: {
+          timeout: 300000,
+          retryCount: 3,
+          concurrency: 1,
+          errorHandling: 'stop'
+        },
+        createdAt: now,
+        updatedAt: now,
+        version: '1.0.0'
+      };
+
+      await workflowManager.saveWorkflow(workflow);
+      setCurrentWorkflowId(wfId);
+      addToast('Workflow saved', 'info');
+    } catch (e) {
+      console.error('Failed to save workflow:', e);
+      addToast('Failed to save workflow', 'error');
+    }
+  };
+>>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 
   // Save current workflow without executing
   const saveCurrentWorkflow = async () => {

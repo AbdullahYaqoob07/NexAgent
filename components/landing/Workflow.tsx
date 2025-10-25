@@ -27,7 +27,7 @@ const Workflow = () => {
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
           viewport={{ once: true }}
-          className="text-lg text-white/80 mb-12 max-w-2xl mx-auto"
+          className="text-lg text-white/80 mb-12 max-w-xl mx-auto"
           style={{ fontFamily: 'Poppins, sans-serif' }}
         >
           Celebrate the joy of accomplishment with an app designed to track your progress, motivate your efforts, and celebrate your successes, one task at a time.

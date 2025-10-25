@@ -33,7 +33,7 @@ const AboutUs = () => {
  
 
   return (
-    <section className="py-20 bg-black relative">
+    <section id="about" className="py-20 bg-black relative">
       {/* Dot background overlay above black */}
       <div className="absolute top-10 right-10 h-full w-2/5 z-10 opacity-100 pointer-events-none">
         <Image src="/assets/about/Dot-BG.svg" alt="Background Pattern" fill className="object-cover" />

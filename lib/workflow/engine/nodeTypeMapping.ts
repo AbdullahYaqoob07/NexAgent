@@ -32,7 +32,7 @@ import { OnClickExecuteTriggerNode } from './nodes/OnClickExecuteTriggerNode';
 import { ShopifyNode } from './nodes/ShopifyNode';
 import { InstagramNode } from './nodes/InstagramNode';
 import { FacebookNode } from './nodes/FacebookNode';
-import { WhatsAppNode } from './nodes/WhatsAppNode';
+import { WhatsAppActionNode } from './nodes/whatsapp/WhatsAppActionNode';
 import { DoubleForkNode } from './nodes/DoubleForkNode';
 import { TripleForkNode } from './nodes/TripleForkNode';
 import { QuadraForkNode } from './nodes/QuadraForkNode';
@@ -44,7 +44,7 @@ import { CustomForkNode } from './nodes/CustomForkNode';
 export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   // Triggers
   {
-    sidebarType: 'HTTP Request',
+    sidebarType: 'Incoming Webhook',
     engineType: 'HttpRequestTriggerNode',
     nodeClass: HttpRequestTriggerNode,
     category: 'trigger'
@@ -229,8 +229,8 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
   {
     sidebarType: 'WhatsApp',
-    engineType: 'WhatsAppNode',
-    nodeClass: WhatsAppNode,
+    engineType: 'WhatsAppActionNode',
+    nodeClass: WhatsAppActionNode,
     category: 'ecommerce'
   },
 
