@@ -392,4 +392,4 @@ Firebase Console → Firestore Database → Data
 ✅ **Usage statistics** - Auto-updates user's workflow count  
 ✅ **Secure** - Token-based authentication required  
 
-Your workflow system is ready to use! 🚀
+Your workflow system is ready to use!
