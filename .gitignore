@@ -42,3 +42,6 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# secrets
+backend/nexagent-90391-firebase-adminsdk-fbsvc-c9b35a6472.json
