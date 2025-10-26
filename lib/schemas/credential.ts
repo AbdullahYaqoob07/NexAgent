@@ -76,8 +76,6 @@ export const WebhookCredentialSchema = BaseCredentialSchema.extend({
   }),
 });
 
-<<<<<<< HEAD
-=======
 // WhatsApp credential schema (Cloud API)
 export const WhatsAppCredentialSchema = BaseCredentialSchema.extend({
   platform: z.literal('whatsapp'),
@@ -95,17 +93,13 @@ export const WhatsAppCredentialSchema = BaseCredentialSchema.extend({
   }).optional(),
 });
 
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 // Union type for all credentials
 export const CredentialSchema = z.discriminatedUnion('platform', [
   ShopifyCredentialSchema,
   ApiKeyCredentialSchema,
   OAuth2CredentialSchema,
   WebhookCredentialSchema,
-<<<<<<< HEAD
-=======
   WhatsAppCredentialSchema,
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 ]);
 
 // Types
@@ -114,10 +108,7 @@ export type ShopifyCredential = z.infer<typeof ShopifyCredentialSchema>;
 export type ApiKeyCredential = z.infer<typeof ApiKeyCredentialSchema>;
 export type OAuth2Credential = z.infer<typeof OAuth2CredentialSchema>;
 export type WebhookCredential = z.infer<typeof WebhookCredentialSchema>;
-<<<<<<< HEAD
-=======
 export type WhatsAppCredential = z.infer<typeof WhatsAppCredentialSchema>;
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 export type Credential = z.infer<typeof CredentialSchema>;
 
 // Credential creation schemas (without auto-generated fields)
@@ -133,10 +124,7 @@ export const CreateCredentialSchema = z.discriminatedUnion('platform', [
   ApiKeyCredentialSchema.omit(OMIT_AUTO_FIELDS),
   OAuth2CredentialSchema.omit(OMIT_AUTO_FIELDS),
   WebhookCredentialSchema.omit(OMIT_AUTO_FIELDS),
-<<<<<<< HEAD
-=======
   WhatsAppCredentialSchema.omit(OMIT_AUTO_FIELDS),
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 ]);
 
 export type CreateCredential = z.infer<typeof CreateCredentialSchema>;

@@ -41,10 +41,7 @@ const ENCRYPTED_FIELDS = {
   instagram: ['data.accessToken', 'data.refreshToken'],
   slack: ['data.accessToken', 'data.refreshToken'],
   webhook: ['data.secret'],
-<<<<<<< HEAD
-=======
   whatsapp: ['data.token', 'data.webhookVerifyToken'],
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 };
 
 // Encrypt sensitive fields in credential data

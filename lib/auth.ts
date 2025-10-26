@@ -88,7 +88,8 @@ class FirebaseAuthService {
       
       // Call backend API to create user profile
       try {
-        const response = await fetch('http://localhost:8000/api/v1/auth/signup', {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${backendUrl}/api/v1/auth/signup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -127,7 +128,8 @@ class FirebaseAuthService {
       // Get ID token and verify with backend
       try {
         const idToken = await userCredential.user.getIdToken();
-        const response = await fetch('http://localhost:8000/api/v1/auth/verify-token', {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${backendUrl}/api/v1/auth/verify-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
