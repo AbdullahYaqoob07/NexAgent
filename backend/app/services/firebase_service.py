@@ -92,11 +92,16 @@ class FirebaseService:
                 'subscription': {
                     'plan': 'free',
                     'status': 'active',
+                    'billing_cycle': 'monthly',
                     'startDate': firestore.SERVER_TIMESTAMP,
                     'endDate': None,
+                    'next_billing_date': None,
+                    'trial_ends_at': None,
                     'cancelAtPeriodEnd': False,
                     'stripeCustomerId': None,
-                    'stripeSubscriptionId': None
+                    'stripeSubscriptionId': None,
+                    'created_at': firestore.SERVER_TIMESTAMP,
+                    'updated_at': firestore.SERVER_TIMESTAMP
                 },
                 
                 # Usage stats and limits
@@ -105,7 +110,7 @@ class FirebaseService:
                     'tokensUsed': 0,
                     'tokensThisMonth': 0,
                     
-                    # Workflows
+                    # Workflows (NexAs)
                     'totalWorkflows': 0,
                     'workflowsCreated': 0,
                     'activeWorkflows': 0,
@@ -115,17 +120,30 @@ class FirebaseService:
                     'apiCallsThisMonth': 0,
                     'apiCallsToday': 0,
                     
+                    # Storage and Team
+                    'storage_used_gb': 0.0,
+                    'team_members_count': 1,
+                    'integrations_count': 0,
+                    'executions_this_month': 0,
+                    
                     # Performance metrics
                     'successRate': 100,
                     'avgResponseTime': 0,
                     'totalExecutionTime': 0,
                     
-                    # Limits based on plan
+                    # Period tracking
+                    'last_reset_date': firestore.SERVER_TIMESTAMP,
+                    'current_period_start': firestore.SERVER_TIMESTAMP,
+                    'current_period_end': None,
+                    
+                    # Limits based on plan (Free tier)
                     'limits': {
                         'tokensPerMonth': 10000,
-                        'workflowsMax': 5,
+                        'workflowsMax': 5,              # 5 NexAs on free plan
                         'apiCallsPerMonth': 1000,
-                        'executionsPerMonth': 500
+                        'executionsPerMonth': 500,
+                        'storage_gb': 1,
+                        'team_members': 1
                     }
                 },
                 
@@ -195,6 +213,31 @@ class FirebaseService:
                 'credentialsCount': 0
             }
             
+            # Create Stripe customer for billing (only if not in test environment)
+            stripe_customer_id = None
+            if not settings.DEBUG or settings.ENVIRONMENT == 'production':
+                try:
+                    from app.services.stripe_service import StripeService
+                    stripe_service = StripeService()
+                    stripe_result = await stripe_service.create_customer(
+                        email=email,
+                        name=display_name,
+                        metadata={'user_id': user_record.uid}
+                    )
+                    
+                    if stripe_result['success']:
+                        stripe_customer_id = stripe_result['customer_id']
+                        logger.info(f"Created Stripe customer {stripe_customer_id} for user {user_record.uid}")
+                    else:
+                        logger.warning(f"Failed to create Stripe customer for {email}: {stripe_result['error']}")
+                        
+                except Exception as stripe_error:
+                    logger.warning(f"Stripe customer creation failed for {email}: {str(stripe_error)}")
+            
+            # Update user data with Stripe customer ID
+            if stripe_customer_id:
+                user_data['subscription']['stripeCustomerId'] = stripe_customer_id
+            
             # Save to Firestore
             self.db.collection('users').document(user_record.uid).set(user_data)
             
@@ -204,7 +247,8 @@ class FirebaseService:
                     'uid': user_record.uid,
                     'email': user_record.email,
                     'displayName': user_record.display_name,
-                    'emailVerified': user_record.email_verified
+                    'emailVerified': user_record.email_verified,
+                    'stripeCustomerId': stripe_customer_id
                 }
             }
             
@@ -297,6 +341,122 @@ class FirebaseService:
             return {'success': True, 'message': 'Profile updated successfully'}
         except Exception as e:
             logger.error(f"Failed to update user profile: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def set_admin_claims(self, uid: str, admin_level: str = 'super_admin') -> Dict[str, Any]:
+        """Set admin custom claims for a user (server-side only)"""
+        try:
+            custom_claims = {
+                'admin': True,
+                'role': admin_level,
+                'permissions': [
+                    'analytics:read',
+                    'users:manage',
+                    'workflows:manage',
+                    'integrations:manage',
+                    'billing:manage',
+                    'audit:read'
+                ]
+            }
+            
+            auth.set_custom_user_claims(uid, custom_claims)
+            
+            # Check if user document exists in Firestore
+            user_doc = self.db.collection('users').document(uid).get()
+            
+            admin_data = {
+                'isAdmin': True,
+                'adminLevel': admin_level,
+                'adminGrantedAt': firestore.SERVER_TIMESTAMP,
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            }
+            
+            if user_doc.exists:
+                # Update existing document
+                self.db.collection('users').document(uid).update(admin_data)
+            else:
+                # Create minimal user document with admin privileges
+                user_info = auth.get_user(uid)
+                minimal_user_data = {
+                    'uid': uid,
+                    'email': user_info.email,
+                    'displayName': user_info.display_name,
+                    'emailVerified': user_info.email_verified,
+                    'createdAt': firestore.SERVER_TIMESTAMP,
+                    **admin_data
+                }
+                self.db.collection('users').document(uid).set(minimal_user_data)
+            
+            logger.info(f"Admin claims set for user {uid} with level {admin_level}")
+            return {'success': True, 'message': f'Admin privileges granted with level {admin_level}'}
+            
+        except Exception as e:
+            logger.error(f"Failed to set admin claims: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def remove_admin_claims(self, uid: str) -> Dict[str, Any]:
+        """Remove admin custom claims from a user"""
+        try:
+            auth.set_custom_user_claims(uid, {})
+            
+            # Update user profile in Firestore
+            admin_data = {
+                'isAdmin': False,
+                'adminLevel': None,
+                'adminRevokedAt': firestore.SERVER_TIMESTAMP,
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            }
+            
+            self.db.collection('users').document(uid).update(admin_data)
+            
+            logger.info(f"Admin claims removed for user {uid}")
+            return {'success': True, 'message': 'Admin privileges revoked'}
+            
+        except Exception as e:
+            logger.error(f"Failed to remove admin claims: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def verify_admin_token(self, id_token: str) -> Dict[str, Any]:
+        """Verify token and check admin status from custom claims"""
+        try:
+            decoded_token = auth.verify_id_token(id_token)
+            
+            if not decoded_token:
+                return {'success': False, 'error': 'Invalid token'}
+            
+            # Check admin custom claims
+            is_admin = decoded_token.get('admin', False)
+            admin_role = decoded_token.get('role', None)
+            permissions = decoded_token.get('permissions', [])
+            
+            return {
+                'success': True,
+                'user': decoded_token,
+                'is_admin': is_admin,
+                'admin_role': admin_role,
+                'permissions': permissions
+            }
+            
+        except Exception as e:
+            logger.error(f"Admin token verification failed: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def init_admin_user(self, email: str) -> Dict[str, Any]:
+        """Initialize admin privileges for existing user by email"""
+        try:
+            user = await self.get_user_by_email(email)
+            if not user:
+                return {'success': False, 'error': 'User not found'}
+            
+            result = await self.set_admin_claims(user['uid'], 'super_admin')
+            
+            if result['success']:
+                logger.info(f"Admin privileges initialized for {email}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize admin user: {str(e)}")
             return {'success': False, 'error': str(e)}
 
 # Create global instance

@@ -46,7 +46,6 @@ export function BackendAuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
           return;
         } catch (err) {
-          console.log('Backend session expired, will re-verify with Firebase');
           setAuthToken(null);
         }
       }

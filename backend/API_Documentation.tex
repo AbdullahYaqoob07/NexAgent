@@ -1,0 +1,2161 @@
+\documentclass[11pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+
+% Page geometry
+\geometry{
+    a4paper,
+    left=2.5cm,
+    right=2.5cm,
+    top=3cm,
+    bottom=3cm
+}
+
+% Colors - NexAgent Orange & Black Theme
+\definecolor{nexorange}{RGB}{255,105,0}        % Primary brand color #FF6900
+\definecolor{nexorangehover}{RGB}{229,93,0}    % Hover state #E55D00
+\definecolor{nexorangelight}{RGB}{255,138,74}  % Light orange #FF8A4A
+\definecolor{nexblack}{RGB}{0,0,0}             % Background black
+\definecolor{nexgray}{RGB}{245,245,245}        % Light backgrounds for code
+\definecolor{codegreen}{RGB}{0,128,0}
+\definecolor{codepurple}{RGB}{128,0,128}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=nexorange,
+    urlcolor=nexorange,
+    citecolor=nexorange,
+    pdfborder={0 0 0}
+}
+
+% Chapter and section formatting
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries\color{nexblack}}
+{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+
+\titleformat{\section}
+{\normalfont\Large\bfseries\color{nexorange}}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\normalfont\large\bfseries\color{nexblack}}
+{\thesubsection}{1em}{}
+
+% Header and footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{NexAgent API}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Code listing style
+\lstdefinestyle{jsoncode}{
+    backgroundcolor=\color{nexgray},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{nexorange},
+    numberstyle=\tiny\color{gray},
+    stringstyle=\color{nexorangehover},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    rulecolor=\color{nexorange}
+}
+
+% Custom boxes
+\newtcolorbox{infobox}{
+    colback=nexgray,
+    colframe=nexorange,
+    fonttitle=\bfseries,
+    title=Important Information
+}
+
+\newtcolorbox{examplebox}{
+    colback=white,
+    colframe=nexblack,
+    fonttitle=\bfseries,
+    title=Example
+}
+
+% Document information
+\title{\textbf{\Huge NexAgent}\\[0.5cm]\LARGE API Documentation}
+\author{Version 1.0}
+\date{\today}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+    \vspace*{3cm}
+    
+    {\Huge\bfseries NexAgent\\[0.5cm]}
+    {\LARGE\bfseries API Documentation\\[2cm]}
+    
+    {\Large Professional API Reference Guide\\[1cm]}
+    
+    \vfill
+    
+    {\large Version 1.0\\[0.5cm]}
+    {\large \today\\[2cm]}
+    
+    \hrule
+    \vspace{0.5cm}
+    {\small Comprehensive documentation for NexAgent Backend API}
+    
+\end{titlepage}
+
+% Table of contents
+\tableofcontents
+\newpage
+
+% Introduction
+\chapter{Introduction}
+
+\section{Overview}
+
+NexAgent is a comprehensive workflow automation platform providing enterprise-grade APIs for managing workflows, templates, integrations, marketplace, notifications, analytics, audit logs, and billing operations. This document provides detailed technical documentation for all API modules.
+
+\section{Base URL}
+
+\textbf{Production:} \texttt{https://api.nexagent.com}\\
+\textbf{Development:} \texttt{http://localhost:8000}
+
+\section{API Version}
+
+Current API Version: \texttt{v1}\\
+All endpoints are prefixed with: \texttt{/api/v1}
+
+\section{Authentication}
+
+NexAgent uses Firebase Authentication with Bearer token authorization.
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Method:} Bearer Token Authentication
+    \item \textbf{Header:} \texttt{Authorization: Bearer <token>}
+    \item \textbf{Token Type:} Firebase ID Token
+    \item \textbf{Session Duration:} 1 week (configurable)
+\end{itemize}
+
+\begin{infobox}
+\textbf{Security Measures:}
+\begin{itemize}[leftmargin=*]
+    \item Single session enforcement (one device at a time)
+    \item Automatic token expiration after 7 days
+    \item Session invalidation on logout
+    \item Trusted host middleware enabled
+    \item CORS protection configured
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% Authentication Module
+\chapter{Authentication Module}
+
+\section{Module Overview}
+
+The Authentication module handles user registration, login, password recovery, token verification, and session management using Firebase Authentication.
+
+\subsection{Base Path}
+\texttt{/api/v1/auth}
+
+\subsection{Module Tag}
+\texttt{Authentication}
+
+\section{Endpoints}
+
+\subsection{Sign Up}
+
+\textbf{POST} \texttt{/api/v1/auth/signup}
+
+\subsubsection{Description}
+Create a new user account with email verification.
+
+\subsubsection{Use Case}
+User registration for new platform members. Upon successful registration, users receive a verification email and can access the platform with limited privileges until email is verified.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "display_name": "John Doe"
+}
+\end{lstlisting}
+
+\subsubsection{Response}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "success": true,
+  "message": "Account created successfully. Please verify your email.",
+  "user": {
+    "uid": "firebase_user_id",
+    "email": "user@example.com",
+    "display_name": "John Doe",
+    "email_verified": false
+  }
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Important Information:}
+\begin{itemize}[leftmargin=*]
+    \item Minimum password length: 8 characters
+    \item Password must contain uppercase, lowercase, and numbers
+    \item Email verification required for full access
+    \item Rate limit: 100 requests per minute
+    \item HTTP Status: 201 Created on success
+\end{itemize}
+\end{infobox}
+
+\subsection{Sign In}
+
+\textbf{POST} \texttt{/api/v1/auth/signin}
+
+\subsubsection{Description}
+Authenticate user with email and password, creating a session token.
+
+\subsubsection{Use Case}
+User login with session creation. Single session enforcement ensures only one active device per user. Previous sessions are automatically invalidated.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+\end{lstlisting}
+
+\subsubsection{Response}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "success": true,
+  "message": "Sign in successful. Session created (1 week validity).",
+  "user": {
+    "uid": "firebase_user_id",
+    "email": "user@example.com",
+    "display_name": "John Doe",
+    "email_verified": true
+  },
+  "access_token": "session_token_string"
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Session Information:}
+\begin{itemize}[leftmargin=*]
+    \item Session validity: 7 days
+    \item Single active session per user
+    \item Device information tracked
+    \item IP address logged for security
+    \item Auto-invalidates previous sessions
+\end{itemize}
+\end{infobox}
+
+\subsection{Verify Token}
+
+\textbf{POST} \texttt{/api/v1/auth/verify-token}
+
+\subsubsection{Description}
+Verify Firebase ID token and create/refresh session.
+
+\subsubsection{Use Case}
+Used by frontend applications to verify Firebase authentication state and obtain NexAgent session token. Essential for maintaining authenticated state across page reloads.
+
+\subsection{Forgot Password}
+
+\textbf{POST} \texttt{/api/v1/auth/forgot-password}
+
+\subsubsection{Description}
+Send password reset email to registered user.
+
+\subsubsection{Use Case}
+Password recovery flow. Sends secure password reset link via email without revealing account existence for security purposes.
+
+\begin{infobox}
+\textbf{Security Note:}
+Returns success message regardless of email existence to prevent email enumeration attacks.
+\end{infobox}
+
+\subsection{Get Current User}
+
+\textbf{GET} \texttt{/api/v1/auth/me}
+
+\subsubsection{Description}
+Retrieve current authenticated user's profile information.
+
+\subsubsection{Authentication}
+Required: Bearer Token in Authorization header
+
+\subsubsection{Use Case}
+Fetch user profile data for dashboard display, settings, and personalization.
+
+\subsection{Logout}
+
+\textbf{POST} \texttt{/api/v1/auth/logout}
+
+\subsubsection{Description}
+Logout user and invalidate session token.
+
+\subsubsection{Use Case}
+Secure logout process that revokes the session token, preventing further API access with that token.
+
+\newpage
+
+% Workflows Module
+\chapter{Workflows Module}
+
+\section{Module Overview}
+
+The Workflows module manages automation workflows including creation, execution, versioning, and sharing capabilities.
+
+\subsection{Base Path}
+\texttt{/api/v1/workflows}
+
+\subsection{Module Tag}
+\texttt{Workflows}
+
+\section{Endpoints}
+
+\subsection{Create Workflow}
+
+\textbf{POST} \texttt{/api/v1/workflows}
+
+\subsubsection{Description}
+Create a new automation workflow with nodes, edges, and variables.
+
+\subsubsection{Authentication}
+Required: Bearer Token
+
+\subsubsection{Use Case}
+Users create custom workflows by defining nodes (actions), edges (connections between actions), and variables (data to pass between nodes). Workflows can be private or publicly listed.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "name": "Email Campaign Workflow",
+  "description": "Automated email campaign with user segmentation",
+  "canBeListed": false,
+  "nodes": [
+    {
+      "id": "node_1",
+      "type": "trigger",
+      "config": {...}
+    },
+    {
+      "id": "node_2",
+      "type": "action",
+      "config": {...}
+    }
+  ],
+  "edges": [
+    {
+      "source": "node_1",
+      "target": "node_2"
+    }
+  ],
+  "variables": {
+    "emailSubject": "Welcome to NexAgent",
+    "senderEmail": "noreply@example.com"
+  }
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Workflow Limits:}
+\begin{itemize}[leftmargin=*]
+    \item Name: 3-100 characters
+    \item Maximum nodes: Depends on subscription plan
+    \item Execution timeout: 5 minutes (configurable)
+    \item Rate limit: 20 requests per minute
+    \item HTTP Status: 201 Created on success
+\end{itemize}
+\end{infobox}
+
+\subsection{Get Workflows}
+
+\textbf{GET} \texttt{/api/v1/workflows}
+
+\subsubsection{Description}
+Retrieve paginated list of user's workflows with filtering options.
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{page}: Page number (default: 1)
+    \item \texttt{page\_size}: Items per page (1-100, default: 20)
+    \item \texttt{status}: Filter by status (draft, active, archived)
+\end{itemize}
+
+\subsubsection{Use Case}
+Dashboard display of user's workflows with pagination and filtering for efficient management of large workflow collections.
+
+\subsection{Get Workflow by ID}
+
+\textbf{GET} \texttt{/api/v1/workflows/\{workflow\_id\}}
+
+\subsubsection{Description}
+Retrieve detailed information about a specific workflow.
+
+\subsubsection{Authorization}
+User must own the workflow or workflow must be publicly listed.
+
+\subsection{Update Workflow}
+
+\textbf{PUT} \texttt{/api/v1/workflows/\{workflow\_id\}}
+
+\subsubsection{Description}
+Update workflow properties, nodes, edges, or variables. Increments version number.
+
+\subsubsection{Use Case}
+Modify existing workflows while maintaining version history for rollback capability.
+
+\begin{infobox}
+\textbf{Versioning:}
+Each update increments the workflow version number, allowing users to track changes and potentially rollback to previous versions.
+\end{infobox}
+
+\subsection{Delete Workflow}
+
+\textbf{DELETE} \texttt{/api/v1/workflows/\{workflow\_id\}}
+
+\subsubsection{Description}
+Permanently delete a workflow. Only workflow owner can delete.
+
+\subsubsection{Use Case}
+Remove unwanted or test workflows from account.
+
+\subsection{Get Public Workflows}
+
+\textbf{GET} \texttt{/api/v1/workflows/public/list}
+
+\subsubsection{Description}
+Browse publicly shared workflows from the community.
+
+\subsubsection{Authentication}
+Not required
+
+\subsubsection{Use Case}
+Discover and explore workflows shared by other users for inspiration or cloning.
+
+\newpage
+
+% Templates Module
+\chapter{Templates Module}
+
+\section{Module Overview}
+
+The Templates module provides a marketplace for pre-built workflow templates that users can browse, rate, bookmark, and clone into their own workflows.
+
+\subsection{Base Path}
+\texttt{/api/v1/templates}
+
+\subsection{Module Tag}
+\texttt{Templates}
+
+\section{Endpoints}
+
+\subsection{Create Template}
+
+\textbf{POST} \texttt{/api/v1/templates}
+
+\subsubsection{Description}
+Create a shareable template from an existing workflow.
+
+\subsubsection{Use Case}
+Convert personal workflows into templates for sharing with the community. Templates can be monetized or shared freely.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "workflowId": "workflow_123",
+  "name": "Email Campaign Template",
+  "description": "Professional email campaign with A/B testing",
+  "category": "Marketing",
+  "tags": ["email", "marketing", "automation"],
+  "difficulty": "intermediate",
+  "requiredIntegrations": ["sendgrid", "google_analytics"],
+  "estimatedTime": 30
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Template Guidelines:}
+\begin{itemize}[leftmargin=*]
+    \item Must be created from existing workflow
+    \item Difficulty levels: beginner, intermediate, advanced
+    \item Estimated time in minutes
+    \item Rate limit: 20 requests per minute
+    \item Auto-generated preview and documentation
+\end{itemize}
+\end{infobox}
+
+\subsection{Search Templates}
+
+\textbf{GET} \texttt{/api/v1/templates/search}
+
+\subsubsection{Description}
+Search and filter templates with multiple criteria.
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{query}: Search term
+    \item \texttt{category}: Filter by category
+    \item \texttt{tags}: Filter by tags (multiple allowed)
+    \item \texttt{difficulty}: Filter by difficulty level
+    \item \texttt{sortBy}: popular, rating, newest, most\_used
+    \item \texttt{page}: Page number
+    \item \texttt{pageSize}: Items per page (1-100)
+\end{itemize}
+
+\subsubsection{Use Case}
+Discover templates matching specific requirements for quick workflow creation.
+
+\subsection{Get Featured Templates}
+
+\textbf{GET} \texttt{/api/v1/templates/featured}
+
+\subsubsection{Description}
+Retrieve curated featured templates with high ratings.
+
+\subsubsection{Use Case}
+Homepage and discovery page display of high-quality, community-recommended templates.
+
+\subsection{Clone Template}
+
+\textbf{POST} \texttt{/api/v1/templates/clone}
+
+\subsubsection{Description}
+Clone a template into user's workflows with optional customization.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "templateId": "template_456",
+  "workflowName": "My Email Campaign",
+  "customizeVariables": {
+    "emailFrom": "myemail@example.com",
+    "campaignName": "Q1 Campaign"
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Use Case}
+Quick workflow setup by cloning proven templates with personalized configuration.
+
+\begin{infobox}
+\textbf{Clone Tracking:}
+Template usage count increments when cloned, affecting template popularity ranking.
+\end{infobox}
+
+\subsection{Rate Template}
+
+\textbf{POST} \texttt{/api/v1/templates/\{template\_id\}/rate}
+
+\subsubsection{Description}
+Rate a template from 1-5 stars with optional review.
+
+\subsubsection{Use Case}
+Community feedback mechanism for template quality assurance.
+
+\subsection{Toggle Bookmark}
+
+\textbf{POST} \texttt{/api/v1/templates/bookmark/toggle}
+
+\subsubsection{Description}
+Add or remove template from user's bookmarks.
+
+\subsubsection{Use Case}
+Save interesting templates for later review or comparison.
+
+\subsection{Get Categories}
+
+\textbf{GET} \texttt{/api/v1/templates/categories/all}
+
+\subsubsection{Description}
+Retrieve all template categories with counts.
+
+\subsubsection{Use Case}
+Display category navigation and filtering options.
+
+\newpage
+
+% Notifications Module
+\chapter{Notifications Module}
+
+\section{Module Overview}
+
+Multi-channel notification system supporting in-app, email, SMS, and push notifications with user preferences and delivery tracking.
+
+\subsection{Base Path}
+\texttt{/api/v1/notifications}
+
+\subsection{Module Tag}
+\texttt{🔔 Notifications \& Alerts}
+
+\section{Endpoints}
+
+\subsection{Create Notification}
+
+\textbf{POST} \texttt{/api/v1/notifications}
+
+\subsubsection{Description}
+Create a new notification with multi-channel delivery.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "user_id": "user_123",
+  "notification_type": "workflow_completed",
+  "title": "Workflow Completed",
+  "message": "Your workflow 'Email Campaign' has completed successfully",
+  "priority": "high",
+  "channels": ["in_app", "email"],
+  "action_url": "/workflows/workflow_123",
+  "metadata": {
+    "workflow_id": "workflow_123",
+    "execution_time": "45s"
+  }
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Notification Channels:}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{in\_app}: Real-time in-application notifications
+    \item \texttt{email}: Email delivery
+    \item \texttt{sms}: SMS text messages (requires phone number)
+    \item \texttt{push}: Mobile push notifications (requires device token)
+    \item Rate limit: 100 requests per minute
+    \item Priority levels: low, medium, high, urgent
+\end{itemize}
+\end{infobox}
+
+\subsection{Get User Notifications}
+
+\textbf{GET} \texttt{/api/v1/notifications}
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{status}: Filter by status (unread, read, archived)
+    \item \texttt{notification\_type}: Filter by type
+    \item \texttt{priority}: Filter by priority
+    \item \texttt{page}: Page number
+    \item \texttt{page\_size}: Items per page (1-100)
+    \item \texttt{include\_read}: Include read notifications (default: true)
+\end{itemize}
+
+\subsubsection{Use Case}
+Display user's notification center with filtering and pagination.
+
+\subsection{Mark as Read}
+
+\textbf{POST} \texttt{/api/v1/notifications/mark-read}
+
+\subsubsection{Description}
+Mark one or multiple notifications as read.
+
+\subsubsection{Use Case}
+Batch update notification status when user reviews notification center.
+
+\subsection{Get Notification Preferences}
+
+\textbf{GET} \texttt{/api/v1/notifications/preferences}
+
+\subsubsection{Description}
+Retrieve user's notification preferences and channel settings.
+
+\subsubsection{Use Case}
+Display user preferences in settings page for customization.
+
+\subsection{Update Preferences}
+
+\textbf{PUT} \texttt{/api/v1/notifications/preferences}
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "enabled_channels": ["in_app", "email"],
+  "notification_types": {
+    "workflow_completed": true,
+    "workflow_failed": true,
+    "billing_update": true,
+    "security_alert": true
+  },
+  "quiet_hours_start": "22:00",
+  "quiet_hours_end": "08:00",
+  "timezone": "America/New_York"
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Quiet Hours:}
+Notifications during quiet hours are queued and delivered after the quiet period ends, except for urgent priority notifications which bypass this setting.
+\end{infobox}
+
+\subsection{Get Statistics}
+
+\textbf{GET} \texttt{/api/v1/notifications/stats}
+
+\subsubsection{Description}
+Retrieve notification statistics for current user.
+
+\subsubsection{Response Example}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "total_notifications": 150,
+  "unread_count": 12,
+  "read_count": 138,
+  "by_type": {
+    "workflow_completed": 80,
+    "workflow_failed": 15,
+    "billing_update": 10
+  },
+  "by_priority": {
+    "high": 20,
+    "medium": 100,
+    "low": 30
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Use Case}
+Dashboard widgets showing notification summary and trends.
+
+\newpage
+
+% Analytics Module
+\chapter{Analytics \& Monitoring Module}
+
+\section{Module Overview}
+
+Comprehensive analytics and monitoring system tracking workflow performance, system health, user activity, and real-time metrics.
+
+\subsection{Base Path}
+\texttt{/api/v1/analytics}
+
+\subsection{Module Tag}
+\texttt{Analytics \& Monitoring}
+
+\section{Workflow Analytics}
+
+\subsection{Get Workflow Overview}
+
+\textbf{GET} \texttt{/api/v1/analytics/workflows/overview}
+
+\subsubsection{Description}
+Retrieve comprehensive workflow analytics overview.
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{timeRange}: LAST\_24\_HOURS, LAST\_7\_DAYS, LAST\_30\_DAYS, LAST\_90\_DAYS
+    \item \texttt{startDate}: Custom start date (ISO format)
+    \item \texttt{endDate}: Custom end date (ISO format)
+\end{itemize}
+
+\subsubsection{Use Case}
+High-level dashboard displaying workflow execution trends, success rates, and performance metrics.
+
+\begin{infobox}
+\textbf{Analytics Features:}
+\begin{itemize}[leftmargin=*]
+    \item Real-time metric updates
+    \item Time-series data with aggregation
+    \item Comparative period analysis
+    \item Anomaly detection
+    \item Rate limit: 50 requests per minute
+\end{itemize}
+\end{infobox}
+
+\subsection{Get Workflow Metrics}
+
+\textbf{GET} \texttt{/api/v1/analytics/workflows/\{workflow\_id\}/metrics}
+
+\subsubsection{Description}
+Detailed performance metrics for specific workflow.
+
+\subsubsection{Response Data}
+\begin{itemize}[leftmargin=*]
+    \item Total executions
+    \item Success/failure rates
+    \item Average execution time
+    \item Peak execution times
+    \item Error distribution
+    \item Resource consumption
+\end{itemize}
+
+\subsection{Get Workflow Executions}
+
+\textbf{GET} \texttt{/api/v1/analytics/workflows/\{workflow\_id\}/executions}
+
+\subsubsection{Description}
+Retrieve paginated execution history with filtering.
+
+\subsubsection{Use Case}
+Detailed execution logs for debugging, auditing, and performance analysis.
+
+\section{System Metrics}
+
+\subsection{Get System Health}
+
+\textbf{GET} \texttt{/api/v1/analytics/system/health}
+
+\subsubsection{Description}
+Real-time system health status and service availability.
+
+\subsubsection{Use Case}
+Status page and operational monitoring dashboard.
+
+\subsection{Get Resource Usage}
+
+\textbf{GET} \texttt{/api/v1/analytics/system/resource-usage}
+
+\subsubsection{Description}
+Current resource consumption metrics.
+
+\subsubsection{Metrics Provided}
+\begin{itemize}[leftmargin=*]
+    \item CPU utilization
+    \item Memory usage
+    \item Database connections
+    \item API request rate
+    \item Queue lengths
+\end{itemize}
+
+\subsection{Get API Metrics}
+
+\textbf{GET} \texttt{/api/v1/analytics/system/api-metrics}
+
+\subsubsection{Description}
+API performance and usage statistics.
+
+\subsubsection{Use Case}
+Monitor API response times, error rates, and endpoint usage patterns.
+
+\section{User Activity}
+
+\subsection{Get User Activity}
+
+\textbf{GET} \texttt{/api/v1/analytics/users/activity}
+
+\subsubsection{Description}
+Track user engagement and activity patterns.
+
+\subsubsection{Metrics Tracked}
+\begin{itemize}[leftmargin=*]
+    \item Login frequency
+    \item Feature usage
+    \item Workflow creation/execution
+    \item Session duration
+    \item Active time periods
+\end{itemize}
+
+\subsection{Get User Engagement}
+
+\textbf{GET} \texttt{/api/v1/analytics/users/engagement}
+
+\subsubsection{Description}
+Aggregate user engagement metrics.
+
+\subsubsection{Use Case}
+Product analytics for understanding user behavior and platform stickiness.
+
+\section{Dashboard}
+
+\subsection{Get Dashboard Overview}
+
+\textbf{GET} \texttt{/api/v1/analytics/dashboard/overview}
+
+\subsubsection{Description}
+Consolidated dashboard data with key metrics.
+
+\subsubsection{Use Case}
+Main dashboard displaying critical KPIs and recent activity.
+
+\begin{infobox}
+\textbf{Rate Limit:}
+Dashboard endpoints have higher rate limits (100 requests per minute) to support real-time updates.
+\end{infobox}
+
+\subsection{Get Real-Time Metrics}
+
+\textbf{GET} \texttt{/api/v1/analytics/dashboard/real-time}
+
+\subsubsection{Description}
+Live metrics updated in real-time (sub-second latency).
+
+\subsubsection{Use Case}
+Live monitoring dashboards and operations centers.
+
+\subsection{Get Alerts}
+
+\textbf{GET} \texttt{/api/v1/analytics/dashboard/alerts}
+
+\subsubsection{Description}
+Active system and performance alerts.
+
+\subsubsection{Alert Categories}
+\begin{itemize}[leftmargin=*]
+    \item Performance degradation
+    \item Error rate spikes
+    \item Resource exhaustion
+    \item Security incidents
+    \item Billing thresholds
+\end{itemize}
+
+\newpage
+
+% Audit Module
+\chapter{Audit Logs \& Compliance Module}
+
+\section{Module Overview}
+
+Enterprise-grade audit logging and compliance reporting system tracking all system activities, security events, and access controls.
+
+\subsection{Base Path}
+\texttt{/api/v1/audit}
+
+\subsection{Module Tag}
+\texttt{Audit Logs \& Compliance}
+
+\section{Audit Logs}
+
+\subsection{Log Audit Event}
+
+\textbf{POST} \texttt{/api/v1/audit/logs}
+
+\subsubsection{Description}
+Record audit event with full context.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "eventType": "user_action",
+  "severity": "info",
+  "action": "workflow_execution",
+  "resourceType": "workflow",
+  "resourceId": "workflow_123",
+  "metadata": {
+    "execution_time": 45000,
+    "status": "success"
+  },
+  "ipAddress": "192.168.1.1",
+  "userAgent": "Mozilla/5.0..."
+}
+\end{lstlisting}
+
+\begin{infobox}
+\textbf{Audit Retention:}
+\begin{itemize}[leftmargin=*]
+    \item Standard events: 90 days
+    \item Security events: 1 year
+    \item Compliance events: 7 years
+    \item All events encrypted at rest
+    \item Immutable log storage
+    \item Rate limit: 100 requests per minute
+\end{itemize}
+\end{infobox}
+
+\subsection{Query Audit Logs}
+
+\textbf{GET} \texttt{/api/v1/audit/logs}
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{eventType}: Filter by event type
+    \item \texttt{severity}: Filter by severity (info, warning, error, critical)
+    \item \texttt{userId}: Filter by user
+    \item \texttt{resourceType}: Filter by resource type
+    \item \texttt{resourceId}: Filter by specific resource
+    \item \texttt{action}: Filter by action type
+    \item \texttt{startDate}: Date range start
+    \item \texttt{endDate}: Date range end
+    \item \texttt{ipAddress}: Filter by IP
+    \item \texttt{searchQuery}: Full-text search
+    \item \texttt{page}: Page number
+    \item \texttt{pageSize}: Items per page (1-1000)
+\end{itemize}
+
+\subsubsection{Use Case}
+Security investigations, compliance audits, and troubleshooting with powerful filtering capabilities.
+
+\subsection{Get Audit Log by ID}
+
+\textbf{GET} \texttt{/api/v1/audit/logs/\{log\_id\}}
+
+\subsubsection{Description}
+Retrieve detailed audit log entry.
+
+\subsubsection{Use Case}
+Deep-dive investigation into specific security or operational events.
+
+\subsection{Get Audit Statistics}
+
+\textbf{GET} \texttt{/api/v1/audit/logs/statistics/summary}
+
+\subsubsection{Description}
+Aggregate audit log statistics.
+
+\subsubsection{Statistics Provided}
+\begin{itemize}[leftmargin=*]
+    \item Event count by type
+    \item Severity distribution
+    \item Most active users
+    \item Resource access patterns
+    \item Peak activity times
+\end{itemize}
+
+\section{Security Logs}
+
+\subsection{Log Security Event}
+
+\textbf{POST} \texttt{/api/v1/audit/security/events}
+
+\subsubsection{Description}
+Record security-specific events with threat assessment.
+
+\subsubsection{Use Case}
+Track authentication failures, suspicious activities, security policy violations, and potential threats.
+
+\subsection{Query Security Logs}
+
+\textbf{GET} \texttt{/api/v1/audit/security/events}
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{eventType}: Security event type
+    \item \texttt{severity}: Severity level
+    \item \texttt{userId}: User involved
+    \item \texttt{ipAddress}: Source IP
+    \item \texttt{resolved}: Resolution status
+    \item \texttt{minThreatLevel}: Minimum threat level (1-10)
+    \item \texttt{startDate / endDate}: Date range
+\end{itemize}
+
+\begin{infobox}
+\textbf{Security Event Types:}
+\begin{itemize}[leftmargin=*]
+    \item Authentication failures
+    \item Unauthorized access attempts
+    \item Permission violations
+    \item Suspicious patterns
+    \item Data exfiltration attempts
+    \item Brute force attacks
+\end{itemize}
+\end{infobox}
+
+\subsection{Resolve Security Event}
+
+\textbf{POST} \texttt{/api/v1/audit/security/events/\{event\_id\}/resolve}
+
+\subsubsection{Description}
+Mark security event as resolved with mitigation details.
+
+\subsubsection{Use Case}
+Security incident response workflow and resolution tracking.
+
+\subsection{Get Security Statistics}
+
+\textbf{GET} \texttt{/api/v1/audit/security/statistics}
+
+\subsubsection{Description}
+Security metrics and trend analysis.
+
+\section{Access Logs}
+
+\subsection{Log Access Event}
+
+\textbf{POST} \texttt{/api/v1/audit/access/logs}
+
+\subsubsection{Description}
+Record resource access and authorization decisions.
+
+\subsubsection{Use Case}
+Track who accessed what resources and when for compliance and security auditing.
+
+\subsection{Query Access Logs}
+
+\textbf{GET} \texttt{/api/v1/audit/access/logs}
+
+\subsubsection{Description}
+Retrieve access control logs with filtering.
+
+\section{Compliance Reports}
+
+\subsection{Generate Compliance Report}
+
+\textbf{POST} \texttt{/api/v1/audit/compliance/reports}
+
+\subsubsection{Description}
+Generate compliance report for specific standard.
+
+\subsubsection{Supported Standards}
+\begin{itemize}[leftmargin=*]
+    \item SOC 2 Type II
+    \item GDPR
+    \item HIPAA
+    \item PCI DSS
+    \item ISO 27001
+\end{itemize}
+
+\subsubsection{Use Case}
+Automated compliance reporting for audits and certifications.
+
+\begin{infobox}
+\textbf{Report Generation:}
+\begin{itemize}[leftmargin=*]
+    \item Rate limit: 10 requests per minute
+    \item Processing time: 1-5 minutes
+    \item Formats: PDF, JSON, CSV
+    \item Digitally signed reports
+    \item Tamper-evident sealing
+\end{itemize}
+\end{infobox}
+
+\subsection{Get Compliance Reports}
+
+\textbf{GET} \texttt{/api/v1/audit/compliance/reports}
+
+\subsubsection{Description}
+List generated compliance reports.
+
+\subsection{Get Compliance Statistics}
+
+\textbf{GET} \texttt{/api/v1/audit/compliance/statistics}
+
+\subsubsection{Description}
+Compliance metrics and readiness scores.
+
+\subsection{Get Compliance Alerts}
+
+\textbf{GET} \texttt{/api/v1/audit/compliance/alerts}
+
+\subsubsection{Description}
+Active compliance violations and warnings.
+
+\subsubsection{Use Case}
+Proactive compliance monitoring and risk management.
+
+\newpage
+
+% Integrations Module
+\chapter{Integrations Module}
+
+\section{Module Overview}
+
+Third-party service integration management supporting OAuth, API keys, webhooks, and custom connectors.
+
+\subsection{Base Path}
+\texttt{/api/v1/integrations}
+
+\subsection{Module Tag}
+\texttt{Integrations}
+
+\section{Endpoints}
+
+\subsection{Get Integrations}
+
+\textbf{GET} \texttt{/api/v1/integrations}
+
+\subsubsection{Description}
+List available integrations with filtering.
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{category}: Filter by category (CRM, Marketing, Analytics, etc.)
+    \item \texttt{authType}: Filter by authentication type (OAuth, API Key, etc.)
+    \item \texttt{page}: Page number
+    \item \texttt{pageSize}: Items per page
+\end{itemize}
+
+\subsubsection{Use Case}
+Browse available integrations for workflow creation.
+
+\begin{infobox}
+\textbf{Integration Categories:}
+\begin{itemize}[leftmargin=*]
+    \item CRM (Salesforce, HubSpot)
+    \item Marketing (Mailchimp, SendGrid)
+    \item Analytics (Google Analytics, Mixpanel)
+    \item Database (MySQL, PostgreSQL, MongoDB)
+    \item Cloud Storage (AWS S3, Google Drive, Dropbox)
+    \item Communication (Slack, Teams, Discord)
+    \item Payment (Stripe, PayPal)
+    \item Social Media (Twitter, LinkedIn, Facebook)
+\end{itemize}
+\end{infobox}
+
+\subsection{Get Integration Details}
+
+\textbf{GET} \texttt{/api/v1/integrations/\{integration\_id\}}
+
+\subsubsection{Description}
+Retrieve detailed integration information including setup instructions.
+
+\subsubsection{Response Includes}
+\begin{itemize}[leftmargin=*]
+    \item Configuration requirements
+    \item Authentication flow
+    \item Available actions/triggers
+    \item Rate limits
+    \item Example usage
+    \item Documentation links
+\end{itemize}
+
+\subsection{Connect Integration}
+
+\textbf{POST} \texttt{/api/v1/integrations/connect}
+
+\subsubsection{Description}
+Initiate integration connection flow.
+
+\subsubsection{Use Case}
+Start OAuth flow or save API credentials for third-party service.
+
+\subsection{Disconnect Integration}
+
+\textbf{POST} \texttt{/api/v1/integrations/disconnect}
+
+\subsubsection{Description}
+Remove integration connection and revoke tokens.
+
+\subsection{Test Integration}
+
+\textbf{POST} \texttt{/api/v1/integrations/test}
+
+\subsubsection{Description}
+Validate integration credentials and connectivity.
+
+\subsubsection{Use Case}
+Verify integration setup before using in workflows.
+
+\subsection{Get User Integrations}
+
+\textbf{GET} \texttt{/api/v1/integrations/my-integrations}
+
+\subsubsection{Description}
+List user's connected integrations.
+
+\subsubsection{Use Case}
+Manage connected services and refresh expired tokens.
+
+\begin{infobox}
+\textbf{Security Measures:}
+\begin{itemize}[leftmargin=*]
+    \item Credentials encrypted at rest
+    \item Automatic token refresh
+    \item Scoped permissions
+    \item Audit logging for all actions
+    \item Rate limiting per integration
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% Marketplace Module
+\chapter{Marketplace Module}
+
+\section{Module Overview}
+
+Comprehensive marketplace for premium workflows, plugins, and services with payment processing, seller management, and purchase tracking.
+
+\subsection{Base Path}
+\texttt{/api/v1/marketplace}
+
+\subsection{Module Tag}
+\texttt{🏪 Marketplace}
+
+\section{Sub-Modules}
+
+The Marketplace is divided into four sub-modules:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Nexas:} Premium marketplace items (workflows, plugins, services)
+    \item \textbf{Sellers:} Seller account management and analytics
+    \item \textbf{Purchases:} User purchase history and license management
+    \item \textbf{Admin:} Administrative controls and moderation
+\end{itemize}
+
+\section{Nexas (Marketplace Items)}
+
+\subsection{Browse Nexas}
+
+\textbf{GET} \texttt{/api/v1/marketplace/nexas}
+
+\subsubsection{Description}
+Browse marketplace items with filtering and sorting.
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{category}: Item category
+    \item \texttt{type}: workflow, plugin, service
+    \item \texttt{priceRange}: Price filter
+    \item \texttt{sortBy}: popular, rating, price, newest
+    \item \texttt{page}: Page number
+    \item \texttt{pageSize}: Items per page
+\end{itemize}
+
+\subsection{Get Nexa Details}
+
+\textbf{GET} \texttt{/api/v1/marketplace/nexas/\{nexa\_id\}}
+
+\subsubsection{Description}
+Detailed marketplace item information.
+
+\subsubsection{Information Provided}
+\begin{itemize}[leftmargin=*]
+    \item Description and screenshots
+    \item Pricing and license terms
+    \item Seller information
+    \item Ratings and reviews
+    \item Purchase statistics
+    \item Version history
+    \item System requirements
+\end{itemize}
+
+\subsection{Purchase Nexa}
+
+\textbf{POST} \texttt{/api/v1/marketplace/purchases}
+
+\subsubsection{Description}
+Purchase marketplace item with Stripe payment.
+
+\subsubsection{Use Case}
+One-time purchases or subscription-based marketplace items.
+
+\begin{infobox}
+\textbf{Payment Information:}
+\begin{itemize}[leftmargin=*]
+    \item Payment processor: Stripe
+    \item Supported: Credit cards, digital wallets
+    \item Currency: USD (additional currencies planned)
+    \item Refund period: 14 days
+    \item Seller revenue share: 70\%
+    \item Platform fee: 30\%
+\end{itemize}
+\end{infobox}
+
+\section{Seller Management}
+
+\subsection{Create Seller Account}
+
+\textbf{POST} \texttt{/api/v1/marketplace/sellers}
+
+\subsubsection{Description}
+Register as marketplace seller.
+
+\subsubsection{Requirements}
+\begin{itemize}[leftmargin=*]
+    \item Verified email
+    \item Business or personal identification
+    \item Banking information (Stripe Connect)
+    \item Tax information
+    \item Agreement to seller terms
+\end{itemize}
+
+\subsection{Create Nexa Listing}
+
+\textbf{POST} \texttt{/api/v1/marketplace/sellers/nexas}
+
+\subsubsection{Description}
+List item for sale in marketplace.
+
+\subsection{Get Seller Analytics}
+
+\textbf{GET} \texttt{/api/v1/marketplace/sellers/analytics}
+
+\subsubsection{Description}
+Seller dashboard with sales and performance metrics.
+
+\subsubsection{Metrics Provided}
+\begin{itemize}[leftmargin=*]
+    \item Total sales and revenue
+    \item Item performance
+    \item Customer ratings
+    \item Conversion rates
+    \item Traffic sources
+\end{itemize}
+
+\section{Purchases}
+
+\subsection{Get My Purchases}
+
+\textbf{GET} \texttt{/api/v1/marketplace/purchases/my-purchases}
+
+\subsubsection{Description}
+List user's marketplace purchases.
+
+\subsection{Get License}
+
+\textbf{GET} \texttt{/api/v1/marketplace/purchases/\{purchase\_id\}/license}
+
+\subsubsection{Description}
+Retrieve license key and activation details.
+
+\subsection{Request Refund}
+
+\textbf{POST} \texttt{/api/v1/marketplace/purchases/\{purchase\_id\}/refund}
+
+\subsubsection{Description}
+Submit refund request within refund period.
+
+\newpage
+
+% Billing Module
+\chapter{Billing Module}
+
+\section{Module Overview}
+
+Comprehensive billing and subscription management with Stripe integration, usage tracking, and invoicing.
+
+\subsection{Base Path}
+\texttt{/api/billing}
+
+\subsection{Module Tag}
+\texttt{billing}
+
+\section{Plan Management}
+
+\subsection{Get All Plans}
+
+\textbf{GET} \texttt{/api/billing/plans}
+
+\subsubsection{Description}
+Retrieve available subscription plans.
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{active\_only}: Filter to active plans (default: true)
+\end{itemize}
+
+\subsubsection{Use Case}
+Display pricing page and upgrade options.
+
+\begin{infobox}
+\textbf{Plan Structure:}
+\begin{itemize}[leftmargin=*]
+    \item Free tier with limited features
+    \item Starter: \$29/month
+    \item Professional: \$99/month
+    \item Enterprise: Custom pricing
+    \item Annual billing discounts available
+    \item 14-day free trial for paid plans
+\end{itemize}
+\end{infobox}
+
+\subsection{Get Plan Details}
+
+\textbf{GET} \texttt{/api/billing/plans/\{plan\_id\}}
+
+\subsubsection{Description}
+Detailed plan information including limits and features.
+
+\subsubsection{Plan Details Include}
+\begin{itemize}[leftmargin=*]
+    \item Workflow execution limits
+    \item Storage quotas
+    \item Integration access
+    \item Support level
+    \item Advanced features
+    \item API rate limits
+\end{itemize}
+
+\subsection{Create Plan (Admin)}
+
+\textbf{POST} \texttt{/api/billing/plans}
+
+\subsubsection{Description}
+Create new subscription plan (admin only).
+
+\subsection{Update Plan (Admin)}
+
+\textbf{PUT} \texttt{/api/billing/plans/\{plan\_id\}}
+
+\subsubsection{Description}
+Modify plan details (admin only).
+
+\section{Subscription Management}
+
+\subsection{Create Subscription}
+
+\textbf{POST} \texttt{/api/billing/subscriptions}
+
+\subsubsection{Description}
+Subscribe to a plan with payment method.
+
+\subsubsection{Request Body}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "plan_id": "plan_professional",
+  "billing_cycle": "monthly",
+  "payment_method_id": "pm_stripe_id",
+  "coupon_code": "LAUNCH2024"
+}
+\end{lstlisting}
+
+\subsection{Get My Subscription}
+
+\textbf{GET} \texttt{/api/billing/subscriptions/me}
+
+\subsubsection{Description}
+Retrieve current user's active subscription.
+
+\subsubsection{Use Case}
+Display subscription status in account settings.
+
+\subsection{Update Subscription}
+
+\textbf{PUT} \texttt{/api/billing/subscriptions/\{subscription\_id\}}
+
+\subsubsection{Description}
+Upgrade, downgrade, or modify subscription.
+
+\subsubsection{Use Case}
+Plan changes with proration handling.
+
+\subsection{Cancel Subscription}
+
+\textbf{DELETE} \texttt{/api/billing/subscriptions/me}
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{cancel\_at\_period\_end}: Cancel immediately or at period end
+\end{itemize}
+
+\subsubsection{Use Case}
+Account downgrade or cancellation with optional grace period.
+
+\subsection{Pause Subscription}
+
+\textbf{POST} \texttt{/api/billing/subscriptions/pause}
+
+\subsubsection{Description}
+Temporarily pause subscription (retains data).
+
+\subsection{Resume Subscription}
+
+\textbf{POST} \texttt{/api/billing/subscriptions/resume}
+
+\subsubsection{Description}
+Resume paused subscription.
+
+\section{Usage Tracking}
+
+\subsection{Track Usage}
+
+\textbf{POST} \texttt{/api/billing/usage/track}
+
+\subsubsection{Description}
+Record usage for metered billing.
+
+\subsubsection{Usage Metrics}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{workflow\_executions}: Number of workflow runs
+    \item \texttt{api\_calls}: API request count
+    \item \texttt{storage\_gb}: Storage consumption
+    \item \texttt{integration\_calls}: Third-party API calls
+    \item \texttt{compute\_minutes}: Execution time
+\end{itemize}
+
+\subsection{Get My Usage}
+
+\textbf{GET} \texttt{/api/billing/usage/me}
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{period}: Usage period (YYYY-MM format)
+\end{itemize}
+
+\subsubsection{Use Case}
+Display current billing cycle usage and remaining quotas.
+
+\subsection{Check Usage Limit}
+
+\textbf{GET} \texttt{/api/billing/usage/check-limit}
+
+\subsubsection{Query Parameters}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{metric}: Usage metric to check
+    \item \texttt{additional\_usage}: Test additional usage amount
+\end{itemize}
+
+\subsubsection{Response}
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "within_limits": true,
+  "current_usage": 450,
+  "limit": 1000,
+  "percentage_used": 45,
+  "remaining": 550,
+  "would_exceed_with_additional": false
+}
+\end{lstlisting}
+
+\subsubsection{Use Case}
+Proactive limit checking before starting resource-intensive operations.
+
+\begin{infobox}
+\textbf{Usage Limits:}
+\begin{itemize}[leftmargin=*]
+    \item Soft limits: Warning notifications at 80\%
+    \item Hard limits: Operations blocked at 100\%
+    \item Grace period: 24 hours after limit reached
+    \item Auto-upgrade suggestions at limit
+    \item Usage resets monthly
+\end{itemize}
+\end{infobox}
+
+\section{Invoices}
+
+\subsection{Get My Invoices}
+
+\textbf{GET} \texttt{/api/billing/invoices}
+
+\subsubsection{Description}
+List user's invoices with pagination.
+
+\subsection{Get Invoice Details}
+
+\textbf{GET} \texttt{/api/billing/invoices/\{invoice\_id\}}
+
+\subsubsection{Description}
+Retrieve detailed invoice with line items.
+
+\section{Payment Methods}
+
+\subsection{Get Payment Methods}
+
+\textbf{GET} \texttt{/api/billing/payment-methods}
+
+\subsubsection{Description}
+List saved payment methods.
+
+\subsection{Add Payment Method}
+
+\textbf{POST} \texttt{/api/billing/payment-methods}
+
+\subsubsection{Description}
+Add new credit card or payment method.
+
+\subsection{Delete Payment Method}
+
+\textbf{DELETE} \texttt{/api/billing/payment-methods/\{pm\_id\}}
+
+\subsubsection{Description}
+Remove saved payment method.
+
+\section{Stripe Integration}
+
+\subsection{Create Checkout Session}
+
+\textbf{POST} \texttt{/api/billing/checkout/session}
+
+\subsubsection{Description}
+Create Stripe Checkout session for subscription purchase.
+
+\subsubsection{Use Case}
+Redirect users to secure Stripe-hosted payment page.
+
+\subsection{Create Billing Portal Session}
+
+\textbf{POST} \texttt{/api/billing/portal/session}
+
+\subsubsection{Description}
+Create Stripe Customer Portal session.
+
+\subsubsection{Use Case}
+Allow users to manage subscriptions and payment methods directly through Stripe.
+
+\subsection{Stripe Webhooks}
+
+\textbf{POST} \texttt{/api/billing/webhooks/stripe}
+
+\subsubsection{Description}
+Handle Stripe webhook events.
+
+\subsubsection{Events Processed}
+\begin{itemize}[leftmargin=*]
+    \item \texttt{payment\_intent.succeeded}
+    \item \texttt{payment\_intent.failed}
+    \item \texttt{customer.subscription.created}
+    \item \texttt{customer.subscription.updated}
+    \item \texttt{customer.subscription.deleted}
+    \item \texttt{invoice.payment\_succeeded}
+    \item \texttt{invoice.payment\_failed}
+\end{itemize}
+
+\begin{infobox}
+\textbf{Webhook Security:}
+\begin{itemize}[leftmargin=*]
+    \item Signature verification required
+    \item Idempotency handling
+    \item Replay attack prevention
+    \item Failed events retry with exponential backoff
+    \item Event logging for audit trail
+\end{itemize}
+\end{infobox}
+
+\section{Admin Endpoints}
+
+\subsection{Get Admin Analytics}
+
+\textbf{GET} \texttt{/api/billing/admin/analytics}
+
+\subsubsection{Description}
+Comprehensive billing analytics (admin only).
+
+\subsubsection{Metrics}
+\begin{itemize}[leftmargin=*]
+    \item Monthly Recurring Revenue (MRR)
+    \item Annual Recurring Revenue (ARR)
+    \item Churn rate
+    \item Average Revenue Per User (ARPU)
+    \item Customer Lifetime Value (LTV)
+    \item Conversion rates
+    \item Plan distribution
+\end{itemize}
+
+\subsection{Get Admin User List}
+
+\textbf{GET} \texttt{/api/billing/admin/users}
+
+\subsubsection{Description}
+List users with billing information (admin only).
+
+\subsection{Adjust User Usage}
+
+\textbf{POST} \texttt{/api/billing/admin/usage/adjust}
+
+\subsubsection{Description}
+Manually adjust user usage (admin only).
+
+\subsubsection{Use Case}
+Customer service adjustments, credits, or corrections.
+
+\newpage
+
+% Error Handling
+\chapter{Error Handling \& Status Codes}
+
+\section{HTTP Status Codes}
+
+\begin{longtable}{|l|l|p{8cm}|}
+\hline
+\textbf{Code} & \textbf{Status} & \textbf{Description} \\ \hline
+\endhead
+
+200 & OK & Request successful \\ \hline
+201 & Created & Resource created successfully \\ \hline
+204 & No Content & Successful with no response body \\ \hline
+400 & Bad Request & Invalid request parameters or body \\ \hline
+401 & Unauthorized & Authentication required or token invalid \\ \hline
+403 & Forbidden & Authenticated but insufficient permissions \\ \hline
+404 & Not Found & Resource not found \\ \hline
+422 & Unprocessable Entity & Validation error \\ \hline
+429 & Too Many Requests & Rate limit exceeded \\ \hline
+500 & Internal Server Error & Server-side error \\ \hline
+503 & Service Unavailable & Temporary service disruption \\ \hline
+
+\end{longtable}
+
+\section{Error Response Format}
+
+All error responses follow a consistent JSON structure:
+
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "success": false,
+  "message": "Human-readable error message",
+  "error": "ERROR_CODE",
+  "status_code": 400,
+  "details": {
+    "field": "Specific field that caused error",
+    "constraint": "Validation constraint violated"
+  }
+}
+\end{lstlisting}
+
+\section{Common Error Codes}
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{INVALID\_TOKEN}: Authentication token expired or invalid
+    \item \texttt{INSUFFICIENT\_PERMISSIONS}: User lacks required permissions
+    \item \texttt{RESOURCE\_NOT\_FOUND}: Requested resource doesn't exist
+    \item \texttt{VALIDATION\_ERROR}: Input validation failed
+    \item \texttt{RATE\_LIMIT\_EXCEEDED}: Too many requests
+    \item \texttt{QUOTA\_EXCEEDED}: Usage quota exhausted
+    \item \texttt{PAYMENT\_REQUIRED}: Paid plan feature requires upgrade
+    \item \texttt{INTERNAL\_ERROR}: Unexpected server error
+\end{itemize}
+
+\newpage
+
+% Rate Limiting
+\chapter{Rate Limiting}
+
+\section{Overview}
+
+NexAgent implements rate limiting to ensure fair resource usage and prevent abuse.
+
+\section{Rate Limit Headers}
+
+All responses include rate limit information:
+
+\begin{lstlisting}[style=jsoncode]
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1640995200
+\end{lstlisting}
+
+\section{Rate Limits by Endpoint Category}
+
+\begin{longtable}{|l|l|l|}
+\hline
+\textbf{Category} & \textbf{Limit} & \textbf{Window} \\ \hline
+\endhead
+
+Authentication & 100/min & Per IP address \\ \hline
+Workflows (read) & 200/min & Per user \\ \hline
+Workflows (write) & 20/min & Per user \\ \hline
+Templates & 100/min & Per user \\ \hline
+Notifications & 100/min & Per user \\ \hline
+Analytics & 50/min & Per user \\ \hline
+Audit Logs & 50/min & Per user \\ \hline
+Integrations & 100/min & Per user \\ \hline
+Marketplace & 100/min & Per user \\ \hline
+Billing & 50/min & Per user \\ \hline
+
+\end{longtable}
+
+\section{Rate Limit Bypass}
+
+Enterprise plans can request higher rate limits by contacting support.
+
+\begin{infobox}
+\textbf{Rate Limit Best Practices:}
+\begin{itemize}[leftmargin=*]
+    \item Implement exponential backoff on 429 errors
+    \item Cache responses when possible
+    \item Batch operations where supported
+    \item Monitor rate limit headers
+    \item Use webhooks instead of polling
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% Pagination
+\chapter{Pagination}
+
+\section{Standard Pagination}
+
+All list endpoints support pagination with consistent parameters:
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{page}: Page number (1-indexed, default: 1)
+    \item \texttt{page\_size}: Items per page (default: 20, max: 100)
+\end{itemize}
+
+\section{Pagination Response}
+
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "success": true,
+  "data": [...],
+  "total": 250,
+  "page": 1,
+  "pageSize": 20,
+  "totalPages": 13,
+  "hasNext": true,
+  "hasPrevious": false
+}
+\end{lstlisting}
+
+\section{Cursor-Based Pagination}
+
+Some endpoints use cursor-based pagination for better performance:
+
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "success": true,
+  "data": [...],
+  "next_cursor": "eyJpZCI6MTIzNH0=",
+  "has_more": true
+}
+\end{lstlisting}
+
+\newpage
+
+% Security
+\chapter{Security Measures}
+
+\section{Authentication Security}
+
+\begin{itemize}[leftmargin=*]
+    \item Firebase Authentication with industry-standard security
+    \item JWT token validation
+    \item Session management with automatic expiration
+    \item Single session enforcement option
+    \item Brute force protection
+    \item Account lockout after failed attempts
+\end{itemize}
+
+\section{Data Encryption}
+
+\begin{itemize}[leftmargin=*]
+    \item TLS 1.3 for all API communications
+    \item AES-256 encryption at rest
+    \item Encrypted database backups
+    \item Secure credential storage
+    \item Key rotation policies
+\end{itemize}
+
+\section{API Security}
+
+\begin{itemize}[leftmargin=*]
+    \item CORS protection with whitelist
+    \item Trusted host middleware
+    \item SQL injection prevention
+    \item XSS protection
+    \item CSRF protection for web clients
+    \item Input validation and sanitization
+\end{itemize}
+
+\section{Compliance}
+
+\begin{itemize}[leftmargin=*]
+    \item SOC 2 Type II certified
+    \item GDPR compliant
+    \item HIPAA compliant (Enterprise plan)
+    \item PCI DSS compliant (payment processing)
+    \item ISO 27001 certified
+\end{itemize}
+
+\section{Security Best Practices}
+
+\begin{infobox}
+\textbf{Developer Guidelines:}
+\begin{itemize}[leftmargin=*]
+    \item Never hardcode API tokens
+    \item Use environment variables for secrets
+    \item Implement token refresh logic
+    \item Validate SSL certificates
+    \item Log security events
+    \item Implement request signing for webhooks
+    \item Use least privilege access
+    \item Rotate API keys regularly
+\end{itemize}
+\end{infobox}
+
+\newpage
+
+% Webhooks
+\chapter{Webhooks}
+
+\section{Overview}
+
+NexAgent supports webhooks for real-time event notifications.
+
+\section{Webhook Events}
+
+\begin{itemize}[leftmargin=*]
+    \item \texttt{workflow.execution.started}
+    \item \texttt{workflow.execution.completed}
+    \item \texttt{workflow.execution.failed}
+    \item \texttt{subscription.created}
+    \item \texttt{subscription.updated}
+    \item \texttt{subscription.canceled}
+    \item \texttt{payment.succeeded}
+    \item \texttt{payment.failed}
+    \item \texttt{usage.limit.approaching}
+    \item \texttt{usage.limit.exceeded}
+\end{itemize}
+
+\section{Webhook Payload}
+
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "event_type": "workflow.execution.completed",
+  "event_id": "evt_123456789",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "data": {
+    "workflow_id": "wf_abc123",
+    "execution_id": "exec_xyz789",
+    "status": "success",
+    "duration_ms": 45000,
+    "user_id": "user_123"
+  },
+  "signature": "sha256=abc123..."
+}
+\end{lstlisting}
+
+\section{Webhook Security}
+
+\begin{itemize}[leftmargin=*]
+    \item HMAC-SHA256 signature verification
+    \item Timestamp validation (5-minute window)
+    \item Replay attack prevention
+    \item IP whitelist option
+\end{itemize}
+
+\section{Webhook Configuration}
+
+Configure webhooks via API:
+
+\textbf{POST} \texttt{/api/v1/webhooks}
+
+\begin{lstlisting}[style=jsoncode,language=json]
+{
+  "url": "https://your-server.com/webhooks",
+  "events": ["workflow.execution.completed"],
+  "secret": "webhook_secret_key"
+}
+\end{lstlisting}
+
+\newpage
+
+% Support & Resources
+\chapter{Support \& Resources}
+
+\section{API Support}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Email:} api-support@nexagent.com
+    \item \textbf{Documentation:} https://docs.nexagent.com
+    \item \textbf{Status Page:} https://status.nexagent.com
+    \item \textbf{Community Forum:} https://community.nexagent.com
+\end{itemize}
+
+\section{Developer Resources}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{GitHub:} https://github.com/nexagent
+    \item \textbf{API Playground:} https://api.nexagent.com/playground
+    \item \textbf{Postman Collection:} Available in documentation
+    \item \textbf{SDK Libraries:} Python, JavaScript, Go, Java
+\end{itemize}
+
+\section{Change Log}
+
+Track API changes and deprecations:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Changelog:} https://docs.nexagent.com/changelog
+    \item \textbf{Breaking Changes:} 90-day notice period
+    \item \textbf{Deprecation Policy:} 6-month sunset period
+    \item \textbf{API Versioning:} Semantic versioning
+\end{itemize}
+
+\section{Service Level Agreement}
+
+\begin{longtable}{|l|l|l|}
+\hline
+\textbf{Plan} & \textbf{Uptime SLA} & \textbf{Support Response} \\ \hline
+\endhead
+
+Free & 99.0\% & Community forum \\ \hline
+Starter & 99.5\% & 48 hours \\ \hline
+Professional & 99.9\% & 12 hours \\ \hline
+Enterprise & 99.99\% & 1 hour (24/7) \\ \hline
+
+\end{longtable}
+
+\newpage
+
+% Appendix
+\appendix
+
+\chapter{Glossary}
+
+\begin{description}[leftmargin=!,labelwidth=\widthof{\bfseries Integration}]
+    \item[Workflow] An automated sequence of actions and conditions
+    \item[Template] Pre-built workflow available for cloning
+    \item[Nexa] Marketplace item (workflow, plugin, or service)
+    \item[Integration] Third-party service connection
+    \item[Node] Individual action or trigger in a workflow
+    \item[Edge] Connection between workflow nodes
+    \item[Session] Authenticated user session with time-limited validity
+    \item[Bearer Token] Authentication token passed in Authorization header
+    \item[Rate Limit] Maximum requests allowed per time window
+    \item[Webhook] HTTP callback for real-time event notifications
+\end{description}
+
+\chapter{Example Use Cases}
+
+\section{Creating an Automated Email Campaign}
+
+\begin{enumerate}[leftmargin=*]
+    \item Authenticate with \texttt{/api/v1/auth/signin}
+    \item Connect SendGrid integration via \texttt{/api/v1/integrations/connect}
+    \item Create workflow with email nodes using \texttt{/api/v1/workflows}
+    \item Test workflow execution
+    \item Monitor analytics via \texttt{/api/v1/analytics/workflows/\{id\}/metrics}
+\end{enumerate}
+
+\section{Setting Up a Marketplace Seller Account}
+
+\begin{enumerate}[leftmargin=*]
+    \item Register seller account: \texttt{/api/v1/marketplace/sellers}
+    \item Complete Stripe onboarding
+    \item Create premium workflow
+    \item Convert to template: \texttt{/api/v1/templates}
+    \item List in marketplace: \texttt{/api/v1/marketplace/sellers/nexas}
+    \item Monitor sales: \texttt{/api/v1/marketplace/sellers/analytics}
+\end{enumerate}
+
+\chapter{Migration Guide}
+
+\section{Version Upgrade Paths}
+
+When upgrading between API versions, follow these steps:
+
+\begin{enumerate}[leftmargin=*]
+    \item Review changelog for breaking changes
+    \item Update endpoint URLs to new version
+    \item Modify request/response structures as needed
+    \item Update authentication if changed
+    \item Test in development environment
+    \item Gradual rollout to production
+\end{enumerate}
+
+\section{Backward Compatibility}
+
+NexAgent maintains backward compatibility for:
+\begin{itemize}[leftmargin=*]
+    \item Current major version (v1)
+    \item Previous major version for 6 months
+    \item Critical security endpoints indefinitely
+\end{itemize}
+
+% End document
+\vfill
+\begin{center}
+\hrule
+\vspace{0.5cm}
+\textit{End of Documentation}\\
+\textcopyright\ 2025 NexAgent. All rights reserved.
+\end{center}
+
+\end{document}

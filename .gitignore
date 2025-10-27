@@ -45,3 +45,8 @@ next-env.d.ts
 
 # secrets
 backend/nexagent-90391-firebase-adminsdk-fbsvc-c9b35a6472.json
+
+# Firebase credentials
+*firebase-adminsdk*.json
+backend/*firebase-adminsdk*.json
+nexagent-*-firebase-adminsdk-*.json

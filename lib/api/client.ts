@@ -4,6 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import { auth } from '@/lib/firebase';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
 
@@ -16,15 +17,74 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor - Add auth token
+// Fallback tokens from env for local admin/dev
+const ENV_BEARER = (
+  process.env.NEXT_PUBLIC_BACKEND_API_TOEKEN || 
+  process.env.NEXT_PUBLIC_BACKEND_API_TOKEN || 
+  process.env.NEXT_PUBLIC_BACKEND_TOKEN || 
+  ''
+).trim();
+const ENV_SESSION = (process.env.NEXT_PUBLIC_BACKEND_SESSION_TOKEN || '').trim();
+
+// Request interceptor - Add auth/session tokens
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    let bearer: string | null = null;
+    let session: string | null = null;
+
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('backend_auth_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      bearer = localStorage.getItem('backend_auth_token');
+      session = localStorage.getItem('backend_session_token');
+    }
+
+    const isAnalytics = (config.url || '').includes('/api/v1/analytics');
+    
+    // Debug logging for token authentication flow
+    if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
+      console.log('[API Client Debug] Request:', {
+        url: config.url,
+        hasFirebaseUser: !!auth?.currentUser,
+        hasLocalToken: !!bearer,
+        hasEnvToken: !!ENV_BEARER,
+        willUseFirebaseToken: !!(auth?.currentUser)
+      });
+    }
+
+    // Always prefer Firebase ID token for authenticated users
+    if (typeof window !== 'undefined' && auth?.currentUser) {
+      try {
+        const idToken = await auth.currentUser.getIdToken(true); // Force refresh
+        if (idToken) {
+          (config.headers as any).Authorization = `Bearer ${idToken}`;
+          if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
+            console.log('[API Client Debug] Using fresh Firebase ID token from current user');
+          }
+        }
+      } catch (error) {
+        if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
+          console.log('[API Client Debug] Failed to get Firebase token:', error);
+        }
       }
     }
+
+    // Fallback: use env/local stored tokens only if no Firebase token was set
+    const token = (config.headers as any).Authorization
+      ? null
+      : bearer || ENV_BEARER || null;
+    const sessionToken = session || ENV_SESSION || null;
+
+    if (token) {
+      const raw = token.toString();
+      const value = raw.startsWith('Bearer ') ? raw : `Bearer ${raw}`;
+      (config.headers as any).Authorization = value;
+      if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
+        console.log('[API Client Debug] Using fallback token source:', bearer ? 'localStorage' : 'env');
+      }
+    }
+    if (sessionToken) {
+      (config.headers as any)['X-Session-Token'] = sessionToken;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -36,20 +96,24 @@ apiClient.interceptors.response.use(
   (error: AxiosError<any>) => {
     if (error.response) {
       const status = error.response.status;
-      const data = error.response.data;
+      const data: any = error.response.data as any;
 
       // Handle 401 - Unauthorized
       if (status === 401 && typeof window !== 'undefined') {
-        localStorage.removeItem('backend_auth_token');
-        if (window.location.pathname !== '/sign-in') {
-          window.location.href = '/sign-in';
+        const onAdmin = window.location.pathname.startsWith('/admin321');
+        // Keep admin pages from redirect loops while experimenting
+        if (!onAdmin) {
+          try { localStorage.removeItem('backend_auth_token'); } catch {}
+          if (window.location.pathname !== '/sign-in') {
+            window.location.href = '/sign-in';
+          }
         }
       }
 
       return Promise.reject({
         status,
         message: data?.message || data?.detail || 'An error occurred',
-        error: data?.error || 'API_ERROR',
+        error: (data as any)?.error || 'API_ERROR',
       });
     }
 

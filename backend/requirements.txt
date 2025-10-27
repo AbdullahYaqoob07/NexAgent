@@ -11,3 +11,7 @@ python-dotenv
 redis
 celery
 httpx
+stripe
+aiohttp
+jinja2
+cryptography

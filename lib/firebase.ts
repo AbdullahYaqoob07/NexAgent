@@ -16,13 +16,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-CGDZL03W91",
 };
 
-// Debug environment variables
-console.log('🔍 Firebase Config Debug:', {
-  apiKey: firebaseConfig.apiKey ? '✅ Present' : '❌ Missing',
-  authDomain: firebaseConfig.authDomain ? '✅ Present' : '❌ Missing',
-  projectId: firebaseConfig.projectId ? '✅ Present' : '❌ Missing',
-  envApiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? '✅ Present' : '❌ Missing'
-});
 
 // Validate configuration
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
@@ -37,6 +30,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
 
 // Initialize Analytics (only in browser environment)
 export let analytics: any = null;

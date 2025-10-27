@@ -438,20 +438,10 @@ class UserSyncService {
    */
   async syncUser(authUser: User | AuthUser): Promise<FirebaseUser> {
     try {
-      console.log(`🔄 Starting user sync for: ${authUser.email}`);
-      
       const userRef = doc(db, this.COLLECTION_NAME, authUser.uid);
       const existingUserSnap = await getDoc(userRef);
       
-      console.log(`🔍 User exists in Firestore: ${existingUserSnap.exists()}`);
-      
       const transformedUser = this.transformAuthUser(authUser);
-      console.log(`📋 Transformed user data:`, {
-        uid: transformedUser.uid,
-        email: transformedUser.email,
-        displayName: transformedUser.displayName,
-        profileFirstName: transformedUser.profile.firstName
-      });
       
       if (existingUserSnap.exists()) {
         // Update existing user
@@ -489,12 +479,9 @@ class UserSyncService {
         };
         
         await updateDoc(userRef, updatedUser as any);
-        console.log(`✅ Updated user in Firestore: ${authUser.uid}`);
         return updatedUser;
       } else {
         // Create new user
-        console.log(`🆕 Creating new user in Firestore...`);
-        
         const newUser: FirebaseUser = {
           ...transformedUser,
           createdAt: 'creationTime' in authUser && authUser.creationTime 
@@ -505,16 +492,7 @@ class UserSyncService {
           updatedAt: serverTimestamp() as Timestamp
         };
         
-        console.log(`💾 Saving user data to Firestore...`);
         await setDoc(userRef, newUser as any);
-        
-        // Verify the document was created
-        const verifySnap = await getDoc(userRef);
-        if (verifySnap.exists()) {
-          console.log(`✅ Successfully created and verified user in Firestore: ${authUser.uid}`);
-        } else {
-          console.error(`❌ User document not found after creation: ${authUser.uid}`);
-        }
         
         return newUser;
       }
@@ -573,7 +551,6 @@ class UserSyncService {
     try {
       const userRef = doc(db, this.COLLECTION_NAME, userId);
       await deleteDoc(userRef);
-      console.log(`✅ Deleted user from Firebase: ${userId}`);
     } catch (error) {
       console.error(`❌ Error deleting user ${userId}:`, error);
       throw error;

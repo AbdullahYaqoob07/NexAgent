@@ -127,7 +127,18 @@ class FirebaseAuthService {
       
       // Get ID token and verify with backend
       try {
-        const idToken = await userCredential.user.getIdToken();
+        const idToken = await userCredential.user.getIdToken().catch((e)=>{
+          console.error('Failed to get Firebase ID token:', e);
+          return null as any;
+        });
+
+        if (!idToken) {
+          console.warn('No Firebase ID token returned after sign-in. Check Firebase config and network.');
+        } else {
+          // Store for API client fallback and developer convenience
+          try { localStorage.setItem('backend_auth_token', idToken); } catch {}
+        }
+
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
         const response = await fetch(`${backendUrl}/api/v1/auth/verify-token`, {
           method: 'POST',
@@ -135,13 +146,35 @@ class FirebaseAuthService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            token: idToken
+            token: idToken || ''
           })
         });
         
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Backend token verified:', data.user);
+          
+          // Check if user is admin and handle redirection
+          if (data.metadata?.is_admin) {
+            console.log('✅ Admin user detected, should redirect to:', data.metadata.redirect_to);
+            
+            // Store admin info for the frontend
+            try {
+              localStorage.setItem('user_is_admin', 'true');
+              localStorage.setItem('admin_role', data.metadata.admin_role);
+              localStorage.setItem('admin_permissions', JSON.stringify(data.metadata.permissions));
+              localStorage.setItem('admin_redirect_url', data.metadata.redirect_to);
+            } catch {}
+          } else {
+            console.log('✅ Regular user detected, should redirect to:', data.metadata?.redirect_to);
+            
+            // Clear any admin flags
+            try {
+              localStorage.removeItem('user_is_admin');
+              localStorage.removeItem('admin_role');
+              localStorage.removeItem('admin_permissions');
+              localStorage.removeItem('admin_redirect_url');
+            } catch {}
+          }
         } else {
           console.warn('⚠️ Backend token verification failed:', await response.text());
         }

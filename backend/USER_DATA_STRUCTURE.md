@@ -42,44 +42,62 @@ When a user signs up, a comprehensive user document is created in Firestore with
     website: null
   },
   
-  // Subscription Details (for /dashboard and all pages)
+  // Subscription Details (for /dashboard and billing pages)
   subscription: {
-    plan: "free",  // Options: free, pro, enterprise
-    status: "active",
+    plan: "free",  // Options: free, basic, pro, enterprise
+    status: "active",  // active, cancelled, past_due, unpaid, trialing
+    billing_cycle: "monthly",  // monthly, yearly
     startDate: Timestamp,
     endDate: null,
+    next_billing_date: null,  // When next payment is due
+    trial_ends_at: null,      // Trial expiration date
     cancelAtPeriodEnd: false,
-    stripeCustomerId: null,
-    stripeSubscriptionId: null
+    stripeCustomerId: null,    // Stripe customer ID (created at signup)
+    stripeSubscriptionId: null, // Stripe subscription ID
+    created_at: Timestamp,     // When subscription was created
+    updated_at: Timestamp      // Last subscription change
   },
   
-  // Usage Stats (for /dashboard page)
+  // Usage Stats (for /dashboard page and billing)
   usage: {
     // Tokens
     tokensUsed: 0,
     tokensThisMonth: 0,
     
-    // Workflows (for /workflows page)
-    totalWorkflows: 0,
-    workflowsCreated: 0,
-    activeWorkflows: 0,
+    // Workflows/NexAs (for /workflows page)
+    totalWorkflows: 0,          // Total NexAs created (main billing metric)
+    workflowsCreated: 0,        // NexAs created this period
+    activeWorkflows: 0,         // Currently active NexAs
     
     // API Calls
     totalApiCalls: 0,
     apiCallsThisMonth: 0,
     apiCallsToday: 0,
     
+    // Additional Billing Metrics
+    storage_used_gb: 0.0,       // File storage usage
+    team_members_count: 1,      // Team size (billing factor)
+    integrations_count: 0,      // Connected services count
+    executions_this_month: 0,   // Workflow executions this month
+    
     // Performance Metrics (for /dashboard)
     successRate: 100,
     avgResponseTime: 0,
     totalExecutionTime: 0,
     
-    // Limits (based on subscription plan)
+    // Billing Period Tracking
+    last_reset_date: Timestamp,     // When monthly counters were last reset
+    current_period_start: Timestamp, // Current billing period start
+    current_period_end: null,       // Current billing period end
+    
+    // Plan Limits (enforced in real-time)
     limits: {
       tokensPerMonth: 10000,      // Free tier: 10k tokens
-      workflowsMax: 5,             // Free tier: 5 workflows
-      apiCallsPerMonth: 1000,      // Free tier: 1k API calls
-      executionsPerMonth: 500      // Free tier: 500 executions
+      workflowsMax: 5,            // Free tier: 5 NexAs (main limit!)
+      apiCallsPerMonth: 1000,     // Free tier: 1k API calls
+      executionsPerMonth: 500,    // Free tier: 500 executions
+      storage_gb: 1,              // Free tier: 1GB storage
+      team_members: 1             // Free tier: 1 team member
     }
   },
   
@@ -218,6 +236,25 @@ When a user signs up, a comprehensive user document is created in Firestore with
 - `security` set to default security settings
 - `subscription` set to free tier
 
+### Billing & Subscription (`/billing`)
+**Uses:**
+- `subscription.plan` - Current plan name
+- `subscription.status` - Subscription status
+- `subscription.next_billing_date` - Next payment date
+- `subscription.billing_cycle` - Monthly/yearly billing
+- `usage.totalWorkflows` - NexAs created (main billing metric)
+- `usage.limits.workflowsMax` - Plan limit for NexAs
+- `usage.executions_this_month` - Current usage
+- `usage.storage_used_gb` - Storage consumption
+- `usage.team_members_count` - Team size
+
+**Initialized with:**
+- Free plan with 5 NexA limit
+- Active subscription status
+- Monthly billing cycle
+- All usage counters at 0
+- Stripe customer ID ready for payments
+
 ## Benefits of This Approach
 
 ### 1. **No Null Reference Errors**
@@ -246,19 +283,54 @@ Default limits for new users (can be upgraded):
 
 | Resource | Free Tier Limit |
 |----------|----------------|
+| **NexAs (Workflows)** | **5** |
 | Tokens per month | 10,000 |
-| Maximum workflows | 5 |
 | API calls per month | 1,000 |
 | Workflow executions per month | 500 |
+| File storage | 1 GB |
+| Team members | 1 (owner only) |
+
+### Typical Plan Progression:
+
+| Plan | NexAs | Executions/Month | Storage | Price |
+|------|-------|------------------|---------|-------|
+| **Free** | 5 | 500 | 1 GB | $0 |
+| **Basic** | 25 | 1,000 | 10 GB | $19/month |
+| **Pro** | 100 | 10,000 | 100 GB | $49/month |
+| **Enterprise** | Unlimited | Unlimited | 1 TB | $199/month |
 
 ## Future Enhancements
 
-### When User Creates First Workflow
+### When User Creates Workflow (with Limit Check)
 ```javascript
+// Check limit before creation
+const currentCount = usage.totalWorkflows;
+const limit = usage.limits.workflowsMax;
+
+if (currentCount >= limit) {
+  throw new Error(`NexA limit reached (${limit}). Upgrade your plan to create more.`);
+}
+
 // Update usage stats
 usage.totalWorkflows += 1
 usage.workflowsCreated += 1
 usage.activeWorkflows += 1
+```
+
+### When User Upgrades Plan
+```javascript
+// Update subscription
+subscription.plan = "basic";
+subscription.updated_at = Timestamp;
+subscription.next_billing_date = calculateNextBilling();
+
+// Update limits
+usage.limits = {
+  workflowsMax: 25,        // Basic plan: 25 NexAs
+  executionsPerMonth: 1000,
+  storage_gb: 10,
+  team_members: 3
+};
 ```
 
 ### When User Connects Integration
@@ -273,6 +345,7 @@ integrations.push({
 })
 
 credentialsCount += 1
+usage.integrations_count += 1  // Track for billing
 ```
 
 ### When User Creates API Key
@@ -293,11 +366,21 @@ apiKeys.push({
 
 ## Data Cleanup
 
-### Monthly Reset (Runs on 1st of each month)
+### Monthly Billing Reset (Runs on user's billing date)
 ```javascript
+// Reset monthly counters
 usage.tokensThisMonth = 0
 usage.apiCallsThisMonth = 0
+usage.executions_this_month = 0
 usage.workflowsCreated = 0
+
+// Update billing period tracking
+usage.last_reset_date = Timestamp
+usage.current_period_start = Timestamp
+usage.current_period_end = calculatePeriodEnd(subscription.billing_cycle)
+
+// Update next billing date
+subscription.next_billing_date = calculateNextBilling(subscription.billing_cycle)
 ```
 
 ### Session Cleanup (Runs daily)
@@ -312,6 +395,15 @@ usage.workflowsCreated = 0
 ✅ **Empty arrays** - API keys, integrations, credentials ready to populate  
 ✅ **Sensible defaults** - Theme, preferences, security settings configured  
 ✅ **No null errors** - All pages work immediately after signup  
+✅ **Billing ready** - Stripe integration fields, usage limits, plan tracking  
+✅ **Limit enforcement** - Real-time usage checks against plan limits  
 ✅ **Scalable** - Easy to add new fields and features  
+
+### Billing Integration Benefits:
+- 🎯 **NexA Limits**: Free users get 5 NexAs, enforced in real-time
+- 💳 **Stripe Ready**: Customer ID created at signup for seamless payments
+- 📊 **Usage Tracking**: All billing metrics tracked from day one
+- 🚀 **Upgrade Flow**: Smooth plan transitions with limit updates
+- 🔄 **Billing Cycles**: Monthly/yearly billing with automatic resets
 
 Your users will have a smooth experience from signup through their entire journey! 🚀
