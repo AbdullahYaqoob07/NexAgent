@@ -288,8 +288,8 @@ export default function TokensView() {
               isRevealed={revealedTokens.has(token.id)}
               onToggleVisibility={() => toggleTokenVisibility(token.id)}
               onCopy={() => copyToClipboard(token.key)}
-              onEdit={() => console.log('Edit token:', token.id)}
-              onDelete={() => console.log('Delete token:', token.id)}
+              onEdit={() => {}}
+              onDelete={() => {}}
             />
           ))}
         </div>

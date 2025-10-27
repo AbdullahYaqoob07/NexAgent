@@ -32,15 +32,17 @@ class Settings(BaseSettings):
     FIREBASE_AUTH_PROVIDER_CERT_URL: str = "https://www.googleapis.com/oauth2/v1/certs"
     FIREBASE_CLIENT_CERT_URL: str = ""
     
-    # Redis Configuration
-    REDIS_URL: str = "redis://localhost:6379/0"
-    
-    # Email Configuration
+    # Email Configuration (Optional)
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = "noreply@nexagent.com"
+    
+    # Stripe Configuration
+    STRIPE_SECRET_KEY: str = "sk_test_example"
+    STRIPE_PUBLISHABLE_KEY: str = "pk_test_example" 
+    STRIPE_WEBHOOK_SECRET: str = "whsec_example"
     
     # CORS Configuration
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://nexagent.com"]

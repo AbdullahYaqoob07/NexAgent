@@ -5,6 +5,13 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.api.v1.auth import router as auth_router
 from app.api.v1.workflows import router as workflow_router
+from app.api.v1.notifications import router as notification_router
+from app.api.v1.marketplace import router as marketplace_router
+from app.api.v1.templates import router as template_router
+from app.api.v1.integrations import router as integration_router
+from app.api.v1.analytics import router as analytics_router
+from app.api.v1.audit import router as audit_router
+from app.api.routes.billing import router as billing_router
 import logging
 import uvicorn
 
@@ -38,7 +45,7 @@ app.add_middleware(
 # Add trusted host middleware for security
 app.add_middleware(
     TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "*.nexagent.com"]
+    allowed_hosts=["localhost", "127.0.0.1", "*.nexagent.com", "*.railway.app", "*.up.railway.app"]
 )
 
 
@@ -94,6 +101,13 @@ async def health_check():
 # Include routers
 app.include_router(auth_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(workflow_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(notification_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(marketplace_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(template_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(integration_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(analytics_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(audit_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(billing_router)
 
 
 # Startup event

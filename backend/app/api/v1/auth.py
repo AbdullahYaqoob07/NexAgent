@@ -174,18 +174,22 @@ async def forgot_password(request: ForgotPasswordRequest):
 async def verify_token(request: TokenVerifyRequest, req: Request):
     """
     Verify Firebase ID token and create session
+    Also checks for admin status and includes it in response
     
     - **token**: Firebase ID token from client
     """
     try:
-        # Verify the Firebase ID token
-        decoded_token = await firebase_service.verify_token(request.token)
+        # Verify the Firebase ID token and check admin status
+        admin_result = await firebase_service.verify_admin_token(request.token)
         
-        if not decoded_token:
+        if not admin_result['success']:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token"
             )
+        
+        decoded_token = admin_result['user']
+        is_admin = admin_result['is_admin']
         
         # Get user info from Firebase Auth
         user = await firebase_service.get_user_by_uid(decoded_token['uid'])
@@ -207,16 +211,34 @@ async def verify_token(request: TokenVerifyRequest, req: Request):
             ip_address=ip_address
         )
         
+        # Prepare metadata with admin info if applicable
+        metadata = {}
+        if is_admin:
+            metadata = {
+                'is_admin': True,
+                'admin_role': admin_result['admin_role'],
+                'permissions': admin_result['permissions'],
+                'redirect_to': '/admin321'  # Redirect admin users
+            }
+        else:
+            metadata = {
+                'is_admin': False,
+                'redirect_to': '/dashboard'  # Redirect regular users
+            }
+        
+        message = "Admin session created successfully" if is_admin else "Token verified successfully. Session created (1 week validity)."
+        
         return AuthResponse(
             success=True,
-            message="Token verified successfully. Session created (1 week validity).",
+            message=message,
             user=UserResponse(
                 uid=user['uid'],
                 email=user['email'],
                 display_name=user['displayName'],
                 email_verified=user['emailVerified']
             ),
-            access_token=session_token  # Return session token
+            access_token=session_token,
+            metadata=metadata
         )
         
     except HTTPException:
@@ -320,6 +342,98 @@ async def logout(session_token: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to logout"
+        )
+
+
+@router.post("/admin/init", response_model=SuccessResponse)
+async def initialize_admin_user(email: str):
+    """
+    Initialize admin privileges for a user (Internal endpoint for setup)
+    
+    - **email**: Email of the user to grant admin privileges
+    
+    WARNING: This endpoint should only be used during initial setup and then disabled.
+    """
+    try:
+        # Only allow specific admin email for security
+        allowed_admin_emails = ['admin@gmail.com']
+        
+        if email not in allowed_admin_emails:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email not authorized for admin privileges"
+            )
+        
+        result = await firebase_service.init_admin_user(email)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result['error']
+            )
+        
+        return SuccessResponse(
+            success=True,
+            message=f"Admin privileges initialized for {email}. User must sign out and sign in again to receive admin claims."
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin initialization error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initialize admin privileges"
+        )
+
+
+@router.post("/verify-admin", response_model=AuthResponse)
+async def verify_admin_token(request: TokenVerifyRequest):
+    """
+    Verify Firebase ID token and check admin status
+    
+    - **token**: Firebase ID token from client
+    """
+    try:
+        result = await firebase_service.verify_admin_token(request.token)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=result['error']
+            )
+        
+        user_data = result['user']
+        
+        if not result['is_admin']:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin privileges required"
+            )
+        
+        return AuthResponse(
+            success=True,
+            message="Admin token verified successfully",
+            user=UserResponse(
+                uid=user_data['uid'],
+                email=user_data['email'],
+                display_name=user_data.get('name'),
+                email_verified=user_data.get('email_verified', False)
+            ),
+            access_token=None,  # Admin uses Firebase ID token directly
+            metadata={
+                'admin_role': result['admin_role'],
+                'permissions': result['permissions']
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Admin token verification error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Admin verification failed"
         )
 
 

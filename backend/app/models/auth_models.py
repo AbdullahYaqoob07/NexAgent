@@ -48,6 +48,7 @@ class AuthResponse(BaseModel):
     access_token: Optional[str] = None
     refresh_token: Optional[str] = None
     token_type: str = "bearer"
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class ErrorResponse(BaseModel):

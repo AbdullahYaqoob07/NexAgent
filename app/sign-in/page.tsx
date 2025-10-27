@@ -28,7 +28,20 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password);
-      router.push('/dashboard');
+      
+      // Check if user is admin and redirect accordingly
+      setTimeout(() => {
+        const isAdmin = localStorage.getItem('user_is_admin') === 'true';
+        const redirectUrl = localStorage.getItem('admin_redirect_url');
+        
+        if (isAdmin && redirectUrl) {
+          console.log('🔐 Redirecting admin user to:', redirectUrl);
+          router.push(redirectUrl);
+        } else {
+          router.push('/dashboard');
+        }
+      }, 100); // Small delay to ensure localStorage is updated
+      
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -42,7 +55,20 @@ export default function SignInPage() {
 
     try {
       await signInWithGoogle();
-      router.push('/dashboard');
+      
+      // Check if user is admin and redirect accordingly
+      setTimeout(() => {
+        const isAdmin = localStorage.getItem('user_is_admin') === 'true';
+        const redirectUrl = localStorage.getItem('admin_redirect_url');
+        
+        if (isAdmin && redirectUrl) {
+          console.log('🔐 Redirecting admin user to:', redirectUrl);
+          router.push(redirectUrl);
+        } else {
+          router.push('/dashboard');
+        }
+      }, 100); // Small delay to ensure localStorage is updated
+      
     } catch (error: any) {
       setError(error.message);
     } finally {

@@ -164,6 +164,25 @@ html {
   }
 }
 
+/* Thin gray scrollbar for admin sidebar */
+.admin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent; /* show only on hover in Firefox */
+}
+.admin-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.admin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 8px;
+}
+.admin-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+}
+
 @layer utilities {
   /* Professional glassmorphism utilities */
   .glass {
