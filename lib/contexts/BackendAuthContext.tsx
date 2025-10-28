@@ -56,7 +56,7 @@ export function BackendAuthProvider({ children }: { children: ReactNode }) {
           const firebaseToken = await getUserToken();
           if (firebaseToken) {
             // Verify Firebase token with backend to get session token
-            const response = await authService.verifyToken({ token: firebaseToken });
+            const response = await authService.verifyToken({ idToken: firebaseToken });
             if (response.user) {
               setUser(response.user);
             }

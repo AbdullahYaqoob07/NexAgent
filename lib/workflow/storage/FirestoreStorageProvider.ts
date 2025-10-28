@@ -26,24 +26,28 @@ export class FirestoreStorageProvider implements IStorageProvider {
   private USERS_COLLECTION = 'users';
 
   /**
-   * Sanitize data for Firestore by converting Maps, Sets, and other non-serializable objects
+   * Sanitize data for Firestore by converting Maps, Sets, and removing undefined values
    */
   private sanitizeForFirestore(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
+    // Remove undefined values (Firestore doesn't support them)
+    if (obj === undefined) return null;
+    if (obj === null) return null;
     
     // Handle Maps
     if (obj instanceof Map) {
-      return Object.fromEntries(obj);
+      return this.sanitizeForFirestore(Object.fromEntries(obj));
     }
     
     // Handle Sets
     if (obj instanceof Set) {
-      return Array.from(obj);
+      return Array.from(obj).map(item => this.sanitizeForFirestore(item));
     }
     
     // Handle Arrays
     if (Array.isArray(obj)) {
-      return obj.map(item => this.sanitizeForFirestore(item));
+      return obj
+        .filter(item => item !== undefined) // Remove undefined elements
+        .map(item => this.sanitizeForFirestore(item));
     }
     
     // Handle plain objects
@@ -51,7 +55,11 @@ export class FirestoreStorageProvider implements IStorageProvider {
       const sanitized: any = {};
       for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
-          sanitized[key] = this.sanitizeForFirestore(obj[key]);
+          const value = obj[key];
+          // Skip undefined values
+          if (value !== undefined) {
+            sanitized[key] = this.sanitizeForFirestore(value);
+          }
         }
       }
       return sanitized;

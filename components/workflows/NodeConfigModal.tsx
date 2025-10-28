@@ -33,11 +33,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-<<<<<<< HEAD
-import { WorkflowNode } from '@/lib/workflow/types';
-=======
 import { WorkflowNode, NodeCategory } from '@/lib/workflow/types';
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 import { getNodeMapping } from '@/lib/workflow/utils/NodeMapping';
 import { getBrandLogo } from '@/lib/workflow/utils/BrandLogoMapping';
 
@@ -241,8 +237,6 @@ export default function NodeConfigModal({
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
   
-<<<<<<< HEAD
-=======
   // Helpers for HTTP Request editor (Webhook/API)
   const addHeaderRow = () => {
     const list = Array.isArray(config.headersList) ? [...config.headersList] : [];
@@ -289,7 +283,6 @@ export default function NodeConfigModal({
     }
   };
   
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
   // Dynamic node data from API
   const [nodeCategories, setNodeCategories] = useState<any[]>([]);
   const [nodeDefinition, setNodeDefinition] = useState<any>(null);
@@ -297,9 +290,6 @@ export default function NodeConfigModal({
 
   useEffect(() => {
     if (node) {
-<<<<<<< HEAD
-      setConfig(node.config || {});
-=======
       const initial = node.config || {};
       // Provide sensible defaults for HTTP/Webhook editor
       if (node.type === 'HTTP Request' || node.type === 'Webhook') {
@@ -311,7 +301,6 @@ export default function NodeConfigModal({
         initial.timeout = initial.timeout || 30000;
       }
       setConfig(initial);
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
       setTestResult(null);
       loadNodeDefinition(node.type);
     }
@@ -333,7 +322,10 @@ export default function NodeConfigModal({
         // Group nodes by category
         const categoriesMap = new Map<string, any>();
         
-        data.data.forEach((nodeType: any) => {
+        // Handle both data.nodes and data.data response formats
+        const nodes = data.nodes || data.data || [];
+        
+        nodes.forEach((nodeType: any) => {
           if (!categoriesMap.has(nodeType.category)) {
             categoriesMap.set(nodeType.category, {
               name: nodeType.category,
@@ -362,13 +354,32 @@ export default function NodeConfigModal({
     setIsLoadingNodeData(true);
     try {
       // Find node by type
-      const response = await fetch(`/api/admin/nodes?search=${nodeType}`);
+      const response = await fetch(`/api/admin/nodes?search=${encodeURIComponent(nodeType)}`);
       const data = await response.json();
       
-      if (data.success && data.data.length > 0) {
-        const definition = data.data.find((n: any) => n.type === nodeType);
-        if (definition) {
-          setNodeDefinition(definition);
+      if (data.success) {
+        // Handle both data.nodes and data.data response formats
+        const nodes = data.nodes || data.data || [];
+        
+        if (nodes.length > 0) {
+          // Try to find exact match first
+          let definition = nodes.find((n: any) => n.type === nodeType);
+          
+          // If no exact match, try case-insensitive
+          if (!definition) {
+            definition = nodes.find((n: any) => 
+              n.type?.toLowerCase() === nodeType.toLowerCase()
+            );
+          }
+          
+          // If still no match, just use the first result
+          if (!definition && nodes.length > 0) {
+            definition = nodes[0];
+          }
+          
+          if (definition) {
+            setNodeDefinition(definition);
+          }
         }
       }
     } catch (error) {
@@ -400,19 +411,6 @@ export default function NodeConfigModal({
       const testWorkflow = {
         id: `test_${Date.now()}`,
         name: `Test ${node.name}`,
-<<<<<<< HEAD
-        nodes: [{
-          id: node.id,
-          type: node.type,
-          name: node.name,
-          category: node.category,
-          position: node.position,
-          config: config, // Use current config from modal
-          inputs: node.inputs,
-          outputs: node.outputs,
-          enabled: true
-        }],
-=======
         nodes: [
           {
             id: node.id,
@@ -426,7 +424,6 @@ export default function NodeConfigModal({
             enabled: true,
           }
         ],
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
         connections: [],
         settings: {
           timeout: 30000,
@@ -683,8 +680,6 @@ export default function NodeConfigModal({
                       />
                     </div>
 
-<<<<<<< HEAD
-=======
                     {/* HTTP Request (Webhook/API) Editor */}
                     {(node.type === 'HTTP Request' || node.type === 'Webhook') && (
                       <div className="space-y-4">
@@ -798,7 +793,6 @@ export default function NodeConfigModal({
                       </div>
                     )}
 
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
                     {/* Dynamic Config Fields from Node Definition */}
                     {isLoadingNodeData ? (
                       <div className="text-center py-8 text-zinc-400">
@@ -926,13 +920,27 @@ export default function NodeConfigModal({
                         <Label className="text-white text-sm font-medium">Enable Node</Label>
                         <p className="text-xs text-zinc-400 mt-1">Enable or disable this node in the workflow</p>
                       </div>
-                      <Switch checked={node.enabled} />
+                      <Switch 
+                        checked={node.enabled} 
+                        onCheckedChange={(checked) => {
+                          // Update node enabled state
+                          if (onSave) {
+                            onSave({ ...node, enabled: checked });
+                          }
+                        }}
+                      />
                     </div>
                     
                     <div className="space-y-2">
                       <Label className="text-white text-sm font-medium">Description</Label>
                       <Textarea
                         value={node.description || ''}
+                        onChange={(e) => {
+                          // Update node description
+                          if (onSave) {
+                            onSave({ ...node, description: e.target.value });
+                          }
+                        }}
                         placeholder="Add a description for this node..."
                         className="bg-zinc-800 border-zinc-700 text-white"
                       />

@@ -20,7 +20,7 @@ export interface ForgotPasswordRequest {
 }
 
 export interface TokenVerifyRequest {
-  token: string;
+  idToken: string;
 }
 
 // Response types

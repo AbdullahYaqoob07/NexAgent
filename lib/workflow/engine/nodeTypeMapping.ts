@@ -40,14 +40,16 @@ import { CustomForkNode } from './nodes/CustomForkNode';
 
 /**
  * Central mapping registry for sidebar node types to engine node classes
+ * Now supports dynamic backend node types with fallback aliases
  */
 export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   // Triggers
   {
-    sidebarType: 'Incoming Webhook',
-    engineType: 'HttpRequestTriggerNode',
-    nodeClass: HttpRequestTriggerNode,
-    category: 'trigger'
+    sidebarType: 'Manual Trigger',
+    engineType: 'OnClickExecuteTriggerNode',
+    nodeClass: OnClickExecuteTriggerNode,
+    category: 'trigger',
+    aliases: ['On Clicking Execute', 'Manual', 'On Click Execute']
   },
   {
     sidebarType: 'Schedule',
@@ -59,7 +61,15 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     sidebarType: 'Webhook',
     engineType: 'WebhookTriggerNode',
     nodeClass: WebhookTriggerNode,
-    category: 'trigger'
+    category: 'trigger',
+    aliases: ['Incoming Webhook']
+  },
+  {
+    sidebarType: 'Shopify Trigger',
+    engineType: 'ShopifyNode',
+    nodeClass: ShopifyNode,
+    category: 'trigger',
+    aliases: ['Shopify']
   },
   {
     sidebarType: 'File Watch',
@@ -79,37 +89,35 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     nodeClass: EmailTriggerNode,
     category: 'trigger'
   },
-  {
-    sidebarType: 'On Clicking Execute',
-    engineType: 'OnClickExecuteTriggerNode',
-    nodeClass: OnClickExecuteTriggerNode,
-    category: 'trigger'
-  },
 
   // Actions
   {
     sidebarType: 'HTTP Request',
     engineType: 'HttpNode',
     nodeClass: HttpNode,
-    category: 'action'
+    category: 'action',
+    aliases: ['HTTP Request Action', 'Http', 'API Request']
   },
   {
-    sidebarType: 'Database',
+    sidebarType: 'Database Query',
     engineType: 'DatabaseNode',
     nodeClass: DatabaseNode,
-    category: 'action'
+    category: 'action',
+    aliases: ['Database', 'SQL Query', 'DB Query']
   },
   {
-    sidebarType: 'Email',
+    sidebarType: 'Send Email',
     engineType: 'EmailNode',
     nodeClass: EmailNode,
-    category: 'action'
+    category: 'action',
+    aliases: ['Email']
   },
   {
-    sidebarType: 'Slack',
+    sidebarType: 'Slack Message',
     engineType: 'SlackNode',
     nodeClass: SlackNode,
-    category: 'action'
+    category: 'action',
+    aliases: ['Slack']
   },
   {
     sidebarType: 'Save',
@@ -126,10 +134,11 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 
   // Logic
   {
-    sidebarType: 'If',
+    sidebarType: 'If Condition',
     engineType: 'IfNode',
     nodeClass: IfNode,
-    category: 'logic'
+    category: 'logic',
+    aliases: ['If', 'Conditional']
   },
   {
     sidebarType: 'Switch',
@@ -158,10 +167,11 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 
   // AI/ML
   {
-    sidebarType: 'OpenAI',
+    sidebarType: 'OpenAI GPT',
     engineType: 'OpenAINode',
     nodeClass: OpenAINode,
-    category: 'ai_ml'
+    category: 'ai_ml',
+    aliases: ['OpenAI', 'GPT', 'ChatGPT']
   },
   {
     sidebarType: 'Text Analysis',
@@ -176,10 +186,11 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     category: 'ai_ml'
   },
   {
-    sidebarType: 'Data Transform',
+    sidebarType: 'Data Transformation',
     engineType: 'DataTransformNode',
     nodeClass: DataTransformNode,
-    category: 'ai_ml'
+    category: 'ai_ml',
+    aliases: ['Data Transform', 'Transform']
   },
 
   // Data
@@ -210,10 +221,11 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 
   // Ecommerce
   {
-    sidebarType: 'Shopify',
+    sidebarType: 'Shopify Action',
     engineType: 'ShopifyNode',
     nodeClass: ShopifyNode,
-    category: 'ecommerce'
+    category: 'ecommerce',
+    aliases: ['Shopify']
   },
   {
     sidebarType: 'Instagram',
@@ -262,10 +274,22 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 ];
 
 /**
- * Get node mapping by sidebar type
+ * Get node mapping by sidebar type (with alias support)
  */
 export function getNodeMapping(sidebarType: string): NodeTypeMapping | undefined {
-  return NODE_TYPE_MAPPINGS.find(mapping => mapping.sidebarType === sidebarType);
+  // First try exact match
+  let mapping = NODE_TYPE_MAPPINGS.find(mapping => mapping.sidebarType === sidebarType);
+  
+  // If no exact match, try aliases
+  if (!mapping) {
+    mapping = NODE_TYPE_MAPPINGS.find(mapping => 
+      mapping.aliases?.some(alias => 
+        alias.toLowerCase() === sidebarType.toLowerCase()
+      )
+    );
+  }
+  
+  return mapping;
 }
 
 /**

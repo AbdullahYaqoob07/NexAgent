@@ -52,8 +52,9 @@ const CATEGORY_MAPPING = {
   "Logic": { icon: <GitBranch className="w-4 h-4" />, order: 2 },
   "Data": { icon: <Database className="w-4 h-4" />, order: 3 },
   "AI/ML": { icon: <Bot className="w-4 h-4" />, order: 4 },
-  "Ecommerce": { icon: <ShoppingCart className="w-4 h-4" />, order: 5 },
-  "Fork": { icon: <GitFork className="w-4 h-4" />, order: 6 }
+  "Communication": { icon: <MessageSquare className="w-4 h-4" />, order: 5 },
+  "Ecommerce": { icon: <ShoppingCart className="w-4 h-4" />, order: 6 },
+  "Fork": { icon: <GitFork className="w-4 h-4" />, order: 7 }
 } as const;
 
 // Convert Firebase node definitions to sidebar categories
@@ -79,12 +80,29 @@ const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] =>
       categoryMap.set(category, []);
     }
     
+    // Log first node to see icon data
+    if (nodeDefinitions.indexOf(node) === 0) {
+      console.log('📌 Sample node data:', {
+        name: node.name,
+        type: node.type,
+        icon: node.icon,
+        category: node.category
+      });
+    }
+    
+    // Use backend icon emoji if available, otherwise use brand logo
+    const iconDisplay = node.icon ? (
+      <span className="text-2xl" title={`Icon: ${node.icon}`}>{node.icon}</span>
+    ) : (
+      getBrandLogoComponent(node.type)
+    );
+    
     categoryMap.get(category)!.push({
       id: node.id,
       name: node.name,
       type: node.type,
       description: node.description,
-      icon: getBrandLogoComponent(node.type), // Use node type for brand logo
+      icon: iconDisplay,
       category: node.category,
       isStartNode: node.isStartNode || false
     });
@@ -150,15 +168,22 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
         setIsLoading(true);
         setError(null);
         
+        console.log('🚀 Fetching nodes from /api/admin/nodes...');
         const response = await fetch('/api/admin/nodes');
+        console.log('🚀 Response status:', response.status, response.statusText);
+        
         if (!response.ok) {
           throw new Error(`Failed to fetch nodes: ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log('🔍 Sidebar received data:', data);
-        console.log('🔍 Extracting nodes:', data.nodes || data.data || []);
-        setNodeDefinitions(data.nodes || data.data || []);
+        console.log('✅ Sidebar received data:', data);
+        console.log('✅ Number of nodes:', data.nodes?.length || 0);
+        console.log('✅ First 3 nodes:', data.nodes?.slice(0, 3));
+        
+        const nodes = data.nodes || data.data || [];
+        console.log('✅ Setting nodeDefinitions with', nodes.length, 'nodes');
+        setNodeDefinitions(nodes);
       } catch (err) {
         console.error('Error fetching node definitions:', err);
         setError(err instanceof Error ? err.message : 'Failed to load nodes');
@@ -171,7 +196,9 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
   }, []);
 
   // Generate node categories from fetched data
+  console.log('🔄 Converting', nodeDefinitions.length, 'node definitions to categories...');
   const nodeCategories = getNodeCategories(nodeDefinitions);
+  console.log('🔄 Generated', nodeCategories.length, 'categories:', nodeCategories.map(c => `${c.name}(${c.nodes.length})`).join(', '));
 
   // Add CSS animation keyframes
   useEffect(() => {
@@ -253,10 +280,9 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
 
   // Check if a node should be disabled based on canvas state
   const isNodeDisabled = (node: { isStartNode: boolean }) => {
-    if (canvasNodeCount > 0) return false; // Allow all nodes if canvas has nodes
-    
-    // If canvas is empty, only allow trigger/start nodes
-    return !node.isStartNode;
+    // Always allow all nodes - removed canvas count restriction
+    // Users should be able to drag any node anytime
+    return false;
   };
 
   const handleNodeDragStart = (event: React.DragEvent, node: { id: string; name: string; type: string; category: string; isStartNode: boolean }) => {

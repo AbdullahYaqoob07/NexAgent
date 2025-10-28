@@ -1,30 +1,106 @@
 'use client';
 
-import { useRequireAuth } from '@/lib/AuthContext';
-import { useUserProfile } from '@/lib/useUserProfile';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/AuthContext';
+import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Workflow, Plus } from 'lucide-react';
+import { Workflow, Plus, Trash2, Edit, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import Link from 'next/link';
+import { workflowService } from '@/lib/api/services/workflowService';
+import { BackendWorkflow } from '@/lib/api/types/workflow';
+import { formatDistanceToNow } from 'date-fns';
+import { getAuthToken } from '@/lib/api/client';
 
 export default function WorkflowsPage() {
-  const { user, loading: authLoading } = useRequireAuth();
-  const { profileData, loading: profileLoading } = useUserProfile();
+  const router = useRouter();
+  const { user: firebaseUser, loading: authLoading } = useAuth();
+  const { user: backendUser, loading: backendLoading, isAuthenticated } = useBackendAuth();
+  const [workflows, setWorkflows] = useState<BackendWorkflow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Check auth and redirect if needed
+  useEffect(() => {
+    console.log('Workflows page auth state:', { 
+      firebaseUser: !!firebaseUser, 
+      backendUser: !!backendUser,
+      backendToken: !!getAuthToken(),
+      isAuthenticated,
+      authLoading, 
+      backendLoading 
+    });
+    
+    if (!authLoading && !backendLoading) {
+      if (!firebaseUser || !isAuthenticated) {
+        console.log('No authenticated user, redirecting to sign-in');
+        router.push('/sign-in');
+      }
+    }
+  }, [firebaseUser, backendUser, isAuthenticated, authLoading, backendLoading, router]);
+
+  // Fetch workflows from backend
+  useEffect(() => {
+    const fetchWorkflows = async () => {
+      // Wait for both Firebase and backend auth to complete
+      if (authLoading || backendLoading) return;
+      if (!firebaseUser || !isAuthenticated) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await workflowService.listWorkflows({
+          page: 1,
+          pageSize: 50,
+        });
+        
+        if (response.success) {
+          setWorkflows(response.workflows);
+        }
+      } catch (err: any) {
+        console.error('Failed to fetch workflows:', err);
+        setError(err.message || 'Failed to load workflows');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWorkflows();
+  }, [firebaseUser, isAuthenticated, authLoading, backendLoading]);
+
+  // Delete workflow
+  const handleDelete = async (workflowId: string) => {
+    if (!confirm('Are you sure you want to delete this workflow?')) return;
+    
+    try {
+      setDeleting(workflowId);
+      await workflowService.deleteWorkflow(workflowId);
+      setWorkflows(workflows.filter(w => w.id !== workflowId));
+    } catch (err: any) {
+      console.error('Failed to delete workflow:', err);
+      alert('Failed to delete workflow');
+    } finally {
+      setDeleting(null);
+    }
+  };
   
-  if (authLoading || profileLoading) {
+  if (authLoading || backendLoading || loading) {
     return (
       <DashboardLayout>
         <div className="p-6 lg:p-8 flex items-center justify-center">
-          <div className="text-white">Loading...</div>
+          <div className="text-white">
+            {backendLoading ? 'Authenticating...' : 'Loading workflows...'}
+          </div>
         </div>
       </DashboardLayout>
     );
   }
 
-  // For now, we'll assume workflows are stored in user's usage stats
-  // In a real implementation, you'd have a separate workflows collection
-  const workflowCount = profileData?.usage.totalWorkflows || 0;
-  const hasWorkflows = workflowCount > 0;
+  const hasWorkflows = workflows.length > 0;
 
   return (
     <DashboardLayout>
@@ -43,12 +119,83 @@ export default function WorkflowsPage() {
           </Link>
         </div>
 
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
         {hasWorkflows ? (
-          /* Show actual workflows when available - for now just show a placeholder */
-          <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
-            <h3 className="text-xl font-bold text-white mb-4">Your Workflows</h3>
-            <p className="text-white/70 mb-4">You have {workflowCount} workflow{workflowCount !== 1 ? 's' : ''} created.</p>
-            <p className="text-white/60">Full workflow management interface coming soon!</p>
+          /* Show workflow cards */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {workflows.map((workflow) => (
+              <Card key={workflow.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
+                <div className="p-6 space-y-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold text-white truncate">
+                        {workflow.name}
+                      </h3>
+                      {workflow.description && (
+                        <p className="text-sm text-white/60 mt-1 line-clamp-2">
+                          {workflow.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="flex items-center gap-4 text-xs text-white/50">
+                    <div className="flex items-center gap-1">
+                      <Workflow className="w-3 h-3" />
+                      <span>{workflow.nodes?.length || 0} nodes</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{workflow.executionCount || 0} runs</span>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      workflow.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                      workflow.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {workflow.status}
+                    </span>
+                    <span className="text-xs text-white/40">
+                      {formatDistanceToNow(new Date(workflow.updatedAt), { addSuffix: true })}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Link href={`/workflows/editor?id=${workflow.id}`} className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                        size="sm"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                      onClick={() => handleDelete(workflow.id)}
+                      disabled={deleting === workflow.id}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         ) : (
           /* Empty state when no workflows */

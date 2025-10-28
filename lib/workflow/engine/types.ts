@@ -102,6 +102,7 @@ export interface NodeTypeMapping {
   engineType: string;
   nodeClass: new () => NodeClass;
   category: 'trigger' | 'action' | 'logic' | 'ai_ml' | 'data' | 'fork' | 'ecommerce';
+  aliases?: string[]; // Alternative names from backend that map to this node type
 }
 
 export interface LoggerConfig {

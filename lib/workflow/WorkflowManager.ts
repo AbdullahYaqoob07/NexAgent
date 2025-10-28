@@ -7,7 +7,9 @@ import { WorkflowEngine } from './engine/WorkflowEngine';
 import { AdvancedWorkflowEngine } from './engine/AdvancedWorkflowEngine';
 import { InMemoryStorageProvider, LocalStorageProvider } from './storage/StorageProvider';
 import { FirestoreStorageProvider } from './storage/FirestoreStorageProvider';
+import { BackendStorageProvider } from './storage/BackendStorageProvider';
 import { authService } from '../auth';
+import { getAuthToken } from '../api/client';
 import { Workflow, WorkflowExecution, ExecutionContext, StorageProvider as IStorageProvider } from './types';
 import { WorkflowConfig } from './engine/types';
 
@@ -17,14 +19,24 @@ export class WorkflowManager {
   private storage: IStorageProvider;
   private useAdvancedEngine: boolean = true; // Use advanced engine by default
 
-  constructor(useLocalStorage: boolean = false) {
+  constructor(useLocalStorage: boolean = false, useBackendAPI: boolean = true) {
     if (typeof window !== 'undefined') {
-      // Prefer Firestore when authenticated, else fallback to LocalStorage for demo/dev
+      // Priority: BackendAPI > Firestore > LocalStorage
       const uid = authService.getUserId();
-      if (uid && !useLocalStorage) {
+      const hasBackendToken = !!getAuthToken();
+      
+      if (uid && hasBackendToken && useBackendAPI) {
+        // Use backend API when user is authenticated with backend
+        this.storage = new BackendStorageProvider();
+        console.log('✅ Using BackendStorageProvider');
+      } else if (uid && !useLocalStorage) {
+        // Fallback to Firestore for direct access
         this.storage = new FirestoreStorageProvider();
+        console.log('⚠️ Using FirestoreStorageProvider (fallback)');
       } else {
+        // Development/demo mode
         this.storage = new LocalStorageProvider();
+        console.log('⚠️ Using LocalStorageProvider (dev mode)');
       }
     } else {
       // Server-side fallback (no browser APIs)
@@ -37,8 +49,15 @@ export class WorkflowManager {
   private ensureStorage() {
     if (typeof window === 'undefined') return;
     const uid = authService.getUserId();
-    if (uid && !(this.storage instanceof FirestoreStorageProvider)) {
+    const hasBackendToken = !!getAuthToken();
+    
+    // Switch to backend storage if authenticated
+    if (uid && hasBackendToken && !(this.storage instanceof BackendStorageProvider)) {
+      this.storage = new BackendStorageProvider();
+      console.log('✅ Switched to BackendStorageProvider');
+    } else if (uid && !hasBackendToken && !(this.storage instanceof FirestoreStorageProvider)) {
       this.storage = new FirestoreStorageProvider();
+      console.log('⚠️ Switched to FirestoreStorageProvider');
     }
   }
 
@@ -128,6 +147,21 @@ export class WorkflowManager {
   async listWorkflows(): Promise<Workflow[]> {
     this.ensureStorage();
     return this.storage.listWorkflows();
+  }
+
+  /**
+   * Delete a workflow
+   */
+  async deleteWorkflow(workflowId: string): Promise<void> {
+    this.ensureStorage();
+    // Check if storage provider supports deletion
+    if (this.storage instanceof BackendStorageProvider) {
+      const { deleteWorkflow } = await import('@/lib/api/services/workflowApi');
+      await deleteWorkflow(workflowId);
+      console.log(`✅ Workflow deleted: ${workflowId}`);
+    } else {
+      throw new Error('Delete operation not supported by current storage provider');
+    }
   }
 
   /**

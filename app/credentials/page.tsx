@@ -5,14 +5,11 @@ import { useAuth } from "@/lib/AuthContext";
 import { authService } from "@/lib/auth";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
-<<<<<<< HEAD
-=======
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -24,11 +21,6 @@ import {
   AlertCircle, 
   ExternalLink,
   Key,
-<<<<<<< HEAD
-  Zap
-} from "lucide-react";
-import { ShopifyConnectionModal } from "@/components/integrations/ShopifyConnectionModal";
-=======
   Zap,
   MessageCircle,
   Facebook as FacebookIcon,
@@ -39,7 +31,6 @@ import { WhatsAppConnectionModal } from "@/components/integrations/WhatsAppConne
 import { OpenAIConnectionModal } from "@/components/integrations/OpenAIConnectionModal";
 import { FacebookConnectionModal } from "@/components/integrations/FacebookConnectionModal";
 import { InstagramConnectionModal } from "@/components/integrations/InstagramConnectionModal";
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 import { toast } from "sonner";
 
 interface Credential {
@@ -62,22 +53,13 @@ const PLATFORM_CONFIG = {
     name: 'Shopify',
     icon: ShoppingBag,
     color: '#96bf48',
-<<<<<<< HEAD
-    description: 'Connect your Shopify store to trigger workflows on orders, customers, and products'
-=======
     description: 'Connect your Shopify store to trigger workflows on orders, customers, and products',
     category: 'ecommerce' as const,
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
   },
   openai: {
     name: 'OpenAI',
     icon: Zap,
     color: '#10A37F',
-<<<<<<< HEAD
-    description: 'Add AI capabilities to your workflows with GPT models'
-  },
-  // Add more platforms as needed
-=======
     description: 'Add AI capabilities to your workflows with GPT models',
     category: 'llms' as const,
   },
@@ -109,7 +91,6 @@ const CATEGORY_LABELS: Record<'all' | 'llms' | 'social' | 'ecommerce', string> =
   llms: 'LLMs',
   social: 'Social Media',
   ecommerce: 'E‑commerce',
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 };
 
 export default function CredentialsPage() {
@@ -117,8 +98,6 @@ export default function CredentialsPage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [showShopifyModal, setShowShopifyModal] = useState(false);
-<<<<<<< HEAD
-=======
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [showFacebookModal, setShowFacebookModal] = useState(false);
   const [showInstagramModal, setShowInstagramModal] = useState(false);
@@ -129,7 +108,6 @@ export default function CredentialsPage() {
   const [platformFilter, setPlatformFilter] = useState<string | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<string | 'all'>('all');
   const [browseCategory, setBrowseCategory] = useState<'all' | 'llms' | 'social' | 'ecommerce'>('all');
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 
   // Surface redirects (success/error) from OAuth callback
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -141,10 +119,6 @@ export default function CredentialsPage() {
 
       if (connected === 'shopify') {
         toast.success(`Shopify ${shopName ? `(${shopName}) ` : ''}connected successfully!`);
-<<<<<<< HEAD
-        // Clean the URL params after showing the toast
-=======
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
         const url = new URL(window.location.href);
         url.searchParams.delete('connected');
         url.searchParams.delete('credentialId');
@@ -152,8 +126,6 @@ export default function CredentialsPage() {
         window.history.replaceState({}, '', url.toString());
       }
 
-<<<<<<< HEAD
-=======
       if (connected === 'facebook') {
         toast.success('Facebook connected successfully!');
         const url = new URL(window.location.href);
@@ -170,7 +142,6 @@ export default function CredentialsPage() {
         window.history.replaceState({}, '', url.toString());
       }
 
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
       if (errorParam) {
         toast.error(errorParam);
         const url = new URL(window.location.href);

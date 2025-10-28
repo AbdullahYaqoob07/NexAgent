@@ -22,10 +22,7 @@ interface ExecutionOptions {
   onStepComplete?: (log: NodeExecutionLog) => void;
   onStepFail?: (log: NodeExecutionLog) => void;
   onExecutionUpdate?: (execution: WorkflowExecution) => void;
-<<<<<<< HEAD
-=======
   allowNoTrigger?: boolean; // allow single-node or no-trigger workflows (e.g., test mode)
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
 }
 
 interface NodeExecutor {
@@ -62,14 +59,9 @@ export class AdvancedWorkflowEngine {
       // Build execution graph
       this.buildExecutionGraph(workflow);
       
-<<<<<<< HEAD
-      // Validate workflow
-      this.validateWorkflow(workflow);
-=======
-// Validate workflow (allow single-node tests if option or input.testMode set)
+      // Validate workflow (allow single-node tests if option or input.testMode set)
       const allowNoTrigger = options.allowNoTrigger || Boolean(initialContext && (initialContext as any).testMode);
       this.validateWorkflow(workflow, { allowNoTrigger });
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
       
       // Get execution plan using topological sort
       const executionPlan = this.getExecutionPlan(workflow);
@@ -163,21 +155,12 @@ export class AdvancedWorkflowEngine {
   /**
    * Validate workflow structure
    */
-<<<<<<< HEAD
-  private validateWorkflow(workflow: Workflow): void {
+  private validateWorkflow(workflow: Workflow, opts: { allowNoTrigger?: boolean } = {}): void {
     const errors: string[] = [];
     
-    // Check for at least one trigger node
-    const triggerNodes = workflow.nodes.filter(n => n.category === NodeCategory.TRIGGER);
-    if (triggerNodes.length === 0) {
-=======
-private validateWorkflow(workflow: Workflow, opts: { allowNoTrigger?: boolean } = {}): void {
-    const errors: string[] = [];
-    
-// Check for at least one trigger node (unless allowed)
+    // Check for at least one trigger node (unless allowed)
     const triggerNodes = workflow.nodes.filter(n => n.category === NodeCategory.TRIGGER);
     if (!opts.allowNoTrigger && triggerNodes.length === 0) {
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
       errors.push('Workflow must have at least one trigger node');
     }
     
@@ -185,13 +168,8 @@ private validateWorkflow(workflow: Workflow, opts: { allowNoTrigger?: boolean } 
     workflow.nodes.forEach(node => {
       if (node.category !== NodeCategory.TRIGGER) {
         const executor = this.nodeExecutors.get(node.id);
-<<<<<<< HEAD
-        if (!executor?.dependencies.length) {
-          errors.push(`Node "${node.name}" is not connected to any input`);
-=======
         if (!executor?.dependencies.length && !opts.allowNoTrigger) {
-          errors.push(`Node \"${node.name}\" is not connected to any input`);
->>>>>>> 52f0342f9c042b37ca534d495ca3a26475f642fc
+          errors.push(`Node "${node.name}" is not connected to any input`);
         }
       }
     });
