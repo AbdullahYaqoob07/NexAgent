@@ -1,4 +1,4 @@
-import { Navbar, Hero, Features, Workflow, Pricing, DocsPreview, Testimonials, Footer } 
+import { Navbar, Hero, Features, Workflow, Pricing, DocsPreview, Testimonials, Footer, CTA, FAQ, Selling, Marketplace, AboutUs } 
   from "@/components/landing";
 
 export default function HomePage() {
@@ -8,10 +8,16 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       <Features />
+      <AboutUs/>
       <Workflow />
-      <Pricing />
+      {/* <Pricing />
       <DocsPreview />
-      <Testimonials />
+      <Testimonials /> */}
+      <Marketplace/>
+      <Selling/>
+      <Pricing/>
+      <FAQ/>
+      <CTA/>
       <Footer />
     </main>
   );

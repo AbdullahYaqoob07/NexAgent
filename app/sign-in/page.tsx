@@ -116,7 +116,7 @@ export default function SignInPage() {
               priority
             />
           </Link>
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -127,8 +127,8 @@ export default function SignInPage() {
                 <Star key={i} className="w-2.5 h-2.5 fill-[#FF6900] text-[#FF6900]" />
               ))}
             </div>
-            <span className="text-xs text-white/90 font-medium">Trusted platform</span>
-          </motion.div>
+            {/* <span className="text-xs text-white/90 font-medium">Trusted platform</span> */}
+          {/* </motion.div> */} 
         </motion.div>
 
         {/* Compact Premium Auth Card */}
@@ -249,10 +249,11 @@ export default function SignInPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 1.0 }}
               >
+
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-11 bg-gradient-to-r from-[#FF6900] to-[#FF8555] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full h-11 bg-[#FF6900] hover:bg-[#E55D00] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
                   style={{ fontFamily: 'Poppins, sans-serif' }}
                 >
                   {loading ? (
@@ -340,7 +341,7 @@ export default function SignInPage() {
         </motion.div>
 
         {/* Compact Trust Indicators */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 1.4 }}
@@ -357,7 +358,7 @@ export default function SignInPage() {
               SOC 2 Certified
             </div>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );
