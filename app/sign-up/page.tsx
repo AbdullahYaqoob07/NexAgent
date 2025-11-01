@@ -183,7 +183,7 @@ export default function SignUpPage() {
               priority
             />
           </Link>
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -195,7 +195,7 @@ export default function SignUpPage() {
               ))}
             </div>
             <span className="text-xs text-white/90 font-medium">Join platform</span>
-          </motion.div>
+          </motion.div> */}
         </motion.div>
 
         {/* Compact Premium Auth Card */}
@@ -355,7 +355,7 @@ export default function SignUpPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-10 bg-gradient-to-r from-[#FF6900] to-[#FF8555] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full h-10 bg-[#FF6900] hover:bg-[#E55D00] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
                   style={{ fontFamily: 'Poppins, sans-serif' }}
                 >
                   {loading ? (
@@ -443,7 +443,7 @@ export default function SignUpPage() {
         </motion.div>
 
         {/* Compact Trust Indicators */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 1.5 }}
@@ -460,7 +460,7 @@ export default function SignUpPage() {
               No credit card required
             </div>
           </div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </div>
   );

@@ -6,33 +6,31 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, Settings } from "lucide-react";
 import {
-  Home,
-  Workflow,
-  Store,
-  Coins,
-  User,
-  Settings,
   Menu,
   X,
-  Zap,
   ChevronRight,
-  Key,
 } from "lucide-react";
+import Image from "next/image";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+// Custom icon component for SVG icons
+const SvgIcon = ({ src, className }: { src: string; className?: string }) => (
+  <Image src={src} alt="" width={24} height={24} className={className} />
+);
+
 const sidebarItems = [
-  { name: "Dashboard", icon: Home, href: "/dashboard" },
-  { name: "Workflows", icon: Workflow, href: "/workflows" },
-  { name: "Credentials", icon: Key, href: "/credentials" },
-  { name: "Marketplace", icon: Store, href: "/marketplace" },
-  { name: "Tokens", icon: Coins, href: "/tokens" },
-  { name: "Profile", icon: User, href: "/profile" },
-  { name: "Settings", icon: Settings, href: "/settings" },
+  { name: "Dashboard", iconSrc: "/assets/dashboard/dasboard.svg", href: "/dashboard" },
+  { name: "Workflows", iconSrc: "/assets/dashboard/workflow.svg", href: "/workflows" },
+  { name: "Credentials", iconSrc: "/assets/dashboard/token.svg", href: "/credentials" },
+  { name: "Marketplace", iconSrc: "/assets/dashboard/marketPlace.svg", href: "/marketplace" },
+  { name: "Tokens", iconSrc: "/assets/dashboard/token.svg", href: "/tokens" },
+  { name: "Profile", iconSrc: "/assets/dashboard/profile.svg", href: "/profile" },
+  { name: "Settings", iconSrc: "/assets/dashboard/setting.svg", href: "/settings" },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -66,24 +64,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {/* Logo */}
         <div className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#FF6900] to-[#FF8555] rounded-lg flex items-center justify-center">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white">
-                Nex<span className="text-[#FF6900]">Agent</span>
-              </h1>
-              <p className="text-xs text-white/50">AI Workspace</p>
-            </div>
-          </div>
+          <Link href="/dashboard" className="flex items-center gap-3 group">
+            <Image 
+              src="/assets/logo/Logo.svg" 
+              alt="NexAgent Logo" 
+              width={122} 
+              height={26}
+              className="transition-transform duration-300 group-hover:scale-105"
+            />
+          </Link>
+          {/* <p className="text-xs text-white/50 mt-2 font-montserrat">AI Workspace</p> */}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-4">
           <ul className="space-y-2">
             {sidebarItems.map((item) => {
-              const Icon = item.icon;
               const isActive = pathname === item.href;
 
               return (
@@ -93,20 +89,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     onClick={() => setIsSidebarOpen(false)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
                       isActive
-                        ? "bg-gradient-to-r from-[#FF6900]/20 to-[#FF8555]/20 border border-[#FF6900]/30 text-[#FF6900]"
+                        ? "bg-gradient-to-r from-[#FF6900] to-[#C22C00] text-white"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     }`}
                   >
-                    <Icon
-                      className={`w-5 h-5 ${
-                        isActive
-                          ? "text-[#FF6900]"
-                          : "group-hover:text-[#FF6900]"
-                      }`}
+                    <SvgIcon
+                      src={item.iconSrc}
+                      className={`w-5 h-5 transition-all ${isActive ? '' : 'opacity-80 group-hover:opacity-100'}`}
                     />
-                    <span className="font-medium">{item.name}</span>
+                    <span className="font-montserrat font-medium">{item.name}</span>
                     {isActive && (
-                      <ChevronRight className="w-4 h-4 ml-auto text-[#FF6900]" />
+                      <ChevronRight className="w-4 h-4 ml-auto text-white" />
                     )}
                   </Link>
                 </li>
@@ -127,8 +120,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-white">{user?.displayName || user?.email}</p>
-                  <p className="text-xs text-white/50">Manage Account</p>
+                  <p className="text-sm font-montserrat font-medium text-white">{user?.displayName || user?.email}</p>
+                  <p className="text-xs font-montserrat text-white/50">Manage Account</p>
                 </div>
               </div>
             </DropdownMenuTrigger>
@@ -183,14 +176,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </button>
 
             {/* Logo for Mobile */}
-            <div className="lg:hidden flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-[#FF6900] to-[#FF8555] rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-white">
-                Nex<span className="text-[#FF6900]">Agent</span>
-              </span>
-            </div>
+            <Link href="/dashboard" className="lg:hidden flex items-center">
+              <Image 
+                src="/assets/logo/Logo.svg" 
+                alt="NexAgent Logo" 
+                width={100} 
+                height={22}
+              />
+            </Link>
 
             {/* Right Side - Desktop UserButton */}
             <div className="lg:block hidden">
