@@ -43,7 +43,7 @@ export default function TokensPage() {
           /* Show actual tokens when available */
           <div className="grid grid-cols-1 gap-6">
             {apiKeys.map((token) => (
-              <div key={token.id} className="bg-white/5 border border-white/10 rounded-xl p-6">
+              <div key={token.id} className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-[#FF6900]/10">
@@ -72,7 +72,7 @@ export default function TokensPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="font-mono text-sm text-white/80 bg-white/5 p-2 rounded">
+                  <div className="font-mono text-sm text-white/80 bg-black/30 p-3 rounded-lg border border-white/5">
                     {token.keyPreview}••••••••••••••••••••
                   </div>
                   <div className="flex items-center gap-4 text-sm text-white/60">
@@ -88,7 +88,7 @@ export default function TokensPage() {
           </div>
         ) : (
           /* Empty state when no tokens */
-          <div className="text-center py-16">
+          <div className="text-center py-16 bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <Key className="w-10 h-10 text-white/40" />
             </div>

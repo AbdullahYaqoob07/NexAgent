@@ -370,7 +370,7 @@ export default function SettingsView({ user }: SettingsViewProps) {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-2">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-2">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -502,7 +502,7 @@ function WorkspaceTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Basic Settings */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">Workspace Configuration</h3>
           {!isEditing && (
@@ -597,7 +597,7 @@ function WorkspaceTab({
 
       {/* Execution Settings */}
       <div className="space-y-8">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+        <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
           <h3 className="text-xl font-semibold text-white mb-6">Execution Settings</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -643,7 +643,7 @@ function WorkspaceTab({
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+        <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
           <h3 className="text-xl font-semibold text-white mb-6">Collaboration</h3>
           <div className="space-y-4">
             <div>
@@ -722,7 +722,7 @@ function IntegrationsTab({
   return (
     <div className="space-y-8">
       {/* Connected Services */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">Connected Services</h3>
           <Button className="bg-[#FF6900] hover:bg-[#E55D00] text-white">
@@ -773,7 +773,7 @@ function IntegrationsTab({
       </div>
 
       {/* API Keys */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">API Keys</h3>
           <Button className="bg-[#FF6900] hover:bg-[#E55D00] text-white">
@@ -889,7 +889,7 @@ function TeamTab({
   return (
     <div className="space-y-8">
       {/* Team Overview */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">Team Members</h3>
           <Button 
@@ -972,7 +972,7 @@ function SecurityTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Authentication */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-white mb-6">Authentication & Access</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -1026,7 +1026,7 @@ function SecurityTab({
       </div>
 
       {/* Data Protection */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-white mb-6">Data Protection</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -1133,7 +1133,7 @@ function NotificationsTab({
   return (
     <div className="space-y-8">
       {/* Email Notifications */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-white mb-6">Email Notifications</h3>
         <div className="space-y-4">
           {Object.entries(settings.email).map(([key, enabled]) => (
@@ -1160,7 +1160,7 @@ function NotificationsTab({
       </div>
 
       {/* Slack Integration */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-white mb-6">Slack Integration</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -1216,7 +1216,7 @@ function NotificationsTab({
       </div>
 
       {/* Webhooks */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">Webhooks</h3>
           <Button 
@@ -1278,7 +1278,7 @@ function AdvancedTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Developer Settings */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+      <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-white mb-6">Developer Settings</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -1342,7 +1342,7 @@ function AdvancedTab({
 
       {/* System Settings */}
       <div className="space-y-8">
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+        <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
           <h3 className="text-xl font-semibold text-white mb-6">System & Storage</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -1379,7 +1379,7 @@ function AdvancedTab({
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+        <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
           <h3 className="text-xl font-semibold text-white mb-6">Backup & Recovery</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">

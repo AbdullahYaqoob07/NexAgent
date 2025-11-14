@@ -13,10 +13,13 @@ import {
   Zap,
   Bot,
   BarChart3,
-  Calendar
+  Calendar,
+  Search,
+  Bell
 } from "lucide-react";
 import DashboardLayout from "./DashboardLayout";
 import Link from "next/link";
+import Image from "next/image";
 
 import { useUserProfile } from '@/lib/useUserProfile';
 
@@ -116,20 +119,68 @@ export default function DashboardHome({}: DashboardHomeProps) {
 
   return (
     <DashboardLayout>
-      <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-        {/* Welcome Section */}
+      <div className="relative p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+        {/* Background decorative SVGs */}
+        <div className="pointer-events-none fixed inset-0 -z-10">
+          {/* Top-left background */}
+          <div className="absolute -top-10 -left-10 md:-top-16 md:-left-8 opacity-40 md:opacity-60">
+            <Image
+              src="/assets/dashboard/BG-left.svg"
+              alt=""
+              width={700}
+              height={700}
+              className="max-w-none select-none"
+              priority
+            />
+          </div>
+
+          {/* Right-aligned background (slightly higher) */}
+          <div className="absolute top-10 right-0 md:-top-4 opacity-40 md:opacity-70">
+            <Image
+              src="/assets/dashboard/BG-right.svg"
+              alt=""
+              width={600}
+              height={600}
+              className="max-w-none select-none"
+              priority
+            />
+          </div>
+        </div>
+        {/* Welcome Section + Search & Notifications */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="space-y-2"
+          className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
         >
-          <h1 className="text-3xl lg:text-4xl font-bold text-white">
-            Welcome back, <span className="text-[#FF6900]">{displayName}</span>
-          </h1>
-          <p className="text-white/70 text-lg">
-            Here&apos;s what&apos;s happening in your AI workspace today
-          </p>
+          <div className="space-y-2">
+            <h1 className="text-3xl lg:text-4xl font-bold text-white">
+              Welcome back, <span className="text-[#FF6900]">{displayName}</span>
+            </h1>
+            <p className="text-white/70 text-lg">
+              Here&apos;s what&apos;s happening in your AI workspace today
+            </p>
+          </div>
+
+          {/* Search bar + Notification bell */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 flex-1 md:w-80 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full px-4 py-2">
+              <Search className="w-4 h-4 text-white/60" />
+              <input
+                type="text"
+                placeholder="Search workflows, tokens, anything..."
+                className="bg-transparent border-none outline-none text-sm text-white placeholder:text-white/50 w-full"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="relative p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-200"
+            >
+              <Bell className="w-5 h-5 text-white/80" />
+              <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[#FF6900] shadow-[0_0_8px_rgba(255,105,0,0.8)]" />
+            </button>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
@@ -147,17 +198,16 @@ export default function DashboardHome({}: DashboardHomeProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 + index * 0.1 }}
-                className={`${stat.bgColor} ${stat.borderColor} border backdrop-blur-xl rounded-xl p-6 hover:scale-105 transition-transform duration-300`}
+                className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6 hover:bg-[#1a1410]/90 transition-all duration-300"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${stat.color}`}>
-                    <Icon className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-xl bg-white/5">
+                    <Icon className="w-5 h-5 text-white/80" />
                   </div>
-                  <span className="text-xs text-white/50">{stat.change}</span>
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-white mb-1">{stat.value}</h3>
-                  <p className="text-sm text-white/70">{stat.title}</p>
+                  <div className="flex-1">
+                    <p className="text-xs text-white/50 mb-1">{stat.title}</p>
+                    <h3 className="text-2xl font-bold text-white">{stat.value}</h3>
+                  </div>
                 </div>
               </motion.div>
             );
@@ -185,13 +235,12 @@ export default function DashboardHome({}: DashboardHomeProps) {
         >
           <Link
             href={action.href}
-            className="block bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-300 group"
+            className="block bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6 hover:bg-[#1a1410]/90 transition-all duration-300 group"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-lg bg-gradient-to-br ${action.color}`}>
-                <Icon className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-[#FF6900]/10">
+                <Icon className="w-5 h-5 text-[#FF6900]" />
               </div>
-              <ArrowRight className="w-4 h-4 text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all duration-300" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white mb-2">{action.title}</h3>
@@ -212,7 +261,7 @@ export default function DashboardHome({}: DashboardHomeProps) {
             className="space-y-6"
           >
             <h2 className="text-2xl font-bold text-white">Account Overview</h2>
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
+            <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-3 rounded-lg">
                   <div className="p-2 rounded-full bg-white/10 text-green-400">
@@ -273,7 +322,7 @@ export default function DashboardHome({}: DashboardHomeProps) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6"
+          className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-white">Performance Overview</h2>

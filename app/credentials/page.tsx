@@ -253,29 +253,26 @@ export default function CredentialsPage() {
       <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Credentials</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-bold text-white">Credentials</h1>
+        <p className="text-white/70 mt-2">
           Manage your platform integrations and API connections. These credentials are used by your workflows to connect to external services.
         </p>
       </div>
 
       {/* Available Platforms */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Available Integrations</h2>
+        <h2 className="text-xl font-semibold text-white">Available Integrations</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Object.entries(PLATFORM_CONFIG).map(([platform, config]) => {
             const Icon = config.icon;
             const existingCredential = credentials.find(c => c.platform === platform);
 
             return (
-              <Card key={platform} className="relative bg-white/5 border border-white/10 text-white">
+              <Card key={platform} className="relative bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-3">
-                    <div 
-                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
-                      style={{ backgroundColor: config.color }}
-                    >
-                      <Icon className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-[#FF6900]/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-[#FF6900]" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -284,12 +281,12 @@ export default function CredentialsPage() {
                       </div>
                     </div>
                   </CardTitle>
-                  <CardDescription>{config.description}</CardDescription>
+                  <CardDescription className="text-white/60">{config.description}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col justify-end">
                   {existingCredential ? (
                     <div className="space-y-3">
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-white/70">
                         <div><strong>Connected as:</strong> {existingCredential.name}</div>
                         {existingCredential.metadata?.shopName && (
                           <div><strong>Store:</strong> {existingCredential.metadata.shopName}</div>
@@ -300,13 +297,14 @@ export default function CredentialsPage() {
                         )}
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-white/10 hover:bg-white/5 text-white">
                           <Settings className="w-4 h-4 mr-1" />
                           Settings
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm" 
+                          className="border-white/10 hover:bg-red-500/10 text-white hover:text-red-400"
                           onClick={() => deleteCredential(existingCredential.id)}
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
@@ -321,7 +319,7 @@ export default function CredentialsPage() {
                           setShowShopifyModal(true);
                         }
                       }}
-                      className="w-full"
+                      className="w-full bg-[#FF6900] hover:bg-[#FF6900]/90 text-white"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Connect {config.name}
@@ -337,45 +335,43 @@ export default function CredentialsPage() {
       {/* Connected Credentials List */}
       {credentials.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Connected Credentials</h2>
+          <h2 className="text-xl font-semibold text-white">Connected Credentials</h2>
           <div className="space-y-3">
             {credentials.map((credential) => {
               const platformConfig = PLATFORM_CONFIG[credential.platform as keyof typeof PLATFORM_CONFIG];
               const Icon = platformConfig?.icon || Key;
 
               return (
-                <Card key={credential.id} className="bg-white/5 border border-white/10 text-white">
+                <Card key={credential.id} className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div 
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
-                          style={{ backgroundColor: platformConfig?.color || '#666' }}
-                        >
-                          <Icon className="w-6 h-6" />
+                        <div className="w-12 h-12 rounded-xl bg-[#FF6900]/10 flex items-center justify-center">
+                          <Icon className="w-6 h-6 text-[#FF6900]" />
                         </div>
                         <div>
                           <h3 className="font-semibold">{credential.name}</h3>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-white/70">
                               {platformConfig?.name || credential.platform}
                             </span>
                             {getStatusBadge(credential.status)}
                           </div>
                           {credential.metadata?.shopName && (
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-sm text-white/70 mt-1">
                               {credential.metadata.shopName}
                             </p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-white/10 hover:bg-white/5 text-white">
                           <Settings className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="sm" 
+                          size="sm"
+                          className="border-white/10 hover:bg-red-500/10 text-white hover:text-red-400"
                           onClick={() => deleteCredential(credential.id)}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -392,14 +388,14 @@ export default function CredentialsPage() {
 
       {/* Empty State */}
       {credentials.length === 0 && !loading && (
-        <Card className="text-center py-12 bg-white/5 border border-white/10 text-white">
+        <Card className="text-center py-12 bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
           <CardContent>
-            <Key className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <Key className="w-12 h-12 mx-auto mb-4 text-white/40" />
             <h3 className="text-lg font-semibold mb-2">No credentials connected</h3>
-            <p className="text-muted-foreground mb-6">
+            <p className="text-white/70 mb-6">
               Connect your first platform integration to start building powerful workflows.
             </p>
-            <Button onClick={() => setShowShopifyModal(true)}>
+            <Button onClick={() => setShowShopifyModal(true)} className="bg-[#FF6900] hover:bg-[#FF6900]/90 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Connect Shopify Store
             </Button>

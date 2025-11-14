@@ -185,40 +185,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               />
             </Link>
 
-            {/* Right Side - Desktop UserButton */}
-            <div className="lg:block hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Avatar className="w-8 h-8 hover:ring-2 hover:ring-[#FF6900] transition-all">
-                    <AvatarImage src={user?.photoURL || ''} />
-                    <AvatarFallback className="bg-gradient-to-br from-[#FF6900] to-[#FF8555] text-white text-xs">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-black/90 backdrop-blur-xl border-white/10" align="end">
-                  <DropdownMenuLabel className="text-white">{user?.email}</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem asChild className="text-white hover:bg-white/10">
-                    <Link href="/profile" className="flex items-center gap-2">
-                      <UserIcon className="w-4 h-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-white hover:bg-white/10">
-                    <Link href="/settings" className="flex items-center gap-2">
-                      <Settings className="w-4 h-4" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-400 hover:bg-red-400/10">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
           </div>
         </header>
 
