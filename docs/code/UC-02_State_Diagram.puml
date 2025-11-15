@@ -1,0 +1,193 @@
+@startuml UC-02_Workflow_Lifecycle_States
+
+title UC-02: Workflow Lifecycle - State Machine Diagram
+
+skinparam StateBackgroundColor #F3E5F5
+skinparam StateBorderColor #7B1FA2
+skinparam StateTextColor #4A148C
+skinparam ArrowColor #7B1FA2
+skinparam ArrowThickness 2
+
+[*] --> CreatingWorkflow
+
+state CreatingWorkflow {
+    state "New Workflow Form" as NewForm
+    state "Entering Details" as EnterDetails
+    NewForm --> EnterDetails: User fills form
+    EnterDetails --> [*]
+}
+
+CreatingWorkflow --> ValidatingDetails: User submits
+
+state ValidatingDetails {
+    state "Name Check (3-100)" as NameCheck
+    state "Description Validation" as DescCheck
+    state "Category/Tags Check" as CatCheck
+    NameCheck --> DescCheck: Valid
+    DescCheck --> CatCheck: Valid
+    CatCheck --> [*]
+}
+
+ValidatingDetails --> ValidationFailed: Validation error
+ValidationFailed --> CreatingWorkflow: User corrects
+
+ValidatingDetails --> CreatingInDB: All checks pass
+CreatingInDB --> DraftWorkflow: Workflow created
+
+state DraftWorkflow {
+    state "Workflow Created" as Created
+    state "Ready for Editing" as ReadyEdit
+    state "Auto-save Active" as AutoSave
+    Created --> ReadyEdit: Load canvas
+    ReadyEdit --> AutoSave: Save every 30s
+    AutoSave --> ReadyEdit: Continue editing
+    AutoSave --> [*]
+}
+
+DraftWorkflow --> EditingWorkflow: User opens canvas
+EditingWorkflow --> DraftWorkflow: Editing mode
+
+state EditingWorkflow {
+    state "Add Nodes" as AddNodes
+    state "Create Edges" as CreateEdges
+    state "Configure Steps" as ConfigSteps
+    state "Add Variables" as AddVars
+    
+    AddNodes --> CreateEdges: Nodes added
+    CreateEdges --> ConfigSteps: Connections made
+    ConfigSteps --> AddVars: Steps configured
+    AddVars --> [*]
+}
+
+DraftWorkflow --> DeletingWorkflow: User clicks delete
+state DeletingWorkflow {
+    state "Confirm Delete" as ConfirmDel
+    state "Permanently Removed" as Removed
+    ConfirmDel --> Removed: User confirms
+    Removed --> [*]
+}
+
+DeletingWorkflow --> Deleted: Workflow deleted
+
+DraftWorkflow --> ValidatingWorkflow: User clicks validate
+
+state ValidatingWorkflow {
+    state "Check Node Connections" as CheckConn
+    state "Verify Node Config" as VerifyConfig
+    state "Check Variables" as CheckVars
+    state "Validation Logic" as ValLogic
+    
+    CheckConn --> VerifyConfig: Connections valid
+    VerifyConfig --> CheckVars: Config valid
+    CheckVars --> ValLogic: Variables valid
+    ValLogic --> [*]
+}
+
+ValidatingWorkflow --> ValidationPassed: All checks pass
+ValidationPassed --> ReadyToActivate: Workflow valid
+
+state ReadyToActivate {
+    state "Can be activated" as CanActivate
+    CanActivate --> [*]
+}
+
+ValidatingWorkflow --> ValidationFailed2: Validation error
+ValidationFailed2 --> DraftWorkflow: Errors shown to user
+
+ReadyToActivate --> ActivatingWorkflow: User activates
+
+state ActivatingWorkflow {
+    state "Set Status Active" as SetActive
+    state "Mark Executable" as MarkExec
+    SetActive --> MarkExec: Status updated
+    MarkExec --> [*]
+}
+
+ActivatingWorkflow --> ActiveWorkflow: Workflow activated
+
+state ActiveWorkflow {
+    state "Workflow Active" as WfActive
+    state "Ready for Execution" as ReadyExec
+    state "Can be triggered" as CanTrigger
+    
+    WfActive --> ReadyExec: Validated and active
+    ReadyExec --> CanTrigger: Awaiting trigger
+    CanTrigger --> [*]
+}
+
+ActiveWorkflow --> ExecutingWorkflow: Execution triggered
+ExecutingWorkflow --> ActiveWorkflow: Execution completes
+
+state ExecutingWorkflow {
+    state "Workflow Executing" as WfExec
+    state "Steps Running" as StepsRun
+    state "Completion" as Completion
+    
+    WfExec --> StepsRun: Started
+    StepsRun --> Completion: All steps done
+    Completion --> [*]
+}
+
+ActiveWorkflow --> DeactivatingWorkflow: User deactivates
+
+state DeactivatingWorkflow {
+    state "Set Status Inactive" as SetInactive
+    state "Stop new executions" as StopExec
+    SetInactive --> StopExec: Status changed
+    StopExec --> [*]
+}
+
+DeactivatingWorkflow --> ArchivedWorkflow: Workflow deactivated
+
+state ArchivedWorkflow {
+    state "Workflow Archived" as WfArch
+    state "Cannot Execute" as CantExec
+    state "Read-Only Mode" as ReadOnly
+    
+    WfArch --> CantExec: Status archived
+    CantExec --> ReadOnly: No execution allowed
+    ReadOnly --> [*]
+}
+
+ArchivedWorkflow --> ReactiveWorkflow: User reactivates
+
+state ReactiveWorkflow {
+    state "Set Status Active" as SetActive2
+    SetActive2 --> [*]
+}
+
+ReactiveWorkflow --> ActiveWorkflow: Workflow reactivated
+
+Deleted --> [*]: End state
+
+note right of DraftWorkflow
+  DRAFT STATUS
+  • Can edit/delete
+  • Cannot execute
+  • Auto-save active
+end note
+
+note right of ReadyToActivate
+  READY TO ACTIVATE
+  • All validations pass
+  • No syntax errors
+  • Ready for deployment
+end note
+
+note right of ActiveWorkflow
+  ACTIVE STATUS
+  • Production ready
+  • Can be triggered
+  • Execution tracked
+  • Analytics collected
+end note
+
+note right of ArchivedWorkflow
+  ARCHIVED STATUS
+  • Locked from execution
+  • View history only
+  • Can be restored
+end note
+
+@enduml
+

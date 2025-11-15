@@ -1,0 +1,233 @@
+@startuml UC-03_Canvas_Interaction_States
+
+title UC-03: Build Workflow Canvas - State Machine Diagram
+
+skinparam StateBackgroundColor #E0F2F1
+skinparam StateBorderColor #00796B
+skinparam StateTextColor #004D40
+skinparam ArrowColor #00796B
+skinparam ArrowThickness 2
+
+[*] --> OpeningCanvas
+
+state OpeningCanvas {
+    state "Initialize Canvas" as InitCanvas
+    state "Load Workflow" as LoadWf
+    state "Render Components" as RenderComp
+    
+    InitCanvas --> LoadWf: Query workflow
+    LoadWf --> RenderComp: Nodes loaded
+    RenderComp --> [*]
+}
+
+OpeningCanvas --> CanvasReady: Canvas loaded
+
+state CanvasReady {
+    state "Canvas Idle" as CanvasIdle
+    CanvasIdle --> [*]
+}
+
+CanvasReady --> AddingNode: User drags component
+
+state AddingNode {
+    state "Drag Component" as DragComp
+    state "Drop on Canvas" as DropCanvas
+    state "Create Node" as CreateNode
+    
+    DragComp --> DropCanvas: Component over canvas
+    DropCanvas --> CreateNode: Drop detected
+    CreateNode --> [*]
+}
+
+AddingNode --> ConfiguringNode: Node added
+
+state ConfiguringNode {
+    state "Show Config Panel" as ShowPanel
+    state "Edit Parameters" as EditParams
+    state "Set Node Type" as SetType
+    
+    ShowPanel --> SetType: Panel opened
+    SetType --> EditParams: Type selected
+    EditParams --> [*]
+}
+
+ConfiguringNode --> NodeConfigured: Configuration complete
+NodeConfigured --> CanvasReady: Node ready
+
+CanvasReady --> AddingMultipleNodes: User adds more nodes
+
+state AddingMultipleNodes {
+    state "Loop: Add Node" as LoopAdd
+    LoopAdd --> [*]
+}
+
+AddingMultipleNodes --> CanvasReady: Done adding
+
+CanvasReady --> CreatingEdge: User draws connection
+
+state CreatingEdge {
+    state "Click Source Node" as ClickSource
+    state "Drag to Target" as DragTarget
+    state "Release on Target" as ReleaseTarget
+    state "Validate Connection" as ValidConn
+    
+    ClickSource --> DragTarget: Source selected
+    DragTarget --> ReleaseTarget: Drag over target
+    ReleaseTarget --> ValidConn: Release detected
+    ValidConn --> [*]
+}
+
+CreatingEdge --> ValidatingEdge: Edge creation attempt
+
+state ValidatingEdge {
+    state "Check Types" as CheckTypes
+    state "Check Cycles" as CheckCycles
+    state "Check Cardinality" as CheckCard
+    
+    CheckTypes --> CheckCycles: Type compatible
+    CheckCycles --> CheckCard: No cycles
+    CheckCard --> [*]
+}
+
+ValidatingEdge --> EdgeValidationFailed: Validation failed
+EdgeValidationFailed --> CanvasReady: Show error
+
+ValidatingEdge --> EdgeCreated: All validations pass
+
+state EdgeCreated {
+    state "Draw Connection Line" as DrawLine
+    state "Store Edge Data" as StoreEdge
+    DrawLine --> StoreEdge: Edge rendered
+    StoreEdge --> [*]
+}
+
+EdgeCreated --> CanvasReady: Edge created
+
+CanvasReady --> AddingCondition: User clicks "Add Condition"
+
+state AddingCondition {
+    state "Show Condition Builder" as ShowCond
+    state "Define Logic" as DefineLogic
+    state "Configure Operators" as ConfigOp
+    
+    ShowCond --> DefineLogic: Builder opened
+    DefineLogic --> ConfigOp: Logic entered
+    ConfigOp --> [*]
+}
+
+AddingCondition --> ConditionConfigured: Condition set
+ConditionConfigured --> CanvasReady: Condition stored
+
+CanvasReady --> AddingVariables: User adds variables
+
+state AddingVariables {
+    state "Variable Panel" as VarPanel
+    state "Enter Variable Name" as EnterName
+    state "Select Type" as SelectType
+    
+    VarPanel --> EnterName: Panel shown
+    EnterName --> SelectType: Name entered
+    SelectType --> [*]
+}
+
+AddingVariables --> VariablesAdded: Variables configured
+VariablesAdded --> CanvasReady: Ready for test
+
+CanvasReady --> TestingWorkflow: User clicks "Test"
+
+state TestingWorkflow {
+    state "Collect Canvas Data" as CollectData
+    state "Send Test Request" as SendTest
+    state "Executing Test" as ExecTest
+    state "Display Results" as DisplayResults
+    
+    CollectData --> SendTest: Data collected
+    SendTest --> ExecTest: Request sent
+    ExecTest --> DisplayResults: Test complete
+    DisplayResults --> [*]
+}
+
+TestingWorkflow --> TestSuccessful: Test passed
+TestSuccessful --> CanvasReady: Results shown
+
+TestingWorkflow --> TestFailed: Test failed
+TestFailed --> DebuggingCanvas: Errors shown
+
+state DebuggingCanvas {
+    state "View Error Logs" as ViewLogs
+    state "Edit Configuration" as EditConfig
+    
+    ViewLogs --> EditConfig: Identify issue
+    EditConfig --> [*]
+}
+
+DebuggingCanvas --> CanvasReady: Fix applied
+
+CanvasReady --> SavingWorkflow: User clicks "Save"
+
+state SavingWorkflow {
+    state "Serialize Canvas" as SerializeCanvas
+    state "Send to Backend" as SendBackend
+    state "Validate on Server" as ValidateServer
+    state "Persist to DB" as PersistDB
+    state "Version Update" as VersionUpdate
+    
+    SerializeCanvas --> SendBackend: Canvas data prepared
+    SendBackend --> ValidateServer: Request sent
+    ValidateServer --> PersistDB: Server validation pass
+    PersistDB --> VersionUpdate: Data stored
+    VersionUpdate --> [*]
+}
+
+SavingWorkflow --> SaveSuccessful: Save completed
+SaveSuccessful --> CanvasReady: Workflow saved
+
+SavingWorkflow --> SaveFailed: Save error
+SaveFailed --> CanvasReady: Error notification
+
+CanvasReady --> ClosingCanvas: User closes editor
+
+state ClosingCanvas {
+    state "Check Unsaved" as CheckUnsaved
+    state "Prompt Save" as PromptSave
+    
+    CheckUnsaved --> PromptSave: Unsaved changes
+    PromptSave --> [*]
+}
+
+ClosingCanvas --> [*]: Canvas closed
+
+note right of ConfiguringNode
+  Configure:
+  • Node type (action, condition, etc)
+  • API endpoints
+  • Parameters
+  • Error handling
+end note
+
+note right of CreatingEdge
+  Edge validation:
+  • Source & target types match
+  • No circular dependencies
+  • Valid connections
+end note
+
+note right of TestingWorkflow
+  Test execution:
+  • Non-persistent
+  • Real service calls
+  • Full trace logging
+  • Performance metrics
+end note
+
+note right of SavingWorkflow
+  Save process:
+  • Serialize all nodes/edges
+  • Validate structure
+  • Check for conflicts
+  • Update version
+  • Audit log
+end note
+
+@enduml
+

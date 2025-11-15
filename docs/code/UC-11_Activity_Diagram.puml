@@ -1,0 +1,58 @@
+@startuml UC-11_Activity
+title UC-11: Add Credentials
+skinparam ActivityBackgroundColor #F3E5F5
+skinparam ActivityBorderColor #7B1FA2
+skinparam ArrowColor #7B1FA2
+
+start
+:User navigates to credentials management;
+:Display credentials form;
+:User selects service (OpenAI, Stripe, Google, etc.);
+:Display credential input fields based on service type;
+if (Credential type?) then (API Key)
+    :Show API key input field;
+elseif (OAuth Token)
+    :Show OAuth flow option;
+elseif (Username/Password)
+    :Show username & password fields;
+endif
+:User enters credential data;
+:Validate credential format:
+    • Check not empty
+    • Check format requirements
+    • Check length limits;
+if (Validation passed?) then (Yes)
+    :Encrypt credential value (AES-256);
+    :Generate random salt;
+    :Derive encryption key from user ID + service + salt;
+    :Store encrypted credential in database;
+    :Test credential validity:
+        • Call service API with test request
+        • Validate response
+        • Mark as valid/invalid;
+else (Validation failed)
+    :Show validation error;
+    :Highlight error fields;
+    :Allow user to correct;
+endif
+if (Test successful?) then (Yes)
+    :Mark credential as verified;
+    :Create credential record:
+        • credential_id
+        • user_id
+        • service
+        • encrypted_value
+        • created_at
+        • last_verified
+        • is_valid;
+    :Save to credentials collection;
+    :Log credential creation for audit;
+    :Send success notification;
+else (Test failed)
+    :Display error message;
+    :Offer retry option;
+endif
+:Show credential in credentials list;
+:Credential added successfully;
+stop
+@enduml

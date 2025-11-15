@@ -1,0 +1,240 @@
+@startuml UC-13_States
+title UC-13: Marketplace Management - State Machine Diagram
+skinparam StateBackgroundColor #FFF3E0
+skinparam StateBorderColor #E65100
+skinparam StateTextColor #BF360C
+skinparam ArrowColor #E65100
+skinparam ArrowThickness 2
+
+[*] --> AdminAuthentication
+
+state AdminAuthentication {
+    state "Verify Admin Token" as VerifyAdmin
+    state "Check Marketplace Permissions" as CheckMarket
+    VerifyAdmin --> CheckMarket: Admin verified
+    CheckMarket --> [*]
+}
+
+AdminAuthentication --> LoadingDashboard: Authenticated
+
+state LoadingDashboard {
+    state "Fetch Dashboard Data" as FetchData
+    state "Get Pending Items" as GetPending
+    state "Get Disputes" as GetDisputes
+    state "Calculate Metrics" as CalcMetrics
+    
+    FetchData --> GetPending: Data fetched
+    GetPending --> GetDisputes: Pending loaded
+    GetDisputes --> CalcMetrics: Disputes loaded
+    CalcMetrics --> [*]
+}
+
+LoadingDashboard --> DisplayingDashboard: Dashboard loaded
+
+state DisplayingDashboard {
+    state "Render Dashboard" as RenderDash
+    state "Show Submissions Queue" as ShowQueue
+    state "Display Metrics" as DisplayMetrics
+    
+    RenderDash --> ShowQueue: Dashboard rendered
+    ShowQueue --> DisplayMetrics: Queue displayed
+    DisplayMetrics --> [*]
+}
+
+DisplayingDashboard --> AdminAction: Dashboard displayed
+
+state AdminAction <<choice>>
+
+AdminAction --> ReviewingSubmission: Admin reviews item
+AdminAction --> MonitoringTransactions: Admin monitors sales
+AdminAction --> ManagingSellers: Admin manages sellers
+
+state ReviewingSubmission {
+    state "Select Submission" as SelectSub
+    SelectSub --> [*]
+}
+
+ReviewingSubmission --> LoadingSubmission: Item selected
+
+state LoadingSubmission {
+    state "Fetch Submission Details" as FetchSub
+    state "Load Code" as LoadCode
+    state "Load Metadata" as LoadMeta
+    
+    FetchSub --> LoadCode: Submission fetched
+    LoadCode --> LoadMeta: Code loaded
+    LoadMeta --> [*]
+}
+
+LoadingSubmission --> ReviewingContent: Content loaded
+
+state ReviewingContent {
+    state "Check Compliance" as CheckComp
+    state "Scan for Malware" as ScanMalware
+    state "Verify Description" as VerifyDesc
+    state "Check Pricing" as CheckPrice
+    
+    CheckComp --> ScanMalware: Compliance checked
+    ScanMalware --> VerifyDesc: Malware scanned
+    VerifyDesc --> CheckPrice: Description verified
+    CheckPrice --> [*]
+}
+
+ReviewingContent --> ComplianceCheck <<choice>>
+
+state ComplianceCheck <<choice>>
+
+ComplianceCheck --> ApprovingItem: Compliance passed
+ComplianceCheck --> RejectingItem: Compliance failed
+
+state ApprovingItem {
+    state "Mark as Approved" as MarkApproved
+    state "Publish to Marketplace" as Publish
+    state "Set Active Status" as SetActive
+    
+    MarkApproved --> Publish: Approved
+    Publish --> SetActive: Published
+    SetActive --> [*]
+}
+
+state RejectingItem {
+    state "Document Reason" as DocReason
+    state "Create Rejection Record" as CreateReject
+    state "Store Feedback" as StoreFeedback
+    
+    DocReason --> CreateReject: Reason documented
+    CreateReject --> StoreFeedback: Record created
+    StoreFeedback --> [*]
+}
+
+ApprovingItem --> NotifyingSeller: Approved
+RejectingItem --> NotifyingSeller: Rejected
+
+state NotifyingSeller {
+    state "Compose Email" as ComposeEmail
+    state "Send Decision" as SendDecision
+    ComposeEmail --> SendDecision: Email composed
+    SendDecision --> [*]
+}
+
+NotifyingSeller --> DisplayingDashboard: Seller notified
+
+state MonitoringTransactions {
+    state "View Sales Data" as ViewSales
+    ViewSales --> [*]
+}
+
+MonitoringTransactions --> AnalyzingMetrics: Sales data displayed
+
+state AnalyzingMetrics {
+    state "Calculate Revenue" as CalcRevenue
+    state "Identify Trends" as IdentifyTrends
+    state "Track Top Items" as TrackTop
+    
+    CalcRevenue --> IdentifyTrends: Revenue calculated
+    IdentifyTrends --> TrackTop: Trends identified
+    TrackTop --> [*]
+}
+
+AnalyzingMetrics --> FraudDetection: Metrics analyzed
+
+state FraudDetection {
+    state "Check Refund Patterns" as CheckRefund
+    state "Check Chargebacks" as CheckChargebacks
+    state "Identify Suspicious" as IdentifySuspicious
+    
+    CheckRefund --> CheckChargebacks: Refunds checked
+    CheckChargebacks --> IdentifySuspicious: Chargebacks checked
+    IdentifySuspicious --> [*]
+}
+
+FraudDetection --> DisputeCheck <<choice>>
+
+state DisputeCheck <<choice>>
+
+DisputeCheck --> HandleDispute: Disputes found
+DisputeCheck --> DisplayingDashboard: No issues
+
+state HandleDispute {
+    state "Load Dispute Details" as LoadDispute
+    state "Review Evidence" as ReviewEvidence
+    state "Make Decision" as MakeDecision
+    
+    LoadDispute --> ReviewEvidence: Dispute loaded
+    ReviewEvidence --> MakeDecision: Evidence reviewed
+    MakeDecision --> [*]
+}
+
+HandleDispute --> ResolveDispute: Decision made
+
+state ResolveDispute {
+    state "Process Resolution" as ProcessResolve
+    state "Handle Refund" as HandleRefund
+    state "Update Status" as UpdateStatus
+    
+    ProcessResolve --> HandleRefund: Resolution processing
+    HandleRefund --> UpdateStatus: Refund processed
+    UpdateStatus --> [*]
+}
+
+ResolveDispute --> DisplayingDashboard: Dispute resolved
+
+state ManagingSellers {
+    state "View Seller List" as ViewSellers
+    ViewSellers --> [*]
+}
+
+ManagingSellers --> VerifyingSellers: Sellers displayed
+
+state VerifyingSellers {
+    state "Select Seller" as SelectSeller
+    state "Load KYC Docs" as LoadKYC
+    state "Review Documents" as ReviewDocs
+    
+    SelectSeller --> LoadKYC: Seller selected
+    LoadKYC --> ReviewDocs: KYC documents loaded
+    ReviewDocs --> [*]
+}
+
+VerifyingSellers --> KYCDecision <<choice>>
+
+state KYCDecision <<choice>>
+
+KYCDecision --> ApprovingSeller: KYC valid
+KYCDecision --> RejectingSeller: KYC invalid
+
+state ApprovingSeller {
+    state "Mark Verified" as MarkVerified
+    state "Enable Payouts" as EnablePayouts
+    MarkVerified --> EnablePayouts: Verified
+    EnablePayouts --> [*]
+}
+
+state RejectingSeller {
+    state "Mark Pending" as MarkPending
+    state "Request More Docs" as RequestDocs
+    MarkPending --> RequestDocs: Pending
+    RequestDocs --> [*]
+}
+
+ApprovingSeller --> DisplayingDashboard: Seller approved
+RejectingSeller --> DisplayingDashboard: Seller action required
+
+note right of ReviewingContent
+  Compliance Checks:
+  • No malicious code
+  • Accurate description
+  • Reasonable pricing
+  • Original content
+  • No explicit content
+end note
+
+note right of FraudDetection
+  Fraud Indicators:
+  • Unusual refund rate
+  • Chargebacks
+  • Duplicate purchases
+  • Rapid price changes
+end note
+
+@enduml

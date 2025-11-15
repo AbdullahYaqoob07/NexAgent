@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import DashboardLayout from "./DashboardLayout";
 import Link from "next/link";
-import Image from "next/image";
 
 import { useUserProfile } from '@/lib/useUserProfile';
 
@@ -120,32 +119,6 @@ export default function DashboardHome({}: DashboardHomeProps) {
   return (
     <DashboardLayout>
       <div className="relative p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-        {/* Background decorative SVGs */}
-        <div className="pointer-events-none fixed inset-0 -z-10">
-          {/* Top-left background */}
-          <div className="absolute -top-10 -left-10 md:-top-16 md:-left-8 opacity-40 md:opacity-60">
-            <Image
-              src="/assets/dashboard/BG-left.svg"
-              alt=""
-              width={700}
-              height={700}
-              className="max-w-none select-none"
-              priority
-            />
-          </div>
-
-          {/* Right-aligned background (slightly higher) */}
-          <div className="absolute top-10 right-0 md:-top-4 opacity-40 md:opacity-70">
-            <Image
-              src="/assets/dashboard/BG-right.svg"
-              alt=""
-              width={600}
-              height={600}
-              className="max-w-none select-none"
-              priority
-            />
-          </div>
-        </div>
         {/* Welcome Section + Search & Notifications */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

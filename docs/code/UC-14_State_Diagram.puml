@@ -1,0 +1,289 @@
+@startuml UC-14_States
+title UC-14: OAuth Integration - State Machine Diagram
+skinparam StateBackgroundColor #FCE4EC
+skinparam StateBorderColor #C2185B
+skinparam StateTextColor #880E4F
+skinparam ArrowColor #C2185B
+skinparam ArrowThickness 2
+
+[*] --> WorkflowExecution
+
+state WorkflowExecution {
+    state "Execute Workflow" as ExecWf
+    ExecWf --> [*]
+}
+
+WorkflowExecution --> IntegrationDetected: Node encountered
+
+state IntegrationDetected {
+    state "Identify Node Type" as IdentifyNode
+    state "Get Service Name" as GetService
+    state "Load Service Config" as LoadConfig
+    
+    IdentifyNode --> GetService: Node identified
+    GetService --> LoadConfig: Service identified
+    LoadConfig --> [*]
+}
+
+IntegrationDetected --> RetrievingCredentials: Service loaded
+
+state RetrievingCredentials {
+    state "Query Credentials DB" as QueryCreds
+    state "Filter by User + Service" as FilterCreds
+    state "Check Exists" as CheckExists
+    state "Decrypt Credential" as DecryptCred
+    
+    QueryCreds --> FilterCreds: Credentials queried
+    FilterCreds --> CheckExists: Filtered
+    CheckExists --> DecryptCred: Existence verified
+    DecryptCred --> [*]
+}
+
+RetrievingCredentials --> CredentialCheck <<choice>>
+
+state CredentialCheck <<choice>>
+
+CredentialCheck --> ValidCredentials: Credentials found & valid
+CredentialCheck --> MissingCredentials: Credentials missing/invalid
+
+state MissingCredentials {
+    state "Log Error" as LogError
+    state "Notify User" as NotifyUser
+    state "Abort Execution" as AbortExec
+    
+    LogError --> NotifyUser: Error logged
+    NotifyUser --> AbortExec: User notified
+    AbortExec --> [*]
+}
+
+MissingCredentials --> [*]: Workflow failed
+
+state ValidCredentials {
+    state "Mark Credentials Valid" as MarkValid
+    MarkValid --> [*]
+}
+
+ValidCredentials --> BuildingRequest: Credentials secured
+
+state BuildingRequest {
+    state "Get API Endpoint" as GetEndpoint
+    state "Load Request Template" as LoadTemplate
+    state "Map Parameters" as MapParams
+    state "Format Headers" as FormatHeaders
+    state "Add Auth Header" as AddAuth
+    
+    GetEndpoint --> LoadTemplate: Endpoint retrieved
+    LoadTemplate --> MapParams: Template loaded
+    MapParams --> FormatHeaders: Params mapped
+    FormatHeaders --> AddAuth: Headers formatted
+    AddAuth --> [*]
+}
+
+BuildingRequest --> ValidatingRequest: Request built
+
+state ValidatingRequest {
+    state "Check Required Fields" as CheckRequired
+    state "Validate Data Types" as ValidateTypes
+    state "Apply Schema" as ApplySchema
+    state "Sanitize Input" as SanitizeInput
+    
+    CheckRequired --> ValidateTypes: Required checked
+    ValidateTypes --> ApplySchema: Types validated
+    ApplySchema --> SanitizeInput: Schema applied
+    SanitizeInput --> [*]
+}
+
+ValidatingRequest --> RequestValidation <<choice>>
+
+state RequestValidation <<choice>>
+
+RequestValidation --> SendingRequest: Request valid
+RequestValidation --> ValidationFailed: Request invalid
+
+state ValidationFailed {
+    state "Log Validation Error" as LogValidError
+    state "Abort with Error" as AbortError
+    LogValidError --> AbortError: Error logged
+    AbortError --> [*]
+}
+
+ValidationFailed --> [*]: Workflow failed
+
+state SendingRequest {
+    state "Prepare HTTP Request" as PrepRequest
+    state "Set Timeout (30s)" as SetTimeout
+    state "Send to API" as SendAPI
+    state "Wait for Response" as WaitResponse
+    
+    PrepRequest --> SetTimeout: Request prepared
+    SetTimeout --> SendAPI: Timeout set
+    SendAPI --> WaitResponse: Request sent
+    WaitResponse --> [*]
+}
+
+SendingRequest --> ReceivingResponse: Request sent
+
+state ReceivingResponse {
+    state "Capture Response" as CaptureResp
+    state "Check Status Code" as CheckStatus
+    state "Check Headers" as CheckHeaders
+    state "Parse Body" as ParseBody
+    
+    CaptureResp --> CheckStatus: Response captured
+    CheckStatus --> CheckHeaders: Status checked
+    CheckHeaders --> ParseBody: Headers checked
+    ParseBody --> [*]
+}
+
+ReceivingResponse --> ResponseCheck <<choice>>
+
+state ResponseCheck <<choice>>
+
+ResponseCheck --> RateLimitedCheck: Status received
+
+state RateLimitedCheck <<choice>>
+
+RateLimitedCheck --> RateLimited: 429 or rate limit
+RateLimitedCheck --> NormalResponse: Normal response
+
+state RateLimited {
+    state "Extract Retry-After" as ExtractRetry
+    state "Calculate Delay" as CalcDelay
+    state "Wait Delay" as WaitDelay
+    
+    ExtractRetry --> CalcDelay: Retry-After parsed
+    CalcDelay --> WaitDelay: Delay calculated
+    WaitDelay --> [*]
+}
+
+RateLimited --> SendingRequest: Retry request
+
+state NormalResponse {
+    state "Check Success (200-299)" as CheckSuccess
+    CheckSuccess --> [*]
+}
+
+NormalResponse --> SuccessCheck <<choice>>
+
+state SuccessCheck <<choice>>
+
+SuccessCheck --> SuccessResponse: Success (200-299)
+SuccessCheck --> ErrorResponse: Error (400+)
+
+state SuccessResponse {
+    state "Parse Success Data" as ParseSuccess
+    state "Transform Response" as TransformResp
+    state "Map to Variables" as MapVars
+    state "Validate Schema" as ValidateSchema
+    
+    ParseSuccess --> TransformResp: Data parsed
+    TransformResp --> MapVars: Data transformed
+    MapVars --> ValidateSchema: Mapped to variables
+    ValidateSchema --> [*]
+}
+
+state ErrorResponse {
+    state "Parse Error" as ParseError
+    state "Log Error Details" as LogErrorDetails
+    state "Check Retryable" as CheckRetryable
+    
+    ParseError --> LogErrorDetails: Error parsed
+    LogErrorDetails --> CheckRetryable: Details logged
+    CheckRetryable --> [*]
+}
+
+SuccessResponse --> StoringResponse: Response processed
+ErrorResponse --> ErrorHandling: Error encountered
+
+state StoringResponse {
+    state "Store in Context" as StoreContext
+    state "Update Workflow Variables" as UpdateVars
+    StoreContext --> UpdateVars: Stored in context
+    UpdateVars --> [*]
+}
+
+state ErrorHandling {
+    state "Check Retry Policy" as CheckRetryPolicy
+    state "Evaluate Error Type" as EvalErrorType
+    CheckRetryPolicy --> EvalErrorType: Policy checked
+    EvalErrorType --> [*]
+}
+
+StoringResponse --> ContinueExecution: Data stored
+ErrorHandling --> RetryDecision: Error evaluated
+
+state RetryDecision <<choice>>
+
+RetryDecision --> RetryAttempt: Retryable error
+RetryDecision --> AbortWorkflow: Non-retryable error
+
+state RetryAttempt {
+    state "Increment Attempts" as IncrementAttempts
+    state "Check Max Retries" as CheckMaxRetries
+    IncrementAttempts --> CheckMaxRetries: Attempt incremented
+    CheckMaxRetries --> [*]
+}
+
+state MaxRetriesCheck <<choice>>
+
+RetryAttempt --> MaxRetriesCheck: Retries checked
+
+MaxRetriesCheck --> AnotherRetry: Retries available
+MaxRetriesCheck --> AbortWorkflow: Max retries exceeded
+
+state AnotherRetry {
+    state "Calculate Backoff" as CalcBackoff
+    state "Wait Delay" as WaitDelay2
+    CalcBackoff --> WaitDelay2: Backoff calculated
+    WaitDelay2 --> [*]
+}
+
+AnotherRetry --> SendingRequest: Retry sending
+
+state ContinueExecution {
+    state "Move to Next Node" as MoveNext
+    MoveNext --> [*]
+}
+
+state AbortWorkflow {
+    state "Log Failure" as LogFail
+    state "Mark as Failed" as MarkFailed
+    LogFail --> MarkFailed: Failure logged
+    MarkFailed --> [*]
+}
+
+ContinueExecution --> [*]: Workflow continues
+AbortWorkflow --> [*]: Workflow failed
+
+state LoggingInteraction {
+    state "Create Log Record" as CreateLog
+    state "Store Metrics" as StoreMetrics
+    CreateLog --> StoreMetrics: Log created
+    StoreMetrics --> [*]
+}
+
+note right of RetrievingCredentials
+  Credential Retrieval:
+  • AES-256 decryption
+  • Automatic key derivation
+  • Salt-based security
+  • Audit logging
+end note
+
+note right of BuildingRequest
+  Request Mapping:
+  • Parameter transformation
+  • Data type conversion
+  • Format conversion
+  • Validation rules
+end note
+
+note right of RateLimited
+  Rate Limiting Strategy:
+  • Respect Retry-After
+  • Exponential backoff
+  • Max wait: 5 minutes
+  • Max retries: 3
+end note
+
+@enduml

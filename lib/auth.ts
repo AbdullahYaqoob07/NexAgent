@@ -191,11 +191,78 @@ class FirebaseAuthService {
 
   /**
    * Sign in with Google
+   * (also verifies token with backend so admin metadata/redirects work)
    */
   async signInWithGoogle(): Promise<AuthUser> {
     try {
       const userCredential = await signInWithPopup(auth, googleProvider);
       console.log('✅ Google sign in successful:', userCredential.user.email);
+
+      // Fallback: if this Google account is the hard-coded admin, set admin flags
+      try {
+        if (userCredential.user.email === 'admin@gmail.com') {
+          localStorage.setItem('user_is_admin', 'true');
+          localStorage.setItem('admin_redirect_url', '/admin321');
+        }
+      } catch {}
+
+      // Mirror the backend verification logic used in email/password sign-in
+      try {
+        const idToken = await userCredential.user.getIdToken().catch((e) => {
+          console.error('Failed to get Firebase ID token (Google):', e);
+          return null as any;
+        });
+
+        if (!idToken) {
+          console.warn('No Firebase ID token returned after Google sign-in.');
+        } else {
+          // Store for API client fallback and developer convenience
+          try {
+            localStorage.setItem('backend_auth_token', idToken);
+          } catch {}
+        }
+
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${backendUrl}/api/v1/auth/verify-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: idToken || '',
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.metadata?.is_admin) {
+            console.log('✅ Admin user (Google) detected, should redirect to:', data.metadata.redirect_to);
+
+            try {
+              localStorage.setItem('user_is_admin', 'true');
+              localStorage.setItem('admin_role', data.metadata.admin_role);
+              localStorage.setItem('admin_permissions', JSON.stringify(data.metadata.permissions));
+              localStorage.setItem('admin_redirect_url', data.metadata.redirect_to);
+            } catch {}
+          } else {
+            console.log('✅ Regular Google user, redirect target:', data.metadata?.redirect_to);
+
+            // Clear any admin flags
+            try {
+              localStorage.removeItem('user_is_admin');
+              localStorage.removeItem('admin_role');
+              localStorage.removeItem('admin_permissions');
+              localStorage.removeItem('admin_redirect_url');
+            } catch {}
+          }
+        } else {
+          console.warn('⚠️ Backend token verification (Google) failed:', await response.text());
+        }
+      } catch (backendError) {
+        console.warn('⚠️ Backend API unavailable during Google sign-in:', backendError);
+      }
+
       return this.transformUser(userCredential.user);
     } catch (error: any) {
       console.error('❌ Google sign in error:', error);

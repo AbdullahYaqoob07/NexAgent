@@ -1,0 +1,182 @@
+@startuml UC-09_States
+title UC-09: Marketplace Exploration - State Machine Diagram
+skinparam StateBackgroundColor #F0F4C3
+skinparam StateBorderColor #827717
+skinparam StateTextColor #558B2F
+skinparam ArrowColor #827717
+skinparam ArrowThickness 2
+
+[*] --> MarketplaceHome
+
+state MarketplaceHome {
+    state "Load Homepage" as LoadHome
+    state "Fetch Featured" as FetchFeatured
+    state "Render Featured Templates" as RenderFeatured
+    
+    LoadHome --> FetchFeatured: Page loaded
+    FetchFeatured --> RenderFeatured: Data fetched
+    RenderFeatured --> [*]
+}
+
+MarketplaceHome --> UserAction: Homepage displayed
+
+state UserAction <<choice>>
+
+UserAction --> SearchingTemplates: User searches
+UserAction --> BrowsingCategories: User browses categories
+UserAction --> ViewingTemplate: User clicks template
+
+state SearchingTemplates {
+    state "Accept Search Query" as AcceptQuery
+    state "Parse Search Input" as ParseInput
+    state "Query Database" as QueryDB
+    state "Return Results" as ReturnResults
+    
+    AcceptQuery --> ParseInput: Query received
+    ParseInput --> QueryDB: Input parsed
+    QueryDB --> ReturnResults: Results found
+    ReturnResults --> [*]
+}
+
+state BrowsingCategories {
+    state "Get Category" as GetCat
+    state "Load Templates by Category" as LoadByCategory
+    state "Apply Sorting" as ApplySorting
+    
+    GetCat --> LoadByCategory: Category selected
+    LoadByCategory --> ApplySorting: Templates loaded
+    ApplySorting --> [*]
+}
+
+SearchingTemplates --> ApplyFilters: Results received
+BrowsingCategories --> ApplyFilters: Templates loaded
+
+state ApplyFilters {
+    state "Check Filter Params" as CheckFilters
+    state "Filter by Price" as FilterPrice
+    state "Filter by Rating" as FilterRating
+    state "Combine Filters" as CombineFilters
+    
+    CheckFilters --> FilterPrice: Filters checked
+    FilterPrice --> FilterRating: Price filtered
+    FilterRating --> CombineFilters: Rating filtered
+    CombineFilters --> [*]
+}
+
+ApplyFilters --> PaginatingResults: Filters applied
+
+state PaginatingResults {
+    state "Calculate Total Pages" as CalcPages
+    state "Get Page Data" as GetPageData
+    state "Apply Limit & Offset" as ApplyPagination
+    
+    CalcPages --> GetPageData: Pages calculated
+    GetPageData --> ApplyPagination: Data retrieved
+    ApplyPagination --> [*]
+}
+
+PaginatingResults --> DisplayingResults: Pagination applied
+
+state DisplayingResults {
+    state "Render Template Cards" as RenderCards
+    state "Show Template Metadata" as ShowMetadata
+    state "Load Ratings" as LoadRatings
+    
+    RenderCards --> ShowMetadata: Cards rendered
+    ShowMetadata --> LoadRatings: Metadata displayed
+    LoadRatings --> [*]
+}
+
+DisplayingResults --> UserInteraction: Results displayed
+
+state UserInteraction <<choice>>
+
+UserInteraction --> ViewingTemplate: Click template
+UserInteraction --> AddingFavorite: Add to favorites
+UserInteraction --> Paginating: Next page
+UserInteraction --> SearchingTemplates: New search
+
+state ViewingTemplate {
+    state "Get Template ID" as GetID
+    state "Fetch Template Details" as FetchDetails
+    state "Load Full Description" as LoadDesc
+    state "Fetch User Reviews" as FetchReviews
+    state "Load Related Templates" as LoadRelated
+    
+    GetID --> FetchDetails: ID captured
+    FetchDetails --> LoadDesc: Details fetched
+    LoadDesc --> FetchReviews: Description loaded
+    FetchReviews --> LoadRelated: Reviews fetched
+    LoadRelated --> [*]
+}
+
+state AddingFavorite {
+    state "Save to Favorites" as SaveFav
+    state "Update Database" as UpdateDB
+    state "Update UI" as UpdateUI
+    
+    SaveFav --> UpdateDB: Added to favorites
+    UpdateDB --> UpdateUI: Saved in DB
+    UpdateUI --> [*]
+}
+
+state Paginating {
+    state "Navigate Page" as NavPage
+    NavPage --> [*]
+}
+
+ViewingTemplate --> TemplateDetailPage: Details loaded
+AddingFavorite --> DisplayingResults: Favorite added
+Paginating --> DisplayingResults: Navigated
+
+state TemplateDetailPage {
+    state "Display Full Info" as DisplayInfo
+    state "Show Reviews" as ShowReviews
+    state "Display Related" as DisplayRelated
+    state "Show Install Button" as ShowInstall
+    
+    DisplayInfo --> ShowReviews: Info displayed
+    ShowReviews --> DisplayRelated: Reviews shown
+    DisplayRelated --> ShowInstall: Related shown
+    ShowInstall --> [*]
+}
+
+TemplateDetailPage --> DetailAction: Detail page displayed
+
+state DetailAction <<choice>>
+
+DetailAction --> InstallingTemplate: User clicks install
+DetailAction --> BackToResults: User goes back
+
+state InstallingTemplate {
+    state "Check Installation Availability" as CheckAvail
+    CheckAvail --> [*]
+}
+
+state BackToResults {
+    state "Return to Results" as ReturnResults2
+    ReturnResults2 --> [*]
+}
+
+BackToResults --> DisplayingResults: Returned
+InstallingTemplate --> [*]: Template installation initiated
+
+note right of SearchingTemplates
+  Search Options:
+  • Full text search
+  • Autocomplete suggestions
+  • Recent searches
+  • Popular templates
+end note
+
+note right of ApplyFilters
+  Available Filters:
+  • Category
+  • Price Range
+  • Rating (1-5 stars)
+  • Free vs Paid
+  • Popularity
+  • Recently Added
+end note
+
+@enduml

@@ -1,0 +1,112 @@
+@startuml UC-03_Build_Workflow_Canvas_Sequence
+
+title UC-03: Build Workflow Canvas - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #00796B
+skinparam ActorBackgroundColor #E0F2F1
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #FFF9C4
+
+actor User
+participant Canvas
+participant Frontend
+participant "API Gateway" as API
+participant WorkflowService
+participant Database as DB
+participant ValidationService
+
+User -> Canvas: 1. Open Workflow Canvas
+Canvas -> Frontend: 2. Load canvas editor
+Frontend -> API: 3. GET /api/v1/workflows/{id}/nodes
+API -> WorkflowService: 4. get_workflow_nodes(workflow_id)
+WorkflowService -> DB: 5. Fetch nodes data
+DB --> WorkflowService: 6. Return nodes []
+WorkflowService --> API: 7. Nodes list
+API --> Frontend: 8. 200 OK + nodes
+Canvas --> User: 9. Display empty/existing canvas
+
+User -> Canvas: 10. Drag trigger component
+Canvas --> Canvas: 11. Add trigger node
+User -> Canvas: 12. Click node to configure
+Canvas -> User: 13. Show configuration panel
+
+User -> Canvas: 14. Set node type (e.g., "Send Email")
+User -> Canvas: 15. Configure parameters
+Canvas --> Canvas: 16. Update node config in memory
+
+User -> Canvas: 17. Click "Add Another Node"
+Canvas --> Canvas: 18. Add new node to canvas
+User -> Canvas: 19. Position nodes
+
+User -> Canvas: 20. Draw connection (edge)
+Canvas --> Canvas: 21. Create edge between nodes
+Canvas -> Frontend: 22. Validate edge connection
+
+Frontend -> ValidationService: 23. validate_edge(source, target)
+ValidationService --> Frontend: 24. Edge valid
+Canvas --> Canvas: 25. Visual feedback: edge created
+
+User -> Canvas: 26. Click "Add Condition"
+Canvas -> User: 27. Show condition builder
+User -> Canvas: 28. Configure condition logic
+Canvas --> Canvas: 29. Store condition on edge
+
+User -> Canvas: 30. Add variables (if needed)
+Canvas -> User: 31. Show variable panel
+User -> Canvas: 32. Enter variable name & type
+Canvas --> Canvas: 33. Add to workflow variables
+
+User -> Canvas: 34. Test the workflow
+Canvas -> Frontend: 35. Collect canvas data
+Frontend -> API: 36. POST /api/v1/workflows/{id}/test
+note right of API
+  Body: {
+    "nodes": [...],
+    "edges": [...],
+    "variables": {...},
+    "testData": {...}
+  }
+end note
+
+API -> WorkflowService: 37. test_workflow(workflow_id, data)
+WorkflowService -> ValidationService: 38. Validate workflow structure
+ValidationService --> WorkflowService: 39. Structure valid
+
+WorkflowService -> DB: 40. Execute test run (no persistence)
+activate DB
+DB --> WorkflowService: 41. Test execution completed
+deactivate DB
+
+WorkflowService --> API: 42. Return {status, logs, results}
+API --> Frontend: 43. 200 OK + test results
+Canvas --> User: 44. Display test results
+
+User -> Canvas: 45. All looks good, save workflow
+Canvas -> Frontend: 46. Collect all canvas changes
+Frontend -> API: 47. PUT /api/v1/workflows/{id}/save
+note right of API
+  Body: {
+    "nodes": [...],
+    "edges": [...],
+    "variables": {...}
+  }
+end note
+
+API -> WorkflowService: 48. update_workflow(workflow_id, data)
+WorkflowService -> ValidationService: 49. Validate complete workflow
+ValidationService --> WorkflowService: 50. All validations pass
+
+WorkflowService -> DB: 51. UPDATE workflow document
+activate DB
+DB --> WorkflowService: 52. Saved successfully
+deactivate DB
+
+WorkflowService -> DB: 53. Increment version number
+DB --> WorkflowService: 54. Version updated
+
+WorkflowService --> API: 55. Return {status: "saved"}
+API --> Frontend: 56. 200 OK + save confirmation
+Canvas --> User: 57. Show "Workflow Saved" notification
+
+@enduml

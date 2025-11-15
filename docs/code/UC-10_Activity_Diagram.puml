@@ -1,0 +1,48 @@
+@startuml UC-10_Activity
+title UC-10: Buy Template
+skinparam ActivityBackgroundColor #E3F2FD
+skinparam ActivityBorderColor #1565C0
+skinparam ArrowColor #1565C0
+
+start
+:User selects template to purchase;
+:Verify user is authenticated;
+:Check user subscription level (free/pro/enterprise);
+:Fetch template pricing information;
+if (Template price > $0?) then (Paid)
+    :Display price in user's currency;
+    :Check if user has existing license;
+    if (Already purchased?) then (Yes)
+        :Show "Already Owned" message;
+    else (No)
+        :Proceed to payment;
+    endif
+else (Free)
+    :Direct install;
+endif
+:Create checkout session;
+:Redirect to Stripe payment page;
+:User enters payment information;
+:Stripe processes payment securely (PCI DSS);
+if (Payment successful?) then (Yes)
+    :Create purchase record in database;
+    :Assign license to user;
+    :Update purchase history;
+    :Install template to user's account;
+    :Generate invoice;
+    :Send purchase confirmation email;
+    :Update seller payout record;
+    :Calculate platform commission (20%);
+    :Log transaction for analytics;
+    :Display success message;
+else (Payment failed)
+    :Log failed transaction;
+    :Display error message;
+    :Offer retry option;
+    :Return to checkout;
+endif
+:Update UI (show installed/purchased status);
+:Redirect to user's workflow library;
+:Purchase complete;
+stop
+@enduml

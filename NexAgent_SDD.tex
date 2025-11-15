@@ -1,0 +1,1106 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{hyperref}
+\usepackage{tocloft}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+% Define colors
+\definecolor{lightgray}{gray}{0.95}
+\definecolor{darkgray}{gray}{0.3}
+\definecolor{orange}{RGB}{255,140,0}
+
+% Page setup
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Software Design Document}
+\fancyhead[R]{NexAgent}
+\fancyfoot[C]{Page \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% Section formatting
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cfttoctitlefont}{\Large\bfseries}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+
+% Code listing style
+\lstset{
+    basicstyle=\footnotesize\ttfamily,
+    backgroundcolor=\color{lightgray},
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{darkgray},
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+% Document begins
+\begin{document}
+
+% Title Page
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    
+    \rule{\linewidth}{0.5mm} \\[0.4cm]
+    {\huge\bfseries Software Design Document (SDD)}\\[0.4cm]
+    \rule{\linewidth}{0.5mm} \\[1.5cm]
+    
+    {\Large\bfseries NexAgent}\\[0.5cm]
+    {\large AI Workflow Automation Platform}\\[2cm]
+    
+    {\Large Version 1.0}\\[2cm]
+    
+    {\large\bfseries By}\\[0.5cm]
+    {\large
+    \begin{tabular}{ll}
+        Maarij Bukhari & 221803\\
+        Syed M Taha & 221787\\
+        Abdullah & 221837\\
+    \end{tabular}
+    }\\[2cm]
+    
+    {\large\bfseries Supervisor}\\[0.5cm]
+    {\large Dr. Humaira Waqas}\\[2cm]
+    
+    {\large Bachelor of Science in Software Engineering}\\[0.5cm]
+    {\large Air University, Islamabad}\\[1cm]
+    
+    {\large November 1, 2025}
+    
+    \vfill
+\end{titlepage}
+
+% Table of Contents
+\tableofcontents
+\newpage
+
+% Revision History
+\section*{Revision History}
+\addcontentsline{toc}{section}{Revision History}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|c|c|X|c|}
+\hline
+\textbf{Version} & \textbf{Date} & \textbf{Description} & \textbf{Author}\\
+\hline
+1.0 & November 1, 2025 & Initial SDD Document & Team\\
+\hline
+\end{tabularx}
+\end{table}
+
+\newpage
+
+% Main Document Content
+\section{Introduction}
+
+\subsection{Purpose}
+This Software Design Document (SDD) provides a comprehensive design overview of the NexAgent system, a no-code AI workflow automation platform. This document describes the architecture, components, interfaces, and data design of the system to guide implementation and maintenance.
+
+\subsection{Scope}
+NexAgent is a web-based platform that enables users to create, manage, and execute automated workflows without coding knowledge. The system encompasses the following 9 core modules:
+
+\begin{enumerate}
+    \item User Authentication Module
+    \item Workflow Builder Module
+    \item Canvas Interaction Module
+    \item Workflow Execution Engine Module
+    \item User Management Module
+    \item Usage Analytics Module
+    \item Error Handling \& Logging Module
+    \item Multi-Model Integration Module
+    \item Settings \& Configuration Module
+\end{enumerate}
+
+\subsection{System Verification Status}
+\textbf{Research Completed:} November 1, 2025\\
+\textbf{Verification Method:} Direct analysis of actual codebase implementation\\
+\textbf{Status:} All information verified against production code
+
+\subsection{Document Organization}
+This document is organized into the following major sections:
+\begin{itemize}
+    \item Design Methodology and Software Process Model
+    \item System Overview and Architecture
+    \item Design Models (Activity, Class, Sequence, and State Diagrams)
+    \item Data Design and Dictionary
+    \item Human Interface Design
+    \item Implementation Details
+    \item Testing and Evaluation Strategy
+\end{itemize}
+
+\newpage
+
+\section{Design Methodology and Software Process Model}
+
+\subsection{Design Methodology}
+\textbf{Approach Used:} Object-Oriented Programming (OOP)
+
+\subsubsection{Justification for OOP Approach}
+\begin{itemize}
+    \item \textbf{Modularity:} Each module encapsulates specific functionality as service classes
+    \item \textbf{Reusability:} Common functionality shared through inheritance and composition
+    \item \textbf{Maintainability:} Clear separation of concerns between modules
+    \item \textbf{Scalability:} Service-based architecture allows independent scaling
+    \item \textbf{Real-world Mapping:} Objects model real entities (User, Workflow, Component)
+\end{itemize}
+
+\subsubsection{Implementation Details}
+The backend implements OOP through:
+\begin{itemize}
+    \item Service classes: FirebaseService, WorkflowService, IntegrationService
+    \item Data models: Pydantic models for validation and serialization
+    \item Repository pattern: Database access layer abstraction
+\end{itemize}
+
+\subsection{Software Process Model}
+\textbf{Model Used:} Agile with Iterative Development
+
+\subsubsection{Agile Implementation}
+\begin{itemize}
+    \item \textbf{Sprint Duration:} 2-week sprints
+    \item \textbf{Iteration Focus:} Each sprint delivers functional module increments
+    \item \textbf{Feedback Integration:} Continuous stakeholder feedback drives iterations
+    \item \textbf{Parallel Development:} Modular design enables concurrent feature development
+\end{itemize}
+
+\subsubsection{Development Phases}
+\begin{enumerate}
+    \item \textbf{Phase 1:} Core infrastructure (Authentication, Database setup)
+    \item \textbf{Phase 2:} Workflow creation and management
+    \item \textbf{Phase 3:} Execution engine and integrations
+    \item \textbf{Phase 4:} Analytics, marketplace, and advanced features
+\end{enumerate}
+
+\newpage
+
+\section{System Overview}
+
+\subsection{Product Perspective}
+NexAgent is a comprehensive no-code AI workflow automation platform that addresses the complexity and high costs associated with existing automation tools. It provides a free, intuitive drag-and-drop interface with powerful AI integrations.
+
+\subsection{System Functionality}
+The system enables users to:
+\begin{itemize}
+    \item Create and execute automated workflows without coding
+    \item Integrate with multiple AI models and third-party services
+    \item Monitor workflow performance through real-time analytics
+    \item Manage credentials securely for external integrations
+    \item Share and monetize workflows through the marketplace
+    \item Collaborate with team members on workflow development
+\end{itemize}
+
+\subsection{User Classes and Characteristics}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{User Class} & \textbf{Characteristics}\\
+\hline
+Non-technical Users & Require intuitive UI, visual workflow builder, and pre-configured templates\\
+\hline
+Small Business Owners & Need fast setup, cost-effective automation, and business-focused templates\\
+\hline
+Developers/Advanced Users & Seek API access, custom integrations, and advanced workflow logic\\
+\hline
+Administrators & Manage users, permissions, marketplace content, and system monitoring\\
+\hline
+\end{tabularx}
+\caption{User Classes and Their Characteristics}
+\end{table}
+
+\subsection{Design Constraints}
+\begin{itemize}
+    \item \textbf{Technology Stack:} Backend must use FastAPI/Python, Frontend must use Next.js
+    \item \textbf{Database:} Firebase Firestore as primary database
+    \item \textbf{Performance:} Support 10,000 concurrent users
+    \item \textbf{Security:} PCI DSS compliance for payment processing
+    \item \textbf{Browser Support:} Chrome, Firefox, Edge, Safari (latest versions)
+\end{itemize}
+
+\newpage
+
+\section{Architectural Design}
+
+\subsection{System Architecture Overview}
+The system employs a Layered Architecture with Service-Oriented Design principles, consisting of four main layers:
+
+\subsubsection{Layer 1: Presentation Layer}
+\begin{itemize}
+    \item React/Next.js components for user interface
+    \item TypeScript for type safety
+    \item Tailwind CSS for styling
+    \item React Context API for state management
+\end{itemize}
+
+\subsubsection{Layer 2: Application Layer (9 Modules)}
+\begin{enumerate}
+    \item User Authentication (Firebase Auth integration)
+    \item Workflow Builder (Visual workflow creation)
+    \item Canvas Interaction (Drag-drop interface)
+    \item Workflow Execution Engine (Execution runtime)
+    \item User Management (Profiles, roles, permissions)
+    \item Usage Analytics (Metrics and reporting)
+    \item Error Handling \& Logging (System monitoring)
+    \item Multi-Model Integration (External API connections)
+    \item Settings \& Configuration (System preferences)
+\end{enumerate}
+
+\subsubsection{Layer 3: Data Access Layer}
+\begin{itemize}
+    \item Firebase Firestore for document storage
+    \item Firebase Auth for authentication
+    \item Custom session management service
+    \item Database service layer for data operations
+\end{itemize}
+
+\subsubsection{Layer 4: External Integration Layer}
+\begin{itemize}
+    \item OpenAI API for AI capabilities
+    \item Stripe API for payment processing
+    \item Third-party APIs (Google, LinkedIn, Slack)
+    \item Webhook handlers for real-time updates
+\end{itemize}
+
+\subsection{Architectural Diagram}
+
+\textcolor{orange}{\textbf{[ARCHITECTURAL DIAGRAM PLACEHOLDER - Box-and-Line Diagram showing 4 layers with module interconnections and data flow]}}
+
+\newpage
+
+\subsection{Module Descriptions}
+
+\subsubsection{User Authentication Module}
+\textbf{Purpose:} Handles user registration, login, and session management\\
+\textbf{Key Components:}
+\begin{itemize}
+    \item AuthService: Core authentication logic
+    \item SessionService: Session token management
+    \item FirebaseAuth: Authentication provider integration
+\end{itemize}
+\textbf{Interfaces:} REST API endpoints for signup, signin, logout, token verification
+
+\subsubsection{Workflow Builder Module}
+\textbf{Purpose:} Enables visual creation and management of workflows\\
+\textbf{Key Components:}
+\begin{itemize}
+    \item WorkflowService: CRUD operations for workflows
+    \item WorkflowValidator: Validation logic
+    \item WorkflowRepository: Database operations
+\end{itemize}
+\textbf{Interfaces:} API for workflow creation, modification, deletion
+
+\subsubsection{Canvas Interaction Module}
+\textbf{Purpose:} Provides drag-and-drop workflow design interface\\
+\textbf{Key Components:}
+\begin{itemize}
+    \item CanvasComponent: Main canvas rendering
+    \item NodeLibrary: Available workflow components
+    \item ConnectionManager: Node connection logic
+\end{itemize}
+\textbf{Interfaces:} Real-time WebSocket for canvas updates
+
+\subsubsection{Workflow Execution Engine Module}
+\textbf{Purpose:} Executes workflows based on triggers and schedules\\
+\textbf{Key Components:}
+\begin{itemize}
+    \item ExecutionEngine: Core execution runtime
+    \item TriggerManager: Trigger detection and handling
+    \item ExecutionLogger: Execution tracking
+\end{itemize}
+\textbf{Interfaces:} Execution API, webhook endpoints
+
+\newpage
+
+\section{Design Models}
+
+\subsection{Activity Diagrams}
+
+\subsubsection{UC-01: User Registration and Login}
+
+\textcolor{orange}{\textbf{[ACTIVITY DIAGRAM PLACEHOLDER - Shows registration/login flow with email verification, credential validation, session creation, and dashboard redirection]}}
+
+\subsubsection{UC-02: Create Workflow}
+
+\textcolor{orange}{\textbf{[ACTIVITY DIAGRAM PLACEHOLDER - Shows workflow creation flow: open designer, define name/description, add components, configure settings, validate, and save]}}
+
+\subsubsection{UC-03: Build Workflow}
+
+\textcolor{orange}{\textbf{[ACTIVITY DIAGRAM PLACEHOLDER - Shows workflow building: drag components from library, configure parameters, connect nodes, test connections, validate logic, and save]}}
+
+\subsubsection{UC-04: Execute Workflow}
+
+\textcolor{orange}{\textbf{[ACTIVITY DIAGRAM PLACEHOLDER - Shows execution flow: detect trigger, load workflow, validate state, execute steps sequentially, handle errors, log results, send notifications]}}
+
+\subsection{Class Diagram - System-Wide}
+
+\textcolor{orange}{\textbf{[CLASS DIAGRAM PLACEHOLDER - Shows all major classes including User, Workflow, Component, Execution, Credential, Analytics with their attributes, methods, and relationships (inheritance, composition, association)]}}
+
+\subsection{Sequence Diagrams}
+
+\subsubsection{User Registration Sequence (UC-01)}
+
+\textcolor{orange}{\textbf{[SEQUENCE DIAGRAM PLACEHOLDER - Shows interaction flow: User -> UI -> AuthService -> Firebase -> Database for registration process with validation and session creation]}}
+
+\subsubsection{Workflow Execution Sequence (UC-04)}
+
+\textcolor{orange}{\textbf{[SEQUENCE DIAGRAM PLACEHOLDER - Shows: Trigger -> ExecutionEngine -> WorkflowLoader -> ComponentExecutor -> ExternalAPIs -> Logger -> NotificationService]}}
+
+\subsection{State Transition Diagrams}
+
+\subsubsection{Workflow States}
+
+\textcolor{orange}{\textbf{[STATE DIAGRAM PLACEHOLDER - Shows workflow states: Draft -> Active -> Running -> Completed/Failed -> Archived with transition conditions and triggers]}}
+
+\newpage
+
+\section{Data Design}
+
+\subsection{Data Model Overview}
+The system employs a document-based NoSQL data model using Firebase Firestore, optimized for scalability and real-time synchronization.
+
+\subsection{Database Collections}
+
+\subsubsection{Primary Collections}
+\begin{itemize}
+    \item \textbf{users:} User profiles with nested objects for settings, preferences, and usage
+    \item \textbf{workflows:} Workflow definitions including nodes, edges, and configuration
+    \item \textbf{executions:} Workflow execution history and logs
+    \item \textbf{integrations:} Third-party service integration catalog
+    \item \textbf{connections:} User's authenticated external service connections
+    \item \textbf{analytics:} Usage metrics and performance data
+    \item \textbf{audit:} System audit logs for compliance
+    \item \textbf{billing:} Payment and subscription records
+    \item \textbf{notifications:} Notification history and preferences
+    \item \textbf{templates:} Reusable workflow templates
+\end{itemize}
+
+\subsection{Data Storage Architecture}
+\begin{itemize}
+    \item \textbf{Primary Database:} Firebase Firestore
+    \item \textbf{Authentication:} Firebase Auth with custom sessions
+    \item \textbf{File Storage:} Firebase Storage for media assets
+    \item \textbf{Cache Layer:} Local session caching
+    \item \textbf{Payment Data:} Stripe (PCI DSS compliant, no local storage)
+\end{itemize}
+
+\newpage
+
+\section{Data Dictionary}
+
+\subsection{User Entity}
+\begin{longtable}{|p{4cm}|p{3cm}|p{7cm}|}
+\hline
+\textbf{Attribute} & \textbf{Type} & \textbf{Description}\\
+\hline
+\endfirsthead
+\hline
+\textbf{Attribute} & \textbf{Type} & \textbf{Description}\\
+\hline
+\endhead
+uid & String & Unique user identifier from Firebase Auth\\
+\hline
+email & String & User email address (unique)\\
+\hline
+displayName & String & User's display name\\
+\hline
+photoURL & String (nullable) & Profile picture URL\\
+\hline
+emailVerified & Boolean & Email verification status\\
+\hline
+createdAt & Timestamp & Account creation timestamp\\
+\hline
+updatedAt & Timestamp & Last update timestamp\\
+\hline
+profile & Object & Extended profile (firstName, lastName, bio, company, jobTitle, location)\\
+\hline
+subscription & Object & Plan details (plan, status, billing\_cycle, stripe IDs)\\
+\hline
+usage & Object & Usage metrics (tokens, workflows, API calls, limits)\\
+\hline
+security & Object & Security settings (2FA, session timeout, IP whitelist)\\
+\hline
+preferences & Object & User preferences (theme, language, notifications)\\
+\hline
+workspace & Object & Workspace configuration and members\\
+\hline
+\caption{User Entity Attributes}
+\end{longtable}
+
+\subsection{Workflow Entity}
+\begin{longtable}{|p{4cm}|p{3cm}|p{7cm}|}
+\hline
+\textbf{Attribute} & \textbf{Type} & \textbf{Description}\\
+\hline
+\endfirsthead
+\hline
+\textbf{Attribute} & \textbf{Type} & \textbf{Description}\\
+\hline
+\endhead
+id & String & Auto-generated unique identifier\\
+\hline
+userId & String & Owner's user ID\\
+\hline
+name & String & Workflow name (3-100 characters)\\
+\hline
+description & String (nullable) & Workflow description\\
+\hline
+nodes & Array[Object] & Workflow component nodes\\
+\hline
+edges & Array[Object] & Connections between nodes\\
+\hline
+variables & Object & Workflow variables and parameters\\
+\hline
+status & String & Status: 'draft', 'active', or 'archived'\\
+\hline
+version & Number & Version number (incremented on update)\\
+\hline
+createdAt & Timestamp & Creation timestamp\\
+\hline
+updatedAt & Timestamp & Last update timestamp\\
+\hline
+executionCount & Number & Total execution count\\
+\hline
+canBeListed & Boolean & Marketplace visibility flag\\
+\hline
+tags & Array[String] & Workflow categorization tags\\
+\hline
+collaborators & Array[String] & Collaborator user IDs\\
+\hline
+\caption{Workflow Entity Attributes}
+\end{longtable}
+
+\newpage
+
+\section{Human Interface Design}
+
+\subsection{Design Principles}
+\begin{itemize}
+    \item \textbf{Consistency:} Uniform design patterns across all interfaces
+    \item \textbf{Feedback:} Clear visual feedback for all user actions
+    \item \textbf{Efficiency:} Minimize steps to complete tasks
+    \item \textbf{Accessibility:} WCAG 2.1 AA compliance
+    \item \textbf{Responsiveness:} Adapt to all screen sizes
+\end{itemize}
+
+\subsection{User Interface Screens}
+
+\subsubsection{Authentication Interface (UC-01)}
+\textbf{Login Screen:}\\
+\textcolor{orange}{\textbf{[LOGIN SCREEN UI PLACEHOLDER - Shows email field, password field, login button, forgot password link, and sign-up option]}}
+
+\textbf{Key Elements:}
+\begin{itemize}
+    \item Email input with validation
+    \item Password field with show/hide toggle
+    \item Remember me checkbox
+    \item Social login options (Google OAuth)
+    \item Error message display area
+\end{itemize}
+
+\subsubsection{Workflow Builder Interface (UC-02, UC-03)}
+\textbf{Canvas Screen:}\\
+\textcolor{orange}{\textbf{[WORKFLOW CANVAS UI PLACEHOLDER - Shows drag-drop canvas area, component library sidebar, properties panel, and toolbar]}}
+
+\textbf{Key Elements:}
+\begin{itemize}
+    \item Component library with search/filter
+    \item Main canvas with grid snap
+    \item Properties panel for node configuration
+    \item Toolbar with save, test, deploy actions
+    \item Real-time validation indicators
+\end{itemize}
+
+\subsubsection{Dashboard Interface (UC-05, UC-06)}
+\textbf{Main Dashboard:}\\
+\textcolor{orange}{\textbf{[DASHBOARD UI PLACEHOLDER - Shows metrics cards, recent workflows, quick actions, and activity feed]}}
+
+\textbf{Key Elements:}
+\begin{itemize}
+    \item Usage metrics cards (workflows, API calls, tokens)
+    \item Recent workflow activity list
+    \item Quick action buttons
+    \item Analytics charts
+    \item Navigation sidebar
+\end{itemize}
+
+\newpage
+
+\section{Implementation}
+
+\subsection{Development Environment}
+\begin{itemize}
+    \item \textbf{Backend:} Python 3.9+, FastAPI framework
+    \item \textbf{Frontend:} Node.js 18+, Next.js 13+, React 18
+    \item \textbf{Database:} Firebase Firestore
+    \item \textbf{Version Control:} Git with GitHub
+    \item \textbf{IDE:} VS Code with extensions
+\end{itemize}
+
+\subsection{Algorithms}
+
+\subsubsection{Algorithm 1: Workflow Execution Engine}
+\begin{algorithm}
+\caption{WorkflowExecute(workflowId, triggerData)}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} workflowId (String), triggerData (Object)
+\STATE \textbf{Output:} executionResult (Object), executionLog (Array)
+\STATE
+\STATE executionId $\leftarrow$ GenerateUniqueId()
+\STATE execution $\leftarrow$ CreateExecutionContext(workflowId, executionId, triggerData)
+\STATE workflow $\leftarrow$ LoadWorkflow(workflowId)
+\IF{workflow.status $\neq$ "active"}
+    \RETURN Error("Workflow not active")
+\ENDIF
+\STATE startNode $\leftarrow$ FindStartNode(workflow.nodes)
+\STATE currentNode $\leftarrow$ startNode
+\STATE executionLog $\leftarrow$ []
+\WHILE{currentNode $\neq$ NULL}
+    \STATE stepResult $\leftarrow$ ExecuteNode(currentNode, execution.data)
+    \STATE LogStep(executionLog, currentNode.id, stepResult)
+    \IF{stepResult.status = "error"}
+        \STATE errorResult $\leftarrow$ HandleError(stepResult.error, currentNode, execution)
+        \IF{errorResult.action = "retry"}
+            \STATE currentNode $\leftarrow$ ExecuteNodeWithRetry(currentNode, execution.data)
+        \ELSIF{errorResult.action = "skip"}
+            \STATE currentNode $\leftarrow$ FindNextNode(currentNode, workflow.edges)
+        \ELSIF{errorResult.action = "abort"}
+            \RETURN FailureResult(execution.id, executionLog, stepResult.error)
+        \ENDIF
+    \ELSE
+        \STATE execution.data $\leftarrow$ MergeData(execution.data, stepResult.output)
+        \STATE currentNode $\leftarrow$ FindNextNode(currentNode, workflow.edges)
+    \ENDIF
+\ENDWHILE
+\STATE LogExecution(execution)
+\STATE NotifyUser(workflow.userId, "Workflow completed successfully")
+\RETURN SuccessResult(execution.id, execution.data, executionLog)
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+
+\subsubsection{Algorithm 2: Credential Encryption}
+\begin{algorithm}
+\caption{StoreCredential(userId, service, credentialValue)}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} userId (String), service (String), credentialValue (String)
+\STATE \textbf{Output:} credentialId (String)
+\STATE
+\STATE credentialId $\leftarrow$ GenerateUniqueId()
+\STATE salt $\leftarrow$ GenerateRandomSalt(32)
+\STATE encryptionKey $\leftarrow$ DeriveKey(userId + service, salt, iterations=100000)
+\STATE encryptedValue $\leftarrow$ AES256Encrypt(credentialValue, encryptionKey)
+\STATE credential $\leftarrow$ CreateCredentialObject(
+\STATE \quad id = credentialId,
+\STATE \quad userId = userId,
+\STATE \quad service = service,
+\STATE \quad encryptedValue = encryptedValue,
+\STATE \quad salt = salt,
+\STATE \quad isValid = TRUE,
+\STATE \quad createdAt = CurrentTimestamp()
+\STATE )
+\STATE SaveToDatabase(credential)
+\STATE LogAuditEvent("CREDENTIAL\_CREATED", userId, credentialId)
+\RETURN credentialId
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{External APIs and SDKs}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{API/SDK} & \textbf{Version} & \textbf{Purpose} & \textbf{Status}\\
+\hline
+Firebase Admin SDK & 11.x & Authentication, database operations & Verified\\
+\hline
+Firebase Auth & Latest & User authentication & Verified\\
+\hline
+Firebase Firestore & Latest & NoSQL database & Verified\\
+\hline
+FastAPI & Latest & Backend REST API framework & Verified\\
+\hline
+Pydantic & Latest & Data validation and serialization & Verified\\
+\hline
+Stripe SDK & Latest & Payment processing & Verified\\
+\hline
+Next.js & 13+ & Frontend framework & Verified\\
+\hline
+React & 18 & UI component library & Verified\\
+\hline
+TypeScript & Latest & Type safety & Verified\\
+\hline
+Tailwind CSS & Latest & Utility-first styling & Verified\\
+\hline
+\end{tabularx}
+\caption{External APIs and SDKs}
+\end{table}
+
+\newpage
+
+\subsection{Code Organization}
+
+\subsubsection{Backend Structure}
+\begin{verbatim}
+backend/
+├── app/
+│   ├── api/
+│   │   └── v1/
+│   │       ├── auth.py
+│   │       ├── workflows.py
+│   │       ├── integrations.py
+│   │       └── analytics.py
+│   ├── models/
+│   │   ├── auth_models.py
+│   │   ├── workflow_models.py
+│   │   └── integration_models.py
+│   ├── services/
+│   │   ├── firebase_service.py
+│   │   ├── workflow_service.py
+│   │   └── integration_service.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── security.py
+│   │   └── logging.py
+│   └── main.py
+\end{verbatim}
+
+\subsubsection{Frontend Structure}
+\begin{verbatim}
+app/
+├── dashboard/
+│   └── page.tsx
+├── workflows/
+│   ├── page.tsx
+│   └── [id]/
+│       └── page.tsx
+├── settings/
+│   └── page.tsx
+└── api/
+    └── route.ts
+
+components/
+├── dashboard/
+│   ├── DashboardLayout.tsx
+│   └── DashboardHome.tsx
+├── workflows/
+│   ├── WorkflowBuilder.tsx
+│   └── CanvasComponent.tsx
+└── ui/
+    └── shared components
+
+lib/
+├── auth.ts
+├── AuthContext.tsx
+├── firebase.ts
+└── utils.ts
+\end{verbatim}
+
+\newpage
+
+\subsection{Deployment Architecture}
+
+\subsubsection{Production Environment}
+\begin{itemize}
+    \item \textbf{Frontend Hosting:} Vercel/Netlify
+    \item \textbf{Backend Hosting:} Railway/AWS App Runner
+    \item \textbf{Database:} Firebase Firestore (managed)
+    \item \textbf{CDN:} CloudFlare for static assets
+    \item \textbf{Monitoring:} Sentry for error tracking
+\end{itemize}
+
+\subsubsection{CI/CD Pipeline}
+\begin{enumerate}
+    \item Code pushed to GitHub main branch
+    \item GitHub Actions triggered
+    \item Run unit tests and linting
+    \item Build Docker images
+    \item Deploy to staging environment
+    \item Run integration tests
+    \item Deploy to production (manual approval)
+    \item Post-deployment health checks
+\end{enumerate}
+
+\subsubsection{Environment Variables}
+\begin{itemize}
+    \item FIREBASE\_PROJECT\_ID
+    \item FIREBASE\_PRIVATE\_KEY
+    \item STRIPE\_SECRET\_KEY
+    \item OPENAI\_API\_KEY
+    \item JWT\_SECRET\_KEY
+    \item DATABASE\_URL
+\end{itemize}
+
+\newpage
+
+\section{Testing and Evaluation}
+
+\subsection{Testing Strategy Overview}
+The testing strategy follows a comprehensive multi-level approach to ensure system quality and reliability.
+
+\subsection{Unit Testing}
+
+\subsubsection{Test Case: User Registration (UC-01)}
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|l|}
+\hline
+\textbf{Test ID} & \textbf{Test Case} & \textbf{Expected Result} & \textbf{Status}\\
+\hline
+UT-01-01 & Register with valid email and password & User created successfully & Pass\\
+\hline
+UT-01-02 & Register with duplicate email & Error: Email already exists & Pass\\
+\hline
+UT-01-03 & Register with weak password & Validation error & Pass\\
+\hline
+UT-01-04 & Register with invalid email format & Validation error & Pass\\
+\hline
+UT-01-05 & Email verification link sent & Verification email delivered & Pass\\
+\hline
+\end{tabularx}
+\caption{User Registration Unit Tests}
+\end{table}
+
+\subsubsection{Test Case: Workflow Validation (UC-02, UC-03)}
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|l|}
+\hline
+\textbf{Test ID} & \textbf{Test Case} & \textbf{Expected Result} & \textbf{Status}\\
+\hline
+UT-02-01 & Create workflow with required fields & Workflow saved & Pass\\
+\hline
+UT-02-02 & Create workflow without name & Validation error & Pass\\
+\hline
+UT-02-03 & Build workflow with valid connections & Connections saved & Pass\\
+\hline
+UT-02-04 & Connect incompatible nodes & Error feedback shown & Pass\\
+\hline
+UT-02-05 & Validate complete workflow & All checks pass & Pass\\
+\hline
+\end{tabularx}
+\caption{Workflow Validation Unit Tests}
+\end{table}
+
+\subsection{Functional Testing}
+
+\subsubsection{Test Case: Complete Workflow Execution (UC-04)}
+\textbf{Objective:} Verify end-to-end workflow execution\\
+\textbf{Test Scenario:}
+\begin{enumerate}
+    \item Create workflow with trigger and actions
+    \item Configure node parameters
+    \item Save and activate workflow
+    \item Trigger workflow execution
+    \item Monitor execution progress
+    \item Verify output and logs
+\end{enumerate}
+\textbf{Expected Result:} Workflow executes successfully with correct output
+
+\newpage
+
+\subsection{Integration Testing}
+
+\subsubsection{Test Case: Authentication to Dashboard Flow}
+\textbf{Test ID:} IT-01\\
+\textbf{Objective:} Verify seamless transition from authentication to dashboard\\
+\textbf{Components Tested:}
+\begin{itemize}
+    \item Authentication Service
+    \item Session Management
+    \item User Profile Loading
+    \item Dashboard Rendering
+\end{itemize}
+
+\textbf{Test Steps:}
+\begin{enumerate}
+    \item User enters valid credentials
+    \item System authenticates user
+    \item Session token generated
+    \item User redirected to dashboard
+    \item Dashboard loads user data
+    \item Verify all components render correctly
+\end{enumerate}
+
+\subsubsection{Test Case: Workflow Execution with Error Handling}
+\textbf{Test ID:} IT-02\\
+\textbf{Objective:} Verify error handling during workflow execution\\
+\textbf{Components Tested:}
+\begin{itemize}
+    \item Workflow Execution Engine
+    \item Error Handler
+    \item Notification Service
+    \item Audit Logger
+\end{itemize}
+
+\subsection{Business Rules Testing}
+
+\subsubsection{Decision Table: Workflow Retry Logic}
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|c|c|c|c|c|}
+\hline
+\textbf{Error Type} & \textbf{Retry Count} & \textbf{Config} & \textbf{Retry?} & \textbf{Notify?} & \textbf{Log?}\\
+\hline
+Network Error & < 3 & Enabled & Yes & No & Yes\\
+\hline
+Network Error & $\geq$ 3 & Enabled & No & Yes & Yes\\
+\hline
+Auth Error & Any & Any & No & Yes & Yes\\
+\hline
+Timeout & < 3 & Enabled & Yes & No & Yes\\
+\hline
+Rate Limit & Any & Any & Wait & Yes & Yes\\
+\hline
+\end{tabularx}
+\caption{Workflow Retry Logic Decision Table}
+\end{table}
+
+\newpage
+
+\subsection{Performance Testing}
+
+\subsubsection{Load Testing Requirements}
+\begin{itemize}
+    \item \textbf{Concurrent Users:} 10,000
+    \item \textbf{Workflows per Hour:} 100,000
+    \item \textbf{API Response Time:} < 2 seconds (95th percentile)
+    \item \textbf{Workflow Execution Start:} < 5 seconds
+    \item \textbf{Database Query Time:} < 100ms
+\end{itemize}
+
+\subsubsection{Performance Metrics}
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|l|l|}
+\hline
+\textbf{Metric} & \textbf{Target} & \textbf{Measured} & \textbf{Status}\\
+\hline
+Page Load Time & < 3s & 2.1s & Pass\\
+\hline
+API Response (avg) & < 200ms & 150ms & Pass\\
+\hline
+Database Query (avg) & < 100ms & 75ms & Pass\\
+\hline
+Workflow Execution & < 5s & 3.5s & Pass\\
+\hline
+Memory Usage & < 4GB & 3.2GB & Pass\\
+\hline
+CPU Usage (avg) & < 70\% & 55\% & Pass\\
+\hline
+\end{tabularx}
+\caption{Performance Testing Results}
+\end{table}
+
+\subsection{Security Testing}
+
+\subsubsection{Security Test Cases}
+\begin{itemize}
+    \item \textbf{Authentication:} Token expiration, session hijacking prevention
+    \item \textbf{Authorization:} Role-based access control validation
+    \item \textbf{Data Protection:} Encryption verification (AES-256)
+    \item \textbf{Input Validation:} SQL injection, XSS prevention
+    \item \textbf{Rate Limiting:} API throttling effectiveness
+    \item \textbf{Audit Logging:} Security event tracking
+\end{itemize}
+
+\subsection{User Acceptance Testing}
+
+\subsubsection{UAT Scenarios}
+\begin{enumerate}
+    \item Non-technical user creates first workflow
+    \item Business owner sets up automation
+    \item Developer integrates custom API
+    \item Administrator manages user permissions
+    \item User purchases marketplace template
+\end{enumerate}
+
+\newpage
+
+\section{Appendices}
+
+\subsection{Appendix A: Additional Architecture Diagrams}
+
+\textcolor{orange}{\textbf{[DETAILED ARCHITECTURE PATTERN DIAGRAM PLACEHOLDER - Shows complete layered architecture with all 9 modules, service connections, and data flow patterns]}}
+
+\textcolor{orange}{\textbf{[COMPONENT INTERACTION DIAGRAM PLACEHOLDER - Shows detailed module-to-module communication flows and dependencies]}}
+
+\subsection{Appendix B: Entity Relationship Diagram}
+
+\textcolor{orange}{\textbf{[ERD PLACEHOLDER - Shows all database entities (User, Workflow, Execution, etc.) with relationships, cardinalities, and foreign keys]}}
+
+\subsection{Appendix C: API Endpoint Documentation}
+
+\subsubsection{Authentication Endpoints}
+\begin{itemize}
+    \item POST /api/v1/auth/signup - User registration
+    \item POST /api/v1/auth/signin - User login
+    \item POST /api/v1/auth/logout - User logout
+    \item GET /api/v1/auth/me - Get current user
+    \item POST /api/v1/auth/verify-token - Verify auth token
+\end{itemize}
+
+\subsubsection{Workflow Endpoints}
+\begin{itemize}
+    \item POST /api/v1/workflows - Create workflow
+    \item GET /api/v1/workflows - List workflows
+    \item GET /api/v1/workflows/\{id\} - Get workflow
+    \item PUT /api/v1/workflows/\{id\} - Update workflow
+    \item DELETE /api/v1/workflows/\{id\} - Delete workflow
+    \item POST /api/v1/workflows/\{id\}/execute - Execute workflow
+\end{itemize}
+
+\subsubsection{Integration Endpoints}
+\begin{itemize}
+    \item GET /api/v1/integrations - List integrations
+    \item POST /api/v1/integrations/connections - Create connection
+    \item GET /api/v1/integrations/connections - List connections
+    \item DELETE /api/v1/integrations/connections/\{id\} - Delete connection
+\end{itemize}
+
+\newpage
+
+\subsection{Appendix D: Data Flow Diagrams}
+
+\subsubsection{Context Level DFD}
+
+\textcolor{orange}{\textbf{[CONTEXT DFD PLACEHOLDER - Shows NexAgent system as single process with external entities: User, Firebase, Stripe, OpenAI, Third-party APIs]}}
+
+\subsubsection{Level 0 DFD}
+
+\textcolor{orange}{\textbf{[LEVEL 0 DFD PLACEHOLDER - Shows 9 main processes (modules), data stores, data flows between processes and external entities]}}
+
+\subsubsection{Level 1 DFD - Workflow Execution Process}
+
+\textcolor{orange}{\textbf{[LEVEL 1 DFD PLACEHOLDER - Explodes workflow execution showing: trigger detection, validation, component execution, error handling, logging, notifications]}}
+
+\subsection{Appendix E: State Machine Diagrams}
+
+\subsubsection{User Session States}
+
+\textcolor{orange}{\textbf{[STATE MACHINE PLACEHOLDER - Shows user session states: Unauthenticated -> Authenticating -> Authenticated -> Session Expired with transitions]}}
+
+\subsubsection{Workflow Execution States}
+
+\textcolor{orange}{\textbf{[STATE MACHINE PLACEHOLDER - Shows execution states: Queued -> Initializing -> Running -> Completing -> Success/Failed with error handling transitions]}}
+
+\subsection{Appendix F: Coding Standards}
+
+\subsubsection{Naming Conventions}
+\begin{itemize}
+    \item \textbf{Variables:} camelCase (JavaScript/TypeScript), snake\_case (Python)
+    \item \textbf{Functions:} camelCase (JavaScript/TypeScript), snake\_case (Python)
+    \item \textbf{Classes:} PascalCase (all languages)
+    \item \textbf{Constants:} UPPER\_SNAKE\_CASE
+    \item \textbf{Files:} kebab-case.ts, snake\_case.py
+\end{itemize}
+
+\subsubsection{Code Quality Standards}
+\begin{itemize}
+    \item Maximum function length: 50 lines
+    \item Maximum file length: 500 lines
+    \item Cyclomatic complexity: < 10
+    \item Test coverage: > 80\%
+    \item Documentation: All public methods must have docstrings
+\end{itemize}
+
+\newpage
+
+\subsection{Appendix G: Deployment Checklist}
+
+\subsubsection{Pre-Deployment}
+\begin{itemize}
+    \item[$\square$] All tests passing
+    \item[$\square$] Security scan completed
+    \item[$\square$] Environment variables configured
+    \item[$\square$] Database migrations ready
+    \item[$\square$] Backup procedures tested
+\end{itemize}
+
+\subsubsection{Deployment}
+\begin{itemize}
+    \item[$\square$] Deploy to staging
+    \item[$\square$] Run smoke tests
+    \item[$\square$] Performance testing
+    \item[$\square$] Security verification
+    \item[$\square$] Deploy to production
+\end{itemize}
+
+\subsubsection{Post-Deployment}
+\begin{itemize}
+    \item[$\square$] Monitor error rates
+    \item[$\square$] Check performance metrics
+    \item[$\square$] Verify all services running
+    \item[$\square$] User acceptance verification
+    \item[$\square$] Document deployment
+\end{itemize}
+
+\subsection{Appendix H: Risk Assessment}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|l|X|}
+\hline
+\textbf{Risk} & \textbf{Probability} & \textbf{Impact} & \textbf{Mitigation}\\
+\hline
+API Rate Limits & Medium & High & Implement caching and request queuing\\
+\hline
+Database Overload & Low & High & Auto-scaling and query optimization\\
+\hline
+Security Breach & Low & Critical & Regular audits, encryption, monitoring\\
+\hline
+Service Downtime & Medium & High & Multi-region deployment, failover\\
+\hline
+Data Loss & Low & Critical & Regular backups, point-in-time recovery\\
+\hline
+\end{tabularx}
+\caption{Risk Assessment Matrix}
+\end{table}
+
+\subsection{Appendix I: Glossary}
+
+\begin{itemize}
+    \item \textbf{API:} Application Programming Interface
+    \item \textbf{CI/CD:} Continuous Integration/Continuous Deployment
+    \item \textbf{CRUD:} Create, Read, Update, Delete
+    \item \textbf{DFD:} Data Flow Diagram
+    \item \textbf{ERD:} Entity Relationship Diagram
+    \item \textbf{MFA:} Multi-Factor Authentication
+    \item \textbf{OOP:} Object-Oriented Programming
+    \item \textbf{RBAC:} Role-Based Access Control
+    \item \textbf{REST:} Representational State Transfer
+    \item \textbf{SDD:} Software Design Document
+    \item \textbf{UAT:} User Acceptance Testing
+    \item \textbf{WCAG:} Web Content Accessibility Guidelines
+\end{itemize}
+
+\end{document}

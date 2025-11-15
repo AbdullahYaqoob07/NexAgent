@@ -1,0 +1,43 @@
+@startuml UC-08_Activity
+title UC-08: Handle Error
+skinparam ActivityBackgroundColor #FFEBEE
+skinparam ActivityBorderColor #B71C1C
+skinparam ArrowColor #B71C1C
+
+start
+:Error detected in workflow execution;
+:Capture error context (step, message, stack trace);
+:Categorize error type (network, timeout, auth, validation, etc.);
+:Determine severity (critical, warning, info);
+if (Error severity?) then (Critical)
+    :Create error log record;
+    :Alert system administrators;
+    :Halt workflow execution;
+    :Send urgent notification;
+elseif (Warning)
+    :Create error log;
+    :Log to error database;
+    :Send warning notification;
+else (Info)
+    :Log to analytics;
+endif
+if (Is retryable error?) then (Yes)
+    if (Retry attempts < max?) then (Yes)
+        :Calculate exponential backoff;
+        :Wait delay time;
+        :Retry failed operation;
+        :Transition to retry state;
+    else (No)
+        :Mark as permanently failed;
+        :Abort workflow;
+    endif
+else (No)
+    :Skip step (if skip policy enabled);
+    :Move to next step;
+endif
+:Log complete error context;
+:Store error in error database;
+:Send error notification to user;
+:Error handling complete;
+stop
+@enduml

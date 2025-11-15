@@ -1,0 +1,71 @@
+@startuml UC-13_Activity
+title UC-13: Manage Marketplace (Admin)
+skinparam ActivityBackgroundColor #FFF3E0
+skinparam ActivityBorderColor #E65100
+skinparam ArrowColor #E65100
+
+start
+:Admin accesses marketplace management panel;
+:Verify admin privileges;
+:Display marketplace dashboard;
+:Show pending submissions queue:
+    • New templates awaiting review
+    • Seller verification requests
+    • Disputed items;
+if (Admin selects item to review?) then (Yes)
+    :Load submission details:
+        • Template name
+        • Description
+        • Code/functionality
+        • Author info
+        • Screenshots
+        • Pricing;
+    :Review for policy compliance:
+        • Check for malware/suspicious code
+        • Verify description accuracy
+        • Check pricing appropriateness
+        • Review for plagiarism
+        • Check for inappropriate content;
+    if (Content approved?) then (Yes)
+        :Publish template to marketplace;
+        :Mark item as active;
+        :Send approval email to seller;
+        :Update marketplace featured items;
+    else (Rejected)
+        :Provide feedback to seller;
+        :Set rejection reason;
+        :Send rejection email;
+    endif
+endif
+if (Admin monitors transactions?) then (Yes)
+    :View transaction volume:
+        • Sales per day/week
+        • Revenue metrics
+        • Top sellers
+        • Top products;
+    :Monitor for fraud:
+        • Refund requests
+        • Dispute cases
+        • Chargebacks;
+    if (Disputes found?) then (Yes)
+        :Review dispute details;
+        :Contact parties;
+        :Make resolution decision (refund/keep);
+        :Process resolution;
+    endif
+endif
+if (Admin manages sellers?) then (Yes)
+    :Display seller list;
+    :Verify seller KYC documents:
+        • ID verification
+        • Address verification
+        • Tax documents;
+    if (KYC approved?) then (Yes)
+        :Mark seller as verified;
+        :Enable payout functionality;
+    endif
+endif
+:Generate marketplace analytics report;
+:Log all admin actions for audit;
+stop
+@enduml

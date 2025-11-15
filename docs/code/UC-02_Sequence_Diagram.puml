@@ -1,0 +1,79 @@
+@startuml UC-02_Create_Workflow_Sequence
+
+title UC-02: Create Workflow - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #7B1FA2
+skinparam ActorBackgroundColor #F3E5F5
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #FFF9C4
+
+actor User
+participant Frontend
+participant "API Gateway" as API
+participant WorkflowService
+participant Database as DB
+participant AnalyticsService
+participant ValidationService
+
+User -> Frontend: 1. Click "New Workflow"
+Frontend -> User: 2. Display Workflow Creation Form
+User -> Frontend: 3. Enter Workflow Name
+Frontend -> ValidationService: 4. validate_name(name)
+ValidationService --> Frontend: 5. Name valid (3-100 chars)
+
+User -> Frontend: 6. Enter Description (optional)
+User -> Frontend: 7. Select Category/Tags
+User -> Frontend: 8. Click Create
+
+Frontend -> API: 9. POST /api/v1/workflows/create
+note right of API
+  Body: {
+    "name": "Email Newsletter",
+    "description": "...",
+    "category": "marketing",
+    "tags": ["email", "newsletter"]
+  }
+end note
+
+API -> WorkflowService: 10. create_workflow(user_id, workflow_data)
+
+WorkflowService -> ValidationService: 11. Validate workflow data
+ValidationService --> WorkflowService: 12. All validations passed
+
+WorkflowService -> DB: 13. INSERT Workflow Collection
+activate DB
+DB --> WorkflowService: 14. workflow_id returned
+deactivate DB
+
+WorkflowService -> DB: 15. Store Initial Metadata
+activate DB
+DB --> WorkflowService: 16. Metadata stored
+deactivate DB
+
+WorkflowService -> AnalyticsService: 17. Track Event("workflow_created")
+AnalyticsService -> DB: 18. Store Analytics Event
+DB --> AnalyticsService: 19. Event stored
+
+WorkflowService --> API: 20. Return {workflow_id, status: "draft"}
+API --> Frontend: 21. 201 Created + workflow_id
+Frontend --> User: 22. Show Success Message
+Frontend -> User: 23. Redirect to Workflow Canvas
+
+note right of User
+  Workflow now in DRAFT status
+  - Can be edited
+  - Cannot be executed yet
+  - Auto-save every 30 seconds
+end note
+
+User -> Frontend: 24. (Optional) Enter Workflow Builder
+Frontend -> API: 25. GET /api/v1/workflows/{workflow_id}
+API -> WorkflowService: 26. get_workflow(workflow_id, user_id)
+WorkflowService -> DB: 27. Fetch workflow
+DB --> WorkflowService: 28. Return workflow data
+WorkflowService --> API: 29. Workflow object
+API --> Frontend: 30. 200 OK + workflow
+Frontend --> User: 31. Load Canvas with workflow
+
+@enduml

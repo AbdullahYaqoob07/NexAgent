@@ -1,0 +1,22 @@
+@startuml UC-07_Export_States
+title UC-07: Export Report - State Machine Diagram
+skinparam StateBackgroundColor #E1F5FE
+skinparam StateBorderColor #0288D1
+
+[*] --> SelectingFormat
+state SelectingFormat as "Select Format"
+SelectingFormat --> SelectingRange: Format chosen
+
+state SelectingRange as "Select Date Range"
+SelectingRange --> ExportingReport: Range selected
+
+state ExportingReport as "Exporting Report"
+ExportingReport --> ExportReady: Export complete
+
+state ExportReady as "Export Ready"
+ExportReady --> DownloadingFile: Download clicked
+DownloadingFile --> ExportReady: Download complete
+
+ExportReady --> [*]
+
+@enduml

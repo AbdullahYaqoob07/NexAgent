@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import { userSyncService, FirebaseUser } from './userSync';
 
@@ -34,9 +35,7 @@ export interface UserProfileData {
 
 export function useUserProfile() {
   const { user: authUser } = useAuth();
-  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Transform Firebase user to component-friendly format
   const transformUserData = useCallback((firebaseUser: FirebaseUser): UserProfileData => {
@@ -70,34 +69,30 @@ export function useUserProfile() {
     };
   }, []);
 
-  // Load user profile data
-  const loadUserProfile = useCallback(async () => {
-    if (!authUser) {
-      setProfileData(null);
-      setLoading(false);
-      return;
+  // Load user profile data via React Query
+  const loadUserProfile = useCallback(async (): Promise<UserProfileData | null> => {
+    if (!authUser) return null;
+
+    const firebaseUser = await userSyncService.getUser(authUser.uid);
+    if (firebaseUser) {
+      return transformUserData(firebaseUser);
     }
 
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const firebaseUser = await userSyncService.getUser(authUser.uid);
-      if (firebaseUser) {
-        setProfileData(transformUserData(firebaseUser));
-      } else {
-        // If user doesn't exist in Firestore, create them
-        console.log('User not found in Firestore, creating...');
-        const newUser = await userSyncService.syncUser(authUser);
-        setProfileData(transformUserData(newUser));
-      }
-    } catch (err) {
-      console.error('Error loading user profile:', err);
-      setError('Failed to load user profile');
-    } finally {
-      setLoading(false);
-    }
+    console.log('User not found in Firestore, creating...');
+    const newUser = await userSyncService.syncUser(authUser);
+    return transformUserData(newUser);
   }, [authUser, transformUserData]);
+
+  const {
+    data: profileData,
+    isLoading: loading,
+    error,
+  } = useQuery<UserProfileData | null>({
+    queryKey: ['userProfile', authUser?.uid],
+    queryFn: loadUserProfile,
+    enabled: !!authUser,
+    staleTime: 60 * 1000,
+  });
 
   // Update profile information
   const updateProfile = useCallback(async (updates: Partial<FirebaseUser['profile']>) => {
@@ -105,7 +100,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserProfile(authUser.uid, updates);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating profile:', err);
@@ -120,7 +115,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserPreferences(authUser.uid, updates);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating preferences:', err);
@@ -135,7 +130,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserSocialLinks(authUser.uid, updates);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating social links:', err);
@@ -150,7 +145,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateOnboardingProgress(authUser.uid, step, completedStep);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating onboarding:', err);
@@ -178,7 +173,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserWorkspace(authUser.uid, updates);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating workspace:', err);
@@ -193,7 +188,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserAPIKey(authUser.uid, apiKeyData);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating API key:', err);
@@ -207,7 +202,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.removeUserAPIKey(authUser.uid, apiKeyId);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error removing API key:', err);
@@ -222,7 +217,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserIntegration(authUser.uid, integrationData);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating integration:', err);
@@ -237,7 +232,7 @@ export function useUserProfile() {
 
     try {
       await userSyncService.updateUserSecurity(authUser.uid, updates);
-      await loadUserProfile(); // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['userProfile', authUser.uid] });
       return true;
     } catch (err) {
       console.error('Error updating security:', err);
@@ -258,16 +253,11 @@ export function useUserProfile() {
     }
   }, [authUser]);
 
-  // Load profile when auth user changes
-  useEffect(() => {
-    loadUserProfile();
-  }, [loadUserProfile]);
-
   return {
     // Data
     profileData,
     loading,
-    error,
+    error: error ? 'Failed to load user profile' : null,
     
     // Actions
     updateProfile,
@@ -280,7 +270,7 @@ export function useUserProfile() {
     updateOnboarding,
     trackFeature,
     checkLimits,
-    refreshProfile: loadUserProfile,
+    refreshProfile: () => queryClient.invalidateQueries({ queryKey: ['userProfile', authUser?.uid] }),
     updateSecurity,
     
     // Computed helpers

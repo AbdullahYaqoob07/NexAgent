@@ -1,0 +1,115 @@
+@startuml UC-01_Registration_Login_Sequence
+
+title UC-01: User Registration & Login - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #0277BD
+skinparam ActorBackgroundColor #E3F2FD
+skinparam ActorBorderColor #1976D2
+skinparam ActorFontColor #0D47A1
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #0277BD
+skinparam ParticipantFontColor #01579B
+skinparam SequenceLifeLineBackgroundColor #E3F2FD
+skinparam SequenceGroupBackgroundColor #FFF9C4
+
+actor User
+participant Frontend
+participant "API Gateway" as API
+participant FirebaseService
+participant "Firebase Auth" as FirebaseAuth
+participant Database as DB
+participant NotificationService
+participant EmailService
+
+note over User, EmailService: Registration Flow
+
+User -> Frontend: 1. Click Register / Enter Email & Password
+Frontend -> API: 2. POST /api/v1/auth/register
+API -> FirebaseService: 3. create_user(email, password, name)
+
+FirebaseService -> FirebaseAuth: 4. Create Firebase User Account
+activate FirebaseAuth
+FirebaseAuth --> FirebaseService: 5. Return uid + id_token
+deactivate FirebaseAuth
+
+FirebaseService -> DB: 6. Store User Profile
+activate DB
+DB --> FirebaseService: 7. Confirm Storage
+deactivate DB
+
+FirebaseService -> NotificationService: 8. Queue Email Verification
+NotificationService -> EmailService: 9. Send Verification Email
+activate EmailService
+EmailService --> NotificationService: 10. Email Sent
+deactivate EmailService
+
+FirebaseService --> API: 11. Return {uid, token, message}
+API --> Frontend: 12. 201 Created + Auth Token
+Frontend --> User: 13. Show Success + Redirect to Email Verification
+
+note over User, EmailService: Email Verification
+
+User -> EmailService: 14. Click Verification Link
+EmailService -> API: 15. GET /api/v1/auth/verify-email?token=X
+API -> FirebaseService: 16. verify_email_token(token)
+FirebaseService -> FirebaseAuth: 17. Mark Email as Verified
+FirebaseAuth --> FirebaseService: 18. Confirmed
+FirebaseService -> DB: 19. Update User.emailVerified = true
+DB --> FirebaseService: 20. Updated
+FirebaseService --> API: 21. Verified
+API --> EmailService: 22. Success Response
+EmailService --> User: 23. Email Verified + Redirect to Login
+
+note over User, EmailService: Login Flow
+
+User -> Frontend: 24. Click Login / Enter Email & Password
+Frontend -> API: 25. POST /api/v1/auth/login
+API -> FirebaseService: 26. authenticate_user(email, password)
+
+FirebaseService -> FirebaseAuth: 27. Sign In User
+activate FirebaseAuth
+FirebaseAuth --> FirebaseService: 28. Return id_token
+deactivate FirebaseAuth
+
+FirebaseService -> DB: 29. Fetch User Profile
+activate DB
+DB --> FirebaseService: 30. Return User Data
+deactivate DB
+
+FirebaseService -> NotificationService: 31. Log Login Event
+NotificationService -> DB: 32. Track Analytics Event
+DB --> NotificationService: 33. Event Logged
+
+FirebaseService --> API: 34. Return {uid, token, user}
+API --> Frontend: 35. 200 OK + Auth Token + User Data
+Frontend --> User: 36. Store Token + Redirect to Dashboard
+
+note over User, EmailService: Forgot Password Flow
+
+User -> Frontend: 37. Click "Forgot Password"
+Frontend -> API: 38. POST /api/v1/auth/forgot-password
+API -> FirebaseService: 39. send_password_reset(email)
+
+FirebaseService -> FirebaseAuth: 40. Generate Reset Link
+FirebaseAuth -> EmailService: 41. Send Password Reset Email
+activate EmailService
+EmailService --> FirebaseAuth: 42. Email Sent
+deactivate EmailService
+
+FirebaseService --> API: 43. OK
+API --> Frontend: 44. Show Confirmation Message
+Frontend --> User: 45. "Check Your Email for Reset Link"
+
+User -> EmailService: 46. Click Reset Link
+EmailService -> Frontend: 47. Navigate to Reset Password Form
+Frontend -> User: 48. Enter New Password
+User -> API: 49. POST /api/v1/auth/reset-password
+API -> FirebaseService: 50. reset_password(token, new_password)
+FirebaseService -> FirebaseAuth: 51. Update Password
+FirebaseAuth --> FirebaseService: 52. Password Updated
+FirebaseService --> API: 53. Success
+API --> Frontend: 54. Password Reset Successful
+Frontend --> User: 55. Redirect to Login
+
+@enduml

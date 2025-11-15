@@ -1,0 +1,70 @@
+@startuml UC-14_Activity
+title UC-14: Third-Party App Integration (OAuth)
+skinparam ActivityBackgroundColor #FCE4EC
+skinparam ActivityBorderColor #C2185B
+skinparam ArrowColor #C2185B
+
+start
+:Workflow contains third-party integration node;
+:Load workflow for execution;
+:Detect integration node (Google, Slack, LinkedIn, etc.);
+:Retrieve stored credentials for service:
+    • Query credentials database
+    • Filter by user_id + service
+    • Decrypt credential value;
+if (Credentials valid?) then (Yes)
+    :Build API request:
+        • Get endpoint URL
+        • Construct headers (auth headers)
+        • Format request body
+        • Apply parameter mapping;
+    :Validate request format:
+        • Check required fields
+        • Validate data types
+        • Apply request schema;
+    if (Request valid?) then (Yes)
+        :Send API request to third-party service;
+        :Set request timeout (30s);
+        :Monitor response:
+            • Check HTTP status code
+            • Parse response body
+            • Handle rate limiting;
+        if (Rate limit detected?) then (Yes)
+            :Calculate backoff delay;
+            :Wait before retry;
+            :Retry request;
+        endif
+        if (Response successful?) then (Yes, 200-299)
+            :Parse response data;
+            :Transform response:
+                • Map fields to workflow variables
+                • Apply data transformation
+                • Validate output schema;
+            :Store response in execution context;
+            :Continue to next node;
+        else (Error)
+            :Log API error:
+                • Status code
+                • Error message
+                • Response body;
+            :Apply error handling strategy (retry/skip/abort);
+        endif
+    else (Invalid)
+        :Log validation error;
+        :Halt workflow with error;
+    endif
+else (Invalid credentials)
+    :Log credential error;
+    :Alert user:
+        "Credential expired or invalid
+        Please update credentials";
+    :Abort workflow;
+endif
+:Log API interaction for audit:
+    • API endpoint
+    • Request timestamp
+    • Response time
+    • Status
+    • Data transferred;
+stop
+@enduml

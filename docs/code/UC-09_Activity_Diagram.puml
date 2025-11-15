@@ -1,0 +1,51 @@
+@startuml UC-09_Activity
+title UC-09: Explore Marketplace
+skinparam ActivityBackgroundColor #F0F4C3
+skinparam ActivityBorderColor #827717
+skinparam ArrowColor #827717
+
+start
+:User accesses marketplace;
+:Load marketplace homepage;
+:Display featured templates/workflows;
+if (User searches?) then (Yes)
+    :User enters search query;
+    :Apply search filters (category, rating, price);
+    :Query marketplace database;
+    :Return matching results;
+else (Browse categories)
+    :User selects category;
+endif
+:Retrieve template list from database;
+:Fetch template metadata (name, author, rating, price);
+:Calculate trending scores;
+if (Pagination needed?) then (Yes)
+    :Apply pagination (limit, offset);
+endif
+:Render template cards with:
+    • Template name
+    • Author info
+    • Star rating
+    • Price
+    • Download/Install button;
+if (User filters?) then (Yes)
+    :Apply filters (free/paid, rating > X);
+    :Re-fetch filtered results;
+else (Browse all)
+endif
+if (User clicks template?) then (Yes)
+    :Display template detail page;
+    :Show full description;
+    :Show user reviews & ratings;
+    :Show installation count;
+    :Load related templates;
+else (Continue browsing)
+endif
+if (User adds to favorites?) then (Yes)
+    :Save to user's favorites collection;
+    :Update UI (show filled heart);
+endif
+:Log browsing activity for analytics;
+:Marketplace exploration complete;
+stop
+@enduml
