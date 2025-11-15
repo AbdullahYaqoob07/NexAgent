@@ -1,0 +1,243 @@
+@startuml UC-04_Execution_Lifecycle_States
+
+title UC-04: Workflow Execution - State Machine Diagram
+
+skinparam StateBackgroundColor #FFEBEE
+skinparam StateBorderColor #D32F2F
+skinparam StateTextColor #B71C1C
+skinparam ArrowColor #D32F2F
+skinparam ArrowThickness 2
+
+[*] --> WaitingForTrigger
+
+state WaitingForTrigger {
+    state "Active Workflow" as ActiveWf
+    state "Listening for Events" as Listening
+    ActiveWf --> Listening: Ready
+    Listening --> [*]
+}
+
+WaitingForTrigger --> ReceivingTrigger: Trigger event received
+
+state ReceivingTrigger {
+    state "Parse Event" as ParseEvent
+    state "Extract Trigger Data" as ExtractData
+    state "Validate Input" as ValidateInput
+    
+    ParseEvent --> ExtractData: Event parsed
+    ExtractData --> ValidateInput: Data extracted
+    ValidateInput --> [*]
+}
+
+ReceivingTrigger --> CreatingExecution: Trigger valid
+
+state CreatingExecution {
+    state "Generate execution_id" as GenExecId
+    state "Create Execution Record" as CreateRecord
+    state "Initialize Context" as InitContext
+    
+    GenExecId --> CreateRecord: ID generated
+    CreateRecord --> InitContext: Record created
+    InitContext --> [*]
+}
+
+CreatingExecution --> ExecutionStarted
+
+state ExecutionStarted {
+    state "Mark Status: RUNNING" as MarkRunning
+    state "Start Timer" as StartTimer
+    MarkRunning --> StartTimer: Status updated
+    StartTimer --> [*]
+}
+
+ExecutionStarted --> GettingFirstNode: Workflow started
+
+state GettingFirstNode {
+    state "Fetch First Node" as FetchFirst
+    state "Load Configuration" as LoadConfig
+    FetchFirst --> LoadConfig: Node fetched
+    LoadConfig --> [*]
+}
+
+GettingFirstNode --> ExecutingNode: Node loaded
+
+state ExecutingStep {
+    state "Get Step Config" as GetConfig
+    state "Prepare Parameters" as PrepParams
+    state "Execute Integration" as ExecIntegr
+    
+    GetConfig --> PrepParams: Config loaded
+    PrepParams --> ExecIntegr: Params prepared
+    ExecIntegr --> [*]
+}
+
+ExecutingNode --> ExecutingStep: Process step
+ExecutingStep --> StepResultReceived: Step executed
+
+state StepResultReceived {
+    state "Receive Response" as RecvResp
+    state "Log Execution" as LogExec
+    state "Store Output" as StoreOut
+    
+    RecvResp --> LogExec: Response received
+    LogExec --> StoreOut: Logged
+    StoreOut --> [*]
+}
+
+StepResultReceived --> EvaluatingConditions: Result received
+
+state EvaluatingConditions {
+    state "Check Edge Conditions" as CheckEdges
+    state "Determine Next Node" as DetNext
+    CheckEdges --> DetNext: Conditions evaluated
+    DetNext --> [*]
+}
+
+EvaluatingConditions --> GettingNextNode: Continue execution
+
+state GettingNextNode {
+    state "Fetch Next Node" as FetchNext
+    FetchNext --> [*]
+}
+
+GettingNextNode --> ExecutingNode: Next node fetched
+EvaluatingConditions --> ErrorOccurred: Error detected
+
+state ErrorOccurred {
+    state "Classify Error" as ClassError
+    state "Check Retry Policy" as CheckRetry
+    ClassError --> CheckRetry: Error classified
+    CheckRetry --> [*]
+}
+
+ErrorOccurred --> AttemptingRetry: Retry policy checked
+
+state AttemptingRetry {
+    state "Calculate Backoff" as CalcBackoff
+    state "Wait Delay" as WaitDelay
+    CalcBackoff --> WaitDelay: Backoff calculated
+    WaitDelay --> [*]
+}
+
+AttemptingRetry --> ExecutingStep: Retry step
+AttemptingRetry --> ExecutionFailed: Max retries exceeded
+
+ExecutingNode --> AllStepsCompleted: Last step executed
+
+state AllStepsCompleted {
+    state "Mark Complete" as MarkComplete
+    MarkComplete --> [*]
+}
+
+AllStepsCompleted --> RecordingMetrics: All steps done
+
+state RecordingMetrics {
+    state "Calculate Duration" as CalcDur
+    state "Record End Time" as RecordEnd
+    state "Update Counts" as UpdateCounts
+    
+    CalcDur --> RecordEnd: Duration calculated
+    RecordEnd --> UpdateCounts: End time recorded
+    UpdateCounts --> [*]
+}
+
+RecordingMetrics --> TrackingAnalytics: Metrics recorded
+
+state TrackingAnalytics {
+    state "Create Analytics Event" as CreateEvent
+    state "Store in DB" as StoreDB
+    CreateEvent --> StoreDB: Event created
+    StoreDB --> [*]
+}
+
+TrackingAnalytics --> ExecutionSuccessful: Success
+
+state ExecutionSuccessful {
+    state "Set Status: SUCCESS" as SetSuccess
+    state "Send Notification" as SendNotif
+    SetSuccess --> SendNotif: Status updated
+    SendNotif --> [*]
+}
+
+ExecutionSuccessful --> [*]: Execution completed
+
+ExecutionFailed --> RecordingFailure: Execution failed
+
+state RecordingFailure {
+    state "Set Status: FAILED" as SetFailed
+    state "Record Error Details" as RecordError
+    state "Log Stack Trace" as LogTrace
+    
+    SetFailed --> RecordError: Status updated
+    RecordError --> LogTrace: Error recorded
+    LogTrace --> [*]
+}
+
+RecordingFailure --> NotifyingFailure: Failure recorded
+
+state NotifyingFailure {
+    state "Create Error Notification" as CreateErrorNotif
+    state "Send to User" as SendUser
+    state "Alert Admins" as AlertAdmins
+    
+    CreateErrorNotif --> SendUser: Notification created
+    SendUser --> AlertAdmins: User notified
+    AlertAdmins --> [*]
+}
+
+NotifyingFailure --> [*]: Execution failed & notified
+
+ExecutionStarted --> CancelRequested: User cancels execution
+
+state CancelRequested {
+    state "Stop Current Step" as StopStep
+    state "Mark Cancelled" as MarkCancel
+    StopStep --> MarkCancel: Step stopped
+    MarkCancel --> [*]
+}
+
+CancelRequested --> ExecutionCancelled: Cancellation processed
+
+state ExecutionCancelled {
+    state "Set Status: CANCELLED" as SetCancel
+    SetCancel --> [*]
+}
+
+ExecutionCancelled --> [*]: Cancelled
+
+note right of ExecutingStep
+  Step Execution:
+  • Fetch config
+  • Prepare params
+  • Call integration
+  • Handle response
+  • Log result
+end note
+
+note right of ErrorOccurred
+  Error Handling:
+  • Classify severity
+  • CRITICAL: Stop
+  • ERROR: Retry
+  • WARNING: Log
+end note
+
+note right of AttemptingRetry
+  Exponential Backoff:
+  • 1st: 5s
+  • 2nd: 25s
+  • 3rd: 125s
+  • Max attempts: 3
+end note
+
+note right of TrackingAnalytics
+  Analytics Data:
+  • Execution time
+  • Steps completed
+  • Errors/retries
+  • Resource usage
+  • User context
+end note
+
+@enduml
+

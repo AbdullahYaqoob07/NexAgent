@@ -1,0 +1,48 @@
+@startuml UC-02_Create_Workflow
+
+title UC-02: Create Workflow
+
+skinparam ActivityBackgroundColor #F3E5F5
+skinparam ActivityBorderColor #7B1FA2
+skinparam ActivityFontColor #4A148C
+skinparam ArrowColor #7B1FA2
+
+start
+:User navigates to Workflows page;
+:System displays list of user workflows;
+:User clicks "Create New Workflow";
+:System opens workflow creation dialog;
+:User enters workflow details:
+- Name (3-100 chars)
+- Description (optional)
+- Visibility (private/public/listed);
+
+:System validates inputs;
+if (Validation passed?) then (Yes)
+    :WorkflowService.create_workflow() called;
+    :Service generates unique workflow ID;
+    :Service creates workflow document in Firestore with:
+    - id, userId, name, description
+    - canBeListed, nodes[], edges[], variables{}
+    - status='draft', version=1
+    - createdAt, updatedAt timestamps
+    - executionCount=0, tags[], isPublic=false;
+    
+    :Service increments user stats:
+    - usage.totalWorkflows += 1
+    - usage.workflowsCreated += 1
+    - updatedAt timestamp;
+    
+    :System returns success response;
+    :UI redirects to canvas builder;
+    :Analytics logs "workflow_created" event;
+    :Display success notification;
+else (No)
+    :Display validation error messages;
+    :User retries or cancels;
+endif
+
+:Workflow created and ready for editing;
+stop
+
+@enduml

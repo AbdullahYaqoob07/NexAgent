@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
+import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +14,8 @@ import Image from 'next/image';
 
 export default function SignInPage() {
   const router = useRouter();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { user: firebaseUser, loading: authLoading, signIn, signInWithGoogle } = useAuth();
+  const { isAuthenticated: backendAuthenticated, loading: backendLoading } = useBackendAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,27 +23,49 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // If already authenticated (Firebase or backend), don't show sign-in at all
+  useEffect(() => {
+    if (!authLoading && !backendLoading && (firebaseUser || backendAuthenticated)) {
+      // Prefer hard-coded admin email for redirect decision to avoid races
+      const email = firebaseUser?.email;
+      let redirect = email === 'admin@gmail.com' ? '/admin321' : '/dashboard';
+
+      if (typeof window !== 'undefined') {
+        try {
+          const isAdmin = localStorage.getItem('user_is_admin') === 'true';
+          const adminRedirect = localStorage.getItem('admin_redirect_url');
+          if (isAdmin && adminRedirect) {
+            redirect = adminRedirect;
+          }
+        } catch {
+          // ignore localStorage errors and fall back to computed redirect
+        }
+      }
+
+      router.replace(redirect);
+    }
+  }, [authLoading, backendLoading, firebaseUser, backendAuthenticated, router]);
+
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      
-      // Check if user is admin and redirect accordingly
-      setTimeout(() => {
-        const isAdmin = localStorage.getItem('user_is_admin') === 'true';
-        const redirectUrl = localStorage.getItem('admin_redirect_url');
-        
-        if (isAdmin && redirectUrl) {
-          console.log('🔐 Redirecting admin user to:', redirectUrl);
-          router.push(redirectUrl);
-        } else {
-          router.push('/dashboard');
-        }
-      }, 100); // Small delay to ensure localStorage is updated
-      
+      const signedInUser = await signIn(email, password);
+
+      const isAdminEmail = signedInUser.email === 'admin@gmail.com';
+
+      // Ensure admin flags are set for the hard-coded admin account
+      if (isAdminEmail) {
+        try {
+          localStorage.setItem('user_is_admin', 'true');
+          localStorage.setItem('admin_redirect_url', '/admin321');
+        } catch {}
+      }
+
+      const target = isAdminEmail ? '/admin321' : '/dashboard';
+      router.replace(target);
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -54,21 +78,18 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      await signInWithGoogle();
-      
-      // Check if user is admin and redirect accordingly
-      setTimeout(() => {
-        const isAdmin = localStorage.getItem('user_is_admin') === 'true';
-        const redirectUrl = localStorage.getItem('admin_redirect_url');
-        
-        if (isAdmin && redirectUrl) {
-          console.log('🔐 Redirecting admin user to:', redirectUrl);
-          router.push(redirectUrl);
-        } else {
-          router.push('/dashboard');
-        }
-      }, 100); // Small delay to ensure localStorage is updated
-      
+      const authUser = await signInWithGoogle();
+
+      const isAdminEmail = authUser.email === 'admin@gmail.com';
+      if (isAdminEmail) {
+        try {
+          localStorage.setItem('user_is_admin', 'true');
+          localStorage.setItem('admin_redirect_url', '/admin321');
+        } catch {}
+      }
+
+      const target = isAdminEmail ? '/admin321' : '/dashboard';
+      router.replace(target);
     } catch (error: any) {
       setError(error.message);
     } finally {

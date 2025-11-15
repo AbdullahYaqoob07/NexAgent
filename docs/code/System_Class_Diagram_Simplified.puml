@@ -1,0 +1,273 @@
+@startuml NexAgent_System_Class_Diagram_Clean
+
+title NexAgent - System Architecture (9 Services + Data Models)
+
+skinparam BackgroundColor #FAFAFA
+skinparam ArrowColor #0277BD
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassBorderColor #0277BD
+skinparam ClassFontColor #01579B
+skinparam PackageBackgroundColor #E8F5E9
+skinparam PackageBorderColor #1B5E20
+skinparam fontSize 14
+skinparam ClassFontSize 13
+skinparam linetype ortho
+skinparam maxClassWidth 250
+
+' ============================================================================
+' LAYER 1: SERVICE LAYER (9 Core Modules)
+' ============================================================================
+
+package "🔧 SERVICE LAYER" as ServiceLayer {
+    
+    class FirebaseService {
+        + verify_token()
+        + create_user()
+        + get_user_by_uid()
+        + update_user()
+    }
+    
+    class WorkflowService {
+        + create_workflow()
+        + get_user_workflows()
+        + get_workflow_by_id()
+        + update_workflow()
+        + delete_workflow()
+    }
+    
+    class ExecutionService {
+        + start_execution()
+        + execute_workflow()
+        + execute_step()
+        + handle_error()
+        + retry_step()
+    }
+    
+    class AnalyticsService {
+        + track_event()
+        + get_workflow_metrics()
+        + get_dashboard_overview()
+        + generate_report()
+    }
+    
+    class IntegrationService {
+        + get_integrations()
+        + create_connection()
+        + test_connection()
+        + store_credential()
+        + retrieve_credential()
+    }
+    
+    class BillingService {
+        + create_subscription()
+        + get_subscription()
+        + upgrade_plan()
+        + process_payment()
+        + generate_invoice()
+    }
+    
+    class MarketplaceService {
+        + list_marketplace_items()
+        + search_marketplace()
+        + purchase_template()
+        + publish_item()
+    }
+    
+    class AuditService {
+        + log_action()
+        + get_audit_logs()
+        + generate_audit_report()
+    }
+    
+    class NotificationService {
+        + create_notification()
+        + get_user_notifications()
+        + send_email_notification()
+        + send_push_notification()
+    }
+}
+
+' ============================================================================
+' LAYER 2: DATA MODELS - USER DOMAIN
+' ============================================================================
+
+package "👤 USER DOMAIN MODELS" as UserModels {
+    
+    class User {
+        uid: str
+        email: str
+        displayName: str
+        createdAt: datetime
+    }
+    
+    class Profile {
+        firstName: str
+        lastName: str
+        company: str
+        timezone: str
+    }
+    
+    class Subscription {
+        plan: str
+        status: str
+        billing_cycle: str
+    }
+    
+    class Usage {
+        tokensUsed: int
+        totalWorkflows: int
+        totalApiCalls: int
+    }
+}
+
+' ============================================================================
+' LAYER 3: DATA MODELS - WORKFLOW DOMAIN
+' ============================================================================
+
+package "⚙️ WORKFLOW DOMAIN MODELS" as WorkflowModels {
+    
+    class Workflow {
+        id: str
+        userId: str
+        name: str
+        status: str
+        version: int
+    }
+    
+    class Node {
+        nodeId: str
+        type: str
+        configuration: Dict
+    }
+    
+    class Edge {
+        edgeId: str
+        source: str
+        target: str
+    }
+    
+    class WorkflowExecution {
+        id: str
+        workflowId: str
+        status: str
+        startTime: datetime
+    }
+    
+    class ExecutionLog {
+        timestamp: datetime
+        nodeId: str
+        status: str
+    }
+}
+
+' ============================================================================
+' LAYER 4: DATA MODELS - INTEGRATION DOMAIN
+' ============================================================================
+
+package "🔗 INTEGRATION DOMAIN MODELS" as IntegrationModels {
+    
+    class Integration {
+        id: str
+        name: str
+        category: str
+        authType: str
+    }
+    
+    class Credential {
+        id: str
+        userId: str
+        integrationId: str
+        encryptedValue: str
+    }
+    
+    class Connection {
+        id: str
+        userId: str
+        integrationId: str
+        status: str
+    }
+}
+
+' ============================================================================
+' LAYER 5: DATA MODELS - BUSINESS DOMAIN
+' ============================================================================
+
+package "💼 BUSINESS DOMAIN MODELS" as BusinessModels {
+    
+    class BillingRecord {
+        id: str
+        userId: str
+        amount: float
+        status: str
+    }
+    
+    class Invoice {
+        id: str
+        userId: str
+        total: float
+        items: List
+    }
+    
+    class MarketplaceItem {
+        id: str
+        creatorId: str
+        name: str
+        price: float
+    }
+    
+    class Purchase {
+        id: str
+        userId: str
+        itemId: str
+        purchaseDate: datetime
+    }
+    
+    class AuditLog {
+        id: str
+        action: str
+        resourceType: str
+        userId: str
+    }
+    
+    class Notification {
+        id: str
+        userId: str
+        type: str
+        message: str
+    }
+}
+
+' ============================================================================
+' RELATIONSHIPS - SERVICES TO MODELS
+' ============================================================================
+
+FirebaseService --> User
+WorkflowService --> Workflow
+WorkflowService --> Node
+WorkflowService --> Edge
+ExecutionService --> WorkflowExecution
+ExecutionService --> ExecutionLog
+AnalyticsService --> WorkflowExecution
+IntegrationService --> Integration
+IntegrationService --> Credential
+IntegrationService --> Connection
+BillingService --> BillingRecord
+BillingService --> Invoice
+MarketplaceService --> MarketplaceItem
+MarketplaceService --> Purchase
+AuditService --> AuditLog
+NotificationService --> Notification
+
+' ============================================================================
+' RELATIONSHIPS - DATA MODELS
+' ============================================================================
+
+User --> Profile
+User --> Subscription
+User --> Usage
+Workflow --> Node
+Workflow --> Edge
+WorkflowExecution --> ExecutionLog
+MarketplaceItem --> Purchase
+
+@enduml

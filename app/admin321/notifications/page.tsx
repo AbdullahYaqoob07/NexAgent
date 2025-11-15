@@ -29,6 +29,7 @@ import {
   CartesianGrid,
   LineChart,
   Line,
+  ResponsiveContainer,
 } from "recharts";
 import {
   Search,
@@ -125,6 +126,8 @@ export default function NotificationsPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(50);
+  const [selectedNotificationForModal, setSelectedNotificationForModal] = useState<Notification | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   const fetchNotificationsData = async () => {
     try {
@@ -482,9 +485,9 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between w-full px-0 md:px-0">
         <div>
           <h1 className="text-3xl font-bold text-white">Notifications</h1>
           <p className="text-white/60 mt-1">
@@ -524,7 +527,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <KPICard
           title="Total Notifications"
           value={stats?.total_notifications.toLocaleString() || "0"}
@@ -552,7 +555,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max w-full">
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Notification Status</CardTitle>
@@ -565,8 +568,9 @@ export default function NotificationsPage() {
                 pending: { color: "#F59E0B" },
                 failed: { color: "#EF4444" }
               }}
-              className="h-64"
+              className="h-[300px] w-full"
             >
+              <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie 
                   data={statusData} 
@@ -582,6 +586,7 @@ export default function NotificationsPage() {
                 </Pie>
                 <ChartTooltip content={<ChartTooltipContent />} />
               </PieChart>
+              </ResponsiveContainer>
             </ChartContainer>
             <div className="mt-4 grid grid-cols-2 gap-2">
               {statusData.slice(0, 4).map((item, index) => (
@@ -609,8 +614,9 @@ export default function NotificationsPage() {
                 medium: { color: "#F59E0B" },
                 low: { color: "#3B82F6" }
               }}
-              className="h-64"
+              className="h-[300px] w-full"
             >
+              <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie 
                   data={priorityData} 
@@ -626,6 +632,7 @@ export default function NotificationsPage() {
                 </Pie>
                 <ChartTooltip content={<ChartTooltipContent />} />
               </PieChart>
+              </ResponsiveContainer>
             </ChartContainer>
             <div className="mt-4 space-y-2">
               {priorityData.map((item, index) => (
@@ -648,8 +655,9 @@ export default function NotificationsPage() {
           <CardContent>
             <ChartContainer
               config={{ count: { label: "Notifications", color: "#FF6900" } }}
-              className="h-64"
+              className="h-[300px] w-full"
             >
+              <ResponsiveContainer width="100%" height={300}>
               <LineChart data={recentActivityData} margin={{ left: 12, right: 12 }}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="time" tick={{ fill: "#9CA3AF" }} />
@@ -657,13 +665,14 @@ export default function NotificationsPage() {
                 <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={2} dot={false} />
                 <ChartTooltip content={<ChartTooltipContent />} />
               </LineChart>
+              </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="notifications" className="w-full">
-        <TabsList className="bg-white/5 border-white/10">
+      <Tabs defaultValue="notifications" className="w-full space-y-6">
+        <TabsList className="bg-white/5 border-white/10 w-full inline-flex">
           <TabsTrigger 
             value="notifications" 
             className="text-white/70 data-[state=active]:bg-[#FF6900] data-[state=active]:text-white hover:text-white transition-colors"
@@ -687,11 +696,11 @@ export default function NotificationsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="notifications" className="space-y-6">
+        <TabsContent value="notifications" className="space-y-6 w-full overflow-x-hidden">
           {/* Filters */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="p-6">
-              <div className="flex flex-wrap gap-4 items-end">
+              <div className="flex flex-wrap gap-4 items-end w-full">
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-sm font-medium text-white/70 mb-2 block">
                     Search Notifications
@@ -779,15 +788,16 @@ export default function NotificationsPage() {
           </Card>
 
           {/* Notifications Table */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-white/5 border-white/10 overflow-hidden">
             <CardHeader>
               <CardTitle className="text-white">Notifications ({filteredNotifications.length})</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <div className="w-full min-w-0">
+              <Table className="w-full">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-12 min-w-12">
                       <input 
                         type="checkbox" 
                         checked={selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0}
@@ -801,14 +811,10 @@ export default function NotificationsPage() {
                         className="rounded border-white/30"
                       />
                     </TableHead>
-                    <TableHead className="text-white/70">Notification</TableHead>
-                    <TableHead className="text-white/70">Type</TableHead>
-                    <TableHead className="text-white/70">Priority</TableHead>
-                    <TableHead className="text-white/70">Channels</TableHead>
-                    <TableHead className="text-white/70">Status</TableHead>
-                    <TableHead className="text-white/70">Attempts</TableHead>
-                    <TableHead className="text-white/70">Created</TableHead>
-                    <TableHead className="text-white/70">Actions</TableHead>
+                    <TableHead className="text-white/70 min-w-[350px]">Notification</TableHead>
+                    <TableHead className="text-white/70 min-w-[100px]">Priority</TableHead>
+                    <TableHead className="text-white/70 min-w-[120px]">Status</TableHead>
+                    <TableHead className="text-white/70 min-w-[80px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -829,18 +835,9 @@ export default function NotificationsPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <div className="max-w-md">
+                        <div className="max-w-sm">
                           <div className="font-medium text-white/90">{notification.title}</div>
-                          <div className="text-sm text-white/60 line-clamp-2">{notification.message}</div>
-                          <div className="text-xs text-white/40 mt-1">{notification.id}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getTypeIcon(notification.notification_type)}
-                          <span className="text-white/90 text-sm">
-                            {notification.notification_type.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                          </span>
+                          <div className="text-sm text-white/60 line-clamp-1">{notification.message}</div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -849,44 +846,25 @@ export default function NotificationsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          {notification.channels.slice(0, 3).map((channel, index) => (
-                            <div key={index} className="p-1 bg-white/5 rounded" title={channel}>
-                              {getChannelIcon(channel)}
-                            </div>
-                          ))}
-                          {notification.channels.length > 3 && (
-                            <span className="text-xs text-white/60">+{notification.channels.length - 3}</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
                         <Badge variant="outline" className={getStatusColor(notification.status)}>
                           {getStatusIcon(notification.status)}
                           <span className="ml-1">{notification.status}</span>
                         </Badge>
-                        {notification.last_error && (
-                          <div className="text-xs text-red-400 mt-1" title={notification.last_error}>
-                            Error: {notification.last_error.substring(0, 30)}...
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-white/90">{notification.delivery_attempts}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-white/70 text-sm">
-                          {new Date(notification.created_at).toLocaleString()}
-                        </div>
-                        {notification.scheduled_for && (
-                          <div className="text-xs text-yellow-400 flex items-center gap-1 mt-1">
-                            <Calendar className="w-3 h-3" />
-                            Scheduled
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedNotificationForModal(notification);
+                              setIsDetailModalOpen(true);
+                            }}
+                            className="h-8 w-8 p-0 hover:bg-white/10"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                           {(notification.status === "failed" || notification.status === "retrying") && (
                             <Button
                               size="sm"
@@ -898,14 +876,6 @@ export default function NotificationsPage() {
                               <RotateCcw className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 hover:bg-white/10"
-                            title="View details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -921,11 +891,12 @@ export default function NotificationsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="types" className="space-y-6">
+        <TabsContent value="types" className="space-y-6 w-full overflow-x-hidden">
           <Card className="bg-white/5 border-white/10">
             <CardHeader>
               <CardTitle className="text-white">Notification Types Analytics</CardTitle>
@@ -972,7 +943,7 @@ export default function NotificationsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="channels" className="space-y-6">
+        <TabsContent value="channels" className="space-y-6 w-full overflow-x-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ChannelCard 
               name="Email" 
@@ -1091,6 +1062,114 @@ export default function NotificationsPage() {
             </Button>
             <Button className="bg-[#FF6900] hover:bg-[#E55A00]">
               Create Notification
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notification Details Modal */}
+      <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+        <DialogContent className="bg-white/10 border border-white/20 backdrop-blur-xl max-w-2xl">
+          <DialogHeader className="border-b border-white/10 pb-4">
+            <DialogTitle className="text-2xl text-white">Notification Details</DialogTitle>
+          </DialogHeader>
+          {selectedNotificationForModal && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              {/* Title and Type Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <Label className="text-white/60 text-xs uppercase tracking-wide">Title</Label>
+                  <p className="text-white font-semibold mt-2">{selectedNotificationForModal.title}</p>
+                </div>
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <Label className="text-white/60 text-xs uppercase tracking-wide">Type</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    {getTypeIcon(selectedNotificationForModal.notification_type)}
+                    <p className="text-white font-semibold">{selectedNotificationForModal.notification_type.replace("_", " ")}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority and Status Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <Label className="text-white/60 text-xs uppercase tracking-wide">Priority</Label>
+                  <div className="mt-2">
+                    <Badge className={`${getPriorityColor(selectedNotificationForModal.priority)}`}>
+                      {selectedNotificationForModal.priority.toUpperCase()}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <Label className="text-white/60 text-xs uppercase tracking-wide">Status</Label>
+                  <div className="mt-2">
+                    <Badge className={`${getStatusColor(selectedNotificationForModal.status)}`}>
+                      {getStatusIcon(selectedNotificationForModal.status)}
+                      <span className="ml-1">{selectedNotificationForModal.status}</span>
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message */}
+              <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                <Label className="text-white/60 text-xs uppercase tracking-wide">Message</Label>
+                <p className="text-white/90 mt-2 leading-relaxed">{selectedNotificationForModal.message}</p>
+              </div>
+
+              {/* Channels and Delivery Attempts */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <Label className="text-white/60 text-xs uppercase tracking-wide">Channels</Label>
+                  <div className="flex gap-2 mt-3 flex-wrap">
+                    {selectedNotificationForModal.channels.map((channel, idx) => (
+                      <Badge key={idx} className="bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                        {channel}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                  <Label className="text-white/60 text-xs uppercase tracking-wide">Delivery Attempts</Label>
+                  <p className="text-white text-lg font-semibold mt-2">{selectedNotificationForModal.delivery_attempts}</p>
+                </div>
+              </div>
+
+              {/* Timeline - Created, Sent, Delivered */}
+              <div className="space-y-3">
+                <Label className="text-white/60 text-xs uppercase tracking-wide">Timeline</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                    <p className="text-white/50 text-xs">Created</p>
+                    <p className="text-white/90 text-sm mt-1">{new Date(selectedNotificationForModal.created_at).toLocaleString()}</p>
+                  </div>
+                  {selectedNotificationForModal.sent_at && (
+                    <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                      <p className="text-white/50 text-xs">Sent</p>
+                      <p className="text-white/90 text-sm mt-1">{new Date(selectedNotificationForModal.sent_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {selectedNotificationForModal.delivered_at && (
+                    <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                      <p className="text-white/50 text-xs">Delivered</p>
+                      <p className="text-white/90 text-sm mt-1">{new Date(selectedNotificationForModal.delivered_at).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {selectedNotificationForModal.last_error && (
+                <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/20">
+                  <Label className="text-red-400 text-xs uppercase tracking-wide">Last Error</Label>
+                  <p className="text-red-300 text-sm mt-2">{selectedNotificationForModal.last_error}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="border-t border-white/10 pt-4 mt-4">
+            <Button onClick={() => setIsDetailModalOpen(false)} className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400">
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,0 +1,31 @@
+@startuml UC-04_Execute
+title UC-04: Execute Workflow
+skinparam ActivityBackgroundColor #FCE4EC
+skinparam ActivityBorderColor #880E4F
+skinparam ArrowColor #880E4F
+
+start
+:Trigger event detected;
+:Create execution record;
+:Load workflow definition;
+:Initialize execution context;
+repeat
+    :Get current node;
+    if (Node type?) then (Webhook)
+        :Extract payload;
+    elseif (API Call)
+        :Execute API request;
+    elseif (Conditional)
+        :Evaluate condition;
+    endif
+    if (Error?) then (Yes)
+        :Retry with backoff;
+    endif
+    :Move to next node;
+repeat while (Workflow complete?)
+:Calculate metrics;
+:Update statistics;
+:Send notifications;
+:Execution complete;
+stop
+@enduml

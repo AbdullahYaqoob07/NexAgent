@@ -1,0 +1,24 @@
+@startuml UC-03_Canvas
+title UC-03: Build Workflow Canvas
+skinparam ActivityBackgroundColor #E8F5E9
+skinparam ActivityBorderColor #1B5E20
+skinparam ArrowColor #1B5E20
+
+start
+:User opens workflow builder;
+:Canvas displays components;
+repeat
+    :User drags component;
+    :Configure node properties;
+    :Draw connections;
+repeat while (More components?)
+:Validate workflow;
+if (Valid?) then (Yes)
+    :Enable test/deploy;
+else (No)
+    :Show errors;
+endif
+:Save workflow;
+:Display success;
+stop
+@enduml

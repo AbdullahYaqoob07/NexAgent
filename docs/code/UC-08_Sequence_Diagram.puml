@@ -1,0 +1,27 @@
+@startuml UC-08_Handle_Error
+
+title UC-08: Handle Error - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #C62828
+skinparam ParticipantBackgroundColor #FFFFFF
+
+participant ExecutionService
+participant "Error Handler" as ErrorHandler
+participant NotificationService
+participant AuditService
+participant Database as DB
+
+ExecutionService -> ErrorHandler: 1. Error caught: {type, message, stack}
+ErrorHandler -> ErrorHandler: 2. Classify error (CRITICAL/ERROR/WARNING)
+ErrorHandler -> DB: 3. Log error record
+DB --> ErrorHandler: 4. Error logged
+ErrorHandler -> NotificationService: 5. Create notification
+NotificationService -> DB: 6. Store notification
+DB --> NotificationService: 7. Stored
+ErrorHandler -> AuditService: 8. Log audit entry
+AuditService -> DB: 9. Store audit log
+DB --> AuditService: 10. Logged
+ErrorHandler --> ExecutionService: 11. Return {retry_policy, notification_sent}
+
+@enduml

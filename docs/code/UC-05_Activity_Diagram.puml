@@ -1,0 +1,32 @@
+@startuml UC-05_View_Profile
+
+title UC-05: View User Profile
+
+skinparam ActivityBackgroundColor #E0F2F1
+skinparam ActivityBorderColor #004D40
+skinparam ActivityFontColor #1B5E20
+skinparam ArrowColor #004D40
+
+start
+:User navigates to Profile page;
+:System displays loading skeleton;
+:FirebaseService.get_user_profile(uid) called;
+:Firestore retrieves user document from users/{uid};
+:System populates profile UI sections:\n- Basic Info (avatar, name, email, member since)\n- Profile Details (first/last name, bio, company, job title, location, social links)\n- Usage Statistics (workflows, API calls, storage, team members, integrations)\n- Subscription Info (plan, billing cycle, next billing date, status)\n- Activity (last login, last active feature, session count, time spent)\n- Preferences (theme, language, timezone, notifications)\n- Connected Integrations (list of connected services, disconnect options);
+
+:User can edit profile fields;
+:System validates changes;
+if (Validation passed?) then (Yes)
+    :FirebaseService.update_user_profile() called;
+    :Firestore updates user document;
+    :System shows success notification;
+    :UI refreshes with updated data;
+else (No)
+    :Display error messages;
+endif
+
+:Analytics logs "profile_viewed" event;
+:Profile page displayed;
+stop
+
+@enduml

@@ -1,0 +1,28 @@
+@startuml UC-06_View_Analytics
+
+title UC-06: View Usage Analytics - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #F57C00
+skinparam ActorBackgroundColor #FFF3E0
+skinparam ParticipantBackgroundColor #FFFFFF
+
+actor User
+participant Frontend
+participant "API Gateway" as API
+participant AnalyticsService
+participant Database as DB
+
+User -> Frontend: 1. Click Analytics Dashboard
+Frontend -> API: 2. GET /api/v1/analytics/dashboard?period=month
+API -> AnalyticsService: 3. get_dashboard_overview(user_id, period)
+AnalyticsService -> DB: 4. Query analytics events
+DB --> AnalyticsService: 5. Events data
+AnalyticsService -> DB: 6. Calculate metrics (aggregation)
+DB --> AnalyticsService: 7. Aggregated data
+AnalyticsService -> AnalyticsService: 8. Process & format data
+AnalyticsService --> API: 9. Return {workflow_metrics, execution_stats, ...}
+API --> Frontend: 10. 200 OK + dashboard data
+Frontend --> User: 11. Display charts & metrics
+
+@enduml

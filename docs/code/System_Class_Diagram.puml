@@ -1,0 +1,594 @@
+@startuml NexAgent_Complete_System_Class_Diagram
+
+!define PACKAGE_COLOR #E8F5E9
+!define SERVICE_COLOR #BBDEFB
+!define MODEL_COLOR #FCE4EC
+!define UTIL_COLOR #FFF9C4
+
+title NexAgent - Complete System Class Diagram (All 9 Modules + Data Models)
+
+skinparam BackgroundColor #FAFAFA
+skinparam ArrowColor #0277BD
+skinparam ArrowFontColor #0277BD
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassBorderColor #0277BD
+skinparam ClassFontColor #01579B
+skinparam PackageBackgroundColor PACKAGE_COLOR
+skinparam PackageBorderColor #1B5E20
+skinparam fontSize 12
+skinparam ClassFontSize 11
+left to right direction
+
+' ============================================================================
+' LAYER 1: SERVICE LAYER (9 Core Modules)
+' ============================================================================
+
+package "SERVICE LAYER - 9 Core Modules" as ServiceLayer {
+    
+    class FirebaseService {
+        - app: firebase_admin.App
+        - db: firestore.Client
+        --
+        + verify_token(id_token: str): Dict
+        + create_user(email, password, display_name): Dict
+        + get_user_by_email(email: str): Optional[Dict]
+        + get_user_by_uid(uid: str): Optional[Dict]
+        + update_user(uid: str, **kwargs): Dict
+        + send_password_reset_email(email: str): Dict
+        + get_user_profile(uid: str): Optional[Dict]
+        + set_admin_claims(uid: str, admin_level: str): Dict
+        + remove_admin_claims(uid: str): Dict
+    }
+    
+    class WorkflowService {
+        - db: firestore.Client
+        - workflows_collection: str
+        --
+        + create_workflow(...): Dict
+        + get_user_workflows(user_id, page, page_size): Dict
+        + get_workflow_by_id(workflow_id, user_id): Optional[Dict]
+        + update_workflow(workflow_id, user_id, updates): Dict
+        + delete_workflow(workflow_id, user_id): Dict
+        + validate_workflow(workflow_id: str): Dict
+        + test_workflow(workflow_id: str, test_data: Dict): Dict
+    }
+    
+    class ExecutionService {
+        - db: firestore.Client
+        - execution_collection: str
+        --
+        + start_execution(workflow_id, trigger_data): str
+        + execute_workflow(execution_id: str): Dict
+        + execute_step(step_id, context): Dict
+        + handle_error(error, context): Dict
+        + retry_step(execution_id, step_id): Dict
+        + cancel_execution(execution_id: str): Dict
+        + get_execution_logs(execution_id: str): List[Dict]
+    }
+    
+    class AnalyticsService {
+        - db: firestore.Client
+        - analytics_collection: str
+        - events_collection: str
+        --
+        + track_event(event_type, user_id, properties): Dict
+        + get_workflow_metrics(workflow_id, time_range): Dict
+        + get_dashboard_overview(user_id: str): Dict
+        + get_system_health(): Dict
+        + generate_report(user_id, format): Dict
+        + analyze_bottlenecks(workflow_id): Dict
+        + export_analytics(user_id, format): bytes
+    }
+    
+    class IntegrationService {
+        - db: firestore.Client
+        - integrations_collection: str
+        - connections_collection: str
+        - credentials_collection: str
+        --
+        + get_integrations(category, page): Dict
+        + create_connection(user_id, integration_id, ...): Dict
+        + test_connection(connection_id: str): Dict
+        + store_credential(user_id, integration_id, ...): Dict
+        + retrieve_credential(credential_id: str): Optional[str]
+        + delete_credential(credential_id: str): Dict
+        + execute_api_call(integration_id, endpoint, ...): Dict
+        + refresh_token(credential_id: str): Dict
+    }
+    
+    class BillingService {
+        - db: firestore.Client
+        - billing_collection: str
+        - stripe_client: stripe.Client
+        --
+        + create_subscription(user_id, plan): Dict
+        + get_subscription(user_id: str): Optional[Dict]
+        + upgrade_plan(user_id, new_plan): Dict
+        + process_payment(user_id, amount, currency): Dict
+        + handle_webhook(event_data: Dict): Dict
+        + generate_invoice(user_id: str): Dict
+        + get_billing_history(user_id: str): Dict
+    }
+    
+    class MarketplaceService {
+        - db: firestore.Client
+        - marketplace_collection: str
+        - templates_collection: str
+        --
+        + list_marketplace_items(category, page): Dict
+        + search_marketplace(query, filters): Dict
+        + get_item_details(item_id: str): Optional[Dict]
+        + purchase_template(user_id, template_id): Dict
+        + get_user_purchases(user_id: str): Dict
+        + publish_item(user_id, item_data): Dict
+        + moderate_item(item_id, action): Dict
+    }
+    
+    class AuditService {
+        - db: firestore.Client
+        - audit_collection: str
+        --
+        + log_action(user_id, action, resource_type, ...): Dict
+        + get_audit_logs(user_id, filters): Dict
+        + generate_audit_report(start_date, end_date): Dict
+        + check_compliance(resource_type: str): Dict
+        + get_user_activity(user_id: str): Dict
+    }
+    
+    class NotificationService {
+        - db: firestore.Client
+        - notifications_collection: str
+        - email_client: EmailClient
+        --
+        + create_notification(user_id, type, title, message): Dict
+        + get_user_notifications(user_id, unread_only): Dict
+        + mark_as_read(notification_id: str): Dict
+        + send_email_notification(email, subject, body): Dict
+        + send_push_notification(device_id, message): Dict
+        + subscribe_to_topic(user_id, topic): Dict
+    }
+}
+
+' ============================================================================
+' LAYER 2: DATA MODELS
+' ============================================================================
+
+package "DATA MODELS - Pydantic Classes" as DataModels {
+    
+    class User {
+        - uid: str
+        - email: str
+        - displayName: str
+        - emailVerified: bool
+        - createdAt: datetime
+        - updatedAt: datetime
+        --
+        - profile: Profile
+        - subscription: Subscription
+        - usage: Usage
+        - security: Security
+        - preferences: Preferences
+        - workspace: Workspace
+        --
+        + validate_email(): bool
+        + to_dict(): Dict
+    }
+    
+    class Profile {
+        - firstName: str
+        - lastName: str
+        - bio: Optional[str]
+        - company: str
+        - jobTitle: str
+        - location: str
+        - timezone: str
+        - avatar: Avatar
+    }
+    
+    class Avatar {
+        - url: Optional[str]
+        - initials: str
+    }
+    
+    class Subscription {
+        - plan: str
+        - status: str
+        - billing_cycle: str
+        - next_billing_date: Optional[datetime]
+        - stripeCustomerId: Optional[str]
+    }
+    
+    class Usage {
+        - tokensUsed: int
+        - totalWorkflows: int
+        - totalApiCalls: int
+        - storage_used_gb: float
+        - limits: Limits
+    }
+    
+    class Limits {
+        - tokensPerMonth: int
+        - workflowsMax: int
+        - apiCallsPerMonth: int
+    }
+    
+    class Workflow {
+        - id: str
+        - userId: str
+        - name: str (3-100)
+        - nodes: List[Node]
+        - edges: List[Edge]
+        - variables: Dict
+        - status: str {draft|active|archived}
+        - version: int
+        - executionCount: int
+        --
+        + validate(): bool
+        + to_dict(): Dict
+    }
+    
+    class Node {
+        - nodeId: str
+        - type: str
+        - label: str
+        - position: Position
+        - configuration: Dict
+        - status: str
+    }
+    
+    class Position {
+        - x: float
+        - y: float
+    }
+    
+    class Edge {
+        - edgeId: str
+        - source: str
+        - target: str
+        - condition: Optional[str]
+        - type: str
+    }
+    
+    class WorkflowExecution {
+        - id: str
+        - workflowId: str
+        - userId: str
+        - status: str {running|success|failed}
+        - startTime: datetime
+        - endTime: Optional[datetime]
+        - duration: Optional[float]
+        - stepsCompleted: int
+        - executionLogs: List[ExecutionLog]
+        - errors: List[ErrorRecord]
+        --
+        + add_log(ExecutionLog): void
+        + add_error(ErrorRecord): void
+    }
+    
+    class ExecutionLog {
+        - timestamp: datetime
+        - nodeId: str
+        - action: str
+        - status: str
+        - output: any
+    }
+    
+    class ErrorRecord {
+        - nodeId: str
+        - message: str
+        - severity: str {CRITICAL|ERROR|WARNING}
+        - recovered: bool
+    }
+    
+    class Integration {
+        - id: str
+        - name: str
+        - category: str
+        - authType: str {oauth2|api_key|basic|bearer}
+        - scopes: List[str]
+        - isActive: bool
+    }
+    
+    class Credential {
+        - id: str
+        - userId: str
+        - integrationId: str
+        - type: str
+        - encryptedValue: str
+        - status: str {active|expired|revoked}
+        --
+        + encrypt_value(value): void
+        + decrypt_value(): str
+    }
+    
+    class Connection {
+        - id: str
+        - userId: str
+        - integrationId: str
+        - credentialId: str
+        - status: str
+        --
+        + test_connection(): bool
+    }
+    
+    class AnalyticsEvent {
+        - id: str
+        - eventType: str
+        - userId: Optional[str]
+        - workflowId: Optional[str]
+        - properties: Dict
+        - timestamp: datetime
+    }
+    
+    class WorkflowMetrics {
+        - workflowId: str
+        - totalExecutions: int
+        - successRate: float
+        - avgExecutionTime: float
+    }
+    
+    class BillingRecord {
+        - id: str
+        - userId: str
+        - amount: float
+        - status: str
+        - timestamp: datetime
+    }
+    
+    class Invoice {
+        - id: str
+        - userId: str
+        - invoiceNumber: str
+        - total: float
+        - items: List[InvoiceItem]
+    }
+    
+    class InvoiceItem {
+        - description: str
+        - quantity: int
+        - unitPrice: float
+    }
+    
+    class MarketplaceItem {
+        - id: str
+        - creatorId: str
+        - name: str
+        - category: str
+        - price: float
+        - metrics: ItemMetrics
+    }
+    
+    class ItemMetrics {
+        - salesCount: int
+        - rating: float
+        - reviewCount: int
+    }
+    
+    class Purchase {
+        - id: str
+        - userId: str
+        - itemId: str
+        - price: float
+        - purchaseDate: datetime
+    }
+    
+    class AuditLog {
+        - id: str
+        - action: str
+        - resourceType: str
+        - userId: str
+        - timestamp: datetime
+    }
+    
+    class Notification {
+        - id: str
+        - userId: str
+        - type: str
+        - title: str
+        - message: str
+        - read: bool
+    }
+    
+    class Security {
+        - twoFactorEnabled: bool
+        - sessionTimeout: int
+        - ipWhitelist: List[str]
+    }
+    
+    class Preferences {
+        - theme: str {dark|light}
+        - language: str
+        - timezone: str
+    }
+    
+    class Workspace {
+        - name: str
+        - members: List[str]
+        - roles: List[str]
+    }
+}
+
+' ============================================================================
+' LAYER 3: UTILITY & HELPERS
+' ============================================================================
+
+package "🛠️ UTILITIES & HELPERS" as UtilityLayer {
+    
+    class EncryptionService {
+        {static} + encrypt_aes256(plaintext, key): str
+        {static} + decrypt_aes256(ciphertext, key): str
+        {static} + hash_password(password): str
+        {static} + verify_password(password, hash): bool
+    }
+    
+    class ValidationService {
+        {static} + validate_email(email): bool
+        {static} + validate_password(password): bool
+        {static} + validate_workflow(workflow): bool
+    }
+    
+    class ErrorHandler {
+        {static} + handle_error(error): Dict
+        {static} + log_error(error, context): void
+        {static} + notify_error(user_id, error): void
+    }
+    
+    class Logger {
+        {static} + info(message): void
+        {static} + error(message): void
+        {static} + warning(message): void
+    }
+}
+
+' ============================================================================
+' LAYER 4: EXTERNAL SERVICES
+' ============================================================================
+
+package "☁️ EXTERNAL SERVICES" as ExternalLayer {
+    
+    class FirebaseAdmin {
+        - auth
+        - firestore
+        - storage
+    }
+    
+    class StripeAPI {
+        + create_charge()
+        + create_customer()
+        + handle_webhook()
+    }
+    
+    class EmailService {
+        + send_email()
+        + send_bulk()
+    }
+}
+
+' ============================================================================
+' RELATIONSHIPS - SERVICE TO MODELS
+' ============================================================================
+
+FirebaseService --> User : creates/manages
+FirebaseService --> Profile : manages
+FirebaseService --> Subscription : manages
+
+WorkflowService --> Workflow : manages
+WorkflowService --> Node : manages
+WorkflowService --> Edge : manages
+WorkflowService --> User : updates stats
+
+ExecutionService --> Workflow : executes
+ExecutionService --> WorkflowExecution : creates
+ExecutionService --> ExecutionLog : logs
+ExecutionService --> ErrorRecord : tracks
+ExecutionService --> AnalyticsEvent : generates
+
+AnalyticsService --> AnalyticsEvent : tracks
+AnalyticsService --> WorkflowMetrics : aggregates
+AnalyticsService --> Workflow : analyzes
+
+IntegrationService --> Integration : manages
+IntegrationService --> Credential : stores encrypted
+IntegrationService --> Connection : manages
+IntegrationService --> AnalyticsEvent : logs calls
+
+BillingService --> Subscription : manages
+BillingService --> BillingRecord : creates
+BillingService --> Invoice : generates
+BillingService --> InvoiceItem : includes
+BillingService --> StripeAPI : calls
+
+MarketplaceService --> MarketplaceItem : manages
+MarketplaceService --> Purchase : creates
+MarketplaceService --> ItemMetrics : updates
+
+AuditService --> AuditLog : creates
+AuditService --> AnalyticsEvent : logs
+
+NotificationService --> Notification : manages
+NotificationService --> User : sends to
+NotificationService --> EmailService : uses
+
+' ============================================================================
+' RELATIONSHIPS - MODEL COMPOSITIONS
+' ============================================================================
+
+User --> Profile : contains
+User --> Subscription : contains
+User --> Usage : contains
+User --> Security : contains
+User --> Preferences : contains
+User --> Workspace : contains
+
+Workflow --> Node : contains *
+Workflow --> Edge : contains *
+
+WorkflowExecution --> ExecutionLog : contains *
+WorkflowExecution --> ErrorRecord : contains *
+
+Invoice --> InvoiceItem : contains *
+
+MarketplaceItem --> ItemMetrics : contains
+
+' ============================================================================
+' RELATIONSHIPS - MODEL TO UTILITIES
+' ============================================================================
+
+Credential --> EncryptionService : uses
+User --> ValidationService : uses
+Workflow --> ValidationService : uses
+
+' ============================================================================
+' RELATIONSHIPS - SERVICES TO EXTERNAL
+' ============================================================================
+
+BillingService --> StripeAPI : integrates
+NotificationService --> EmailService : depends on
+FirebaseService --> FirebaseAdmin : uses
+ExecutionService --> EncryptionService : uses
+
+' ============================================================================
+' NOTES & LEGEND
+' ============================================================================
+
+note right of ServiceLayer
+  **9 CORE MODULES**
+  1️⃣ Authentication (FirebaseService)
+  2️⃣ Workflow Management (WorkflowService)
+  3️⃣ Execution Engine (ExecutionService)
+  4️⃣ Analytics (AnalyticsService)
+  5️⃣ Integrations (IntegrationService)
+  6️⃣ Billing (BillingService)
+  7️⃣ Marketplace (MarketplaceService)
+  8️⃣ Audit (AuditService)
+  9️⃣ Notifications (NotificationService)
+end note
+
+note right of DataModels
+  **DATA MODELS (25+ Classes)**
+  • User & Profile (6 nested objects)
+  • Workflow, Node, Edge
+  • Execution, ExecutionLog, ErrorRecord
+  • Integration, Credential, Connection
+  • Analytics, Billing, Marketplace
+  • Audit, Notification
+end note
+
+note right of UtilityLayer
+  **CROSS-CUTTING CONCERNS**
+  • Security: Encryption, Hashing
+  • Validation: Email, Password, Workflow
+  • Error Handling & Logging
+  • All services use these utilities
+end note
+
+note right of ExternalLayer
+  **EXTERNAL DEPENDENCIES**
+  • Firebase: Auth, Firestore, Storage
+  • Stripe: Payment Processing
+  • SendGrid/SES: Email
+  • Third-party APIs: OpenAI, Slack, etc.
+end note
+
+@enduml
+

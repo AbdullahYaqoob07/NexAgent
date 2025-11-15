@@ -1,0 +1,508 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/AuthContext";
+import { authService } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  ShoppingBag,
+  Plus,
+  Settings,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
+  ExternalLink,
+  Key,
+  Zap,
+  MessageCircle,
+  Facebook as FacebookIcon,
+  Instagram as InstagramIcon
+} from "lucide-react";
+import { ShopifyConnectionModal } from "@/components/integrations/ShopifyConnectionModal";
+import { WhatsAppConnectionModal } from "@/components/integrations/WhatsAppConnectionModal";
+import { OpenAIConnectionModal } from "@/components/integrations/OpenAIConnectionModal";
+import { FacebookConnectionModal } from "@/components/integrations/FacebookConnectionModal";
+import { InstagramConnectionModal } from "@/components/integrations/InstagramConnectionModal";
+import { toast } from "sonner";
+
+interface Credential {
+  id: string;
+  name: string;
+  platform: string;
+  status: "active" | "inactive" | "expired" | "error";
+  createdAt: string;
+  lastUsed?: string;
+  metadata?: {
+    shopName?: string;
+    shopOwner?: string;
+    shopEmail?: string;
+    planName?: string;
+  };
+}
+
+const PLATFORM_CONFIG = {
+  shopify: {
+    name: "Shopify",
+    icon: ShoppingBag,
+    color: "#96bf48",
+    description:
+      "Connect your Shopify store to trigger workflows on orders, customers, and products",
+    category: "ecommerce" as const,
+  },
+  openai: {
+    name: "OpenAI",
+    icon: Zap,
+    color: "#10A37F",
+    description: "Add AI capabilities to your workflows with GPT models",
+    category: "llms" as const,
+  },
+  whatsapp: {
+    name: "WhatsApp",
+    icon: MessageCircle,
+    color: "#25D366",
+    description:
+      "Connect WhatsApp Cloud API to send/receive messages and trigger workflows",
+    category: "social" as const,
+  },
+  facebook: {
+    name: "Facebook",
+    icon: FacebookIcon,
+    color: "#1877F2",
+    description: "Connect your Facebook Page for messaging, comments, and insights",
+    category: "social" as const,
+  },
+  instagram: {
+    name: "Instagram",
+    icon: InstagramIcon,
+    color: "#E1306C",
+    description: "Connect your Instagram Business Account for media and messaging",
+    category: "social" as const,
+  },
+} as const;
+
+const CATEGORY_LABELS: Record<"all" | "llms" | "social" | "ecommerce", string> = {
+  all: "All",
+  llms: "LLMs",
+  social: "Social Media",
+  ecommerce: "E‑commerce",
+};
+
+export default function CredentialsView() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [showShopifyModal, setShowShopifyModal] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [showFacebookModal, setShowFacebookModal] = useState(false);
+  const [showInstagramModal, setShowInstagramModal] = useState(false);
+  const [showOpenAIModal, setShowOpenAIModal] = useState(false);
+
+  // Filters & search (wired for future improvements)
+  const [search, setSearch] = useState("");
+  const [platformFilter, setPlatformFilter] = useState<string | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<string | "all">("all");
+  const [browseCategory, setBrowseCategory] = useState<
+    "all" | "llms" | "social" | "ecommerce"
+  >("all");
+
+  // Surface redirects (success/error) from OAuth callback
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : null;
+
+  useEffect(() => {
+    if (searchParams) {
+      const connected = searchParams.get("connected");
+      const errorParam = searchParams.get("error");
+      const shopName = searchParams.get("shopName");
+
+      if (connected === "shopify") {
+        toast.success(
+          `Shopify ${shopName ? `(${shopName}) ` : ""}connected successfully!`
+        );
+        const url = new URL(window.location.href);
+        url.searchParams.delete("connected");
+        url.searchParams.delete("credentialId");
+        url.searchParams.delete("shopName");
+        window.history.replaceState({}, "", url.toString());
+      }
+
+      if (connected === "facebook") {
+        toast.success("Facebook connected successfully!");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("connected");
+        url.searchParams.delete("credentialId");
+        window.history.replaceState({}, "", url.toString());
+      }
+
+      if (connected === "instagram") {
+        toast.success("Instagram connected successfully!");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("connected");
+        url.searchParams.delete("credentialId");
+        window.history.replaceState({}, "", url.toString());
+      }
+
+      if (errorParam) {
+        toast.error(errorParam);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("error");
+        window.history.replaceState({}, "", url.toString());
+      }
+    }
+  }, []);
+
+  const {
+    data: credentials = [],
+    isLoading: loading,
+  } = useQuery<Credential[]>({
+    queryKey: ["credentials", user?.uid],
+    queryFn: async () => {
+      const token = await authService.getUserToken();
+      const response = await fetch("/api/credentials", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const result = await response.json();
+
+      if (!result.success) {
+        toast.error("Failed to load credentials");
+        throw new Error(result.error || "Failed to load credentials");
+      }
+
+      return (result.data || []) as Credential[];
+    },
+    enabled: !!user,
+    staleTime: 60 * 1000,
+  });
+
+  const invalidateCredentials = async () => {
+    if (!user) return;
+    await queryClient.invalidateQueries({ queryKey: ["credentials", user.uid] });
+  };
+
+  const deleteCredential = async (credentialId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this credential? This will affect any workflows using it."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const token = await authService.getUserToken();
+      const response = await fetch(`/api/credentials/${credentialId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast.success("Credential deleted successfully");
+        await invalidateCredentials();
+      } else {
+        toast.error(result.error || "Failed to delete credential");
+      }
+    } catch (error) {
+      console.error("Error deleting credential:", error);
+      toast.error("Failed to delete credential");
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const config = {
+      active: {
+        label: "Active",
+        variant: "default" as const,
+        icon: CheckCircle,
+      },
+      inactive: {
+        label: "Inactive",
+        variant: "secondary" as const,
+        icon: AlertCircle,
+      },
+      expired: {
+        label: "Expired",
+        variant: "destructive" as const,
+        icon: AlertCircle,
+      },
+      error: {
+        label: "Error",
+        variant: "destructive" as const,
+        icon: AlertCircle,
+      },
+    };
+
+    const { label, variant, icon: Icon } =
+      config[status as keyof typeof config] || config.inactive;
+
+    return (
+      <Badge variant={variant} className="gap-1">
+        <Icon className="w-3 h-3" />
+        {label}
+      </Badge>
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="p-6 lg:p-8 text-center max-w-4xl mx-auto">
+        <p className="text-white/80">Please sign in to manage your credentials.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-white">Credentials</h1>
+        <p className="text-white/70 mt-2">
+          Manage your platform integrations and API connections. These credentials
+          are used by your workflows to connect to external services.
+        </p>
+      </div>
+
+      {/* Available Platforms */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-white">Available Integrations</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(PLATFORM_CONFIG).map(([platform, config]) => {
+            const Icon = config.icon;
+            const existingCredential = credentials.find(
+              (c) => c.platform === platform
+            );
+
+            return (
+              <Card
+                key={platform}
+                className="relative bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white flex flex-col"
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#FF6900]/10 flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-[#FF6900]" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {config.name}
+                        {existingCredential &&
+                          getStatusBadge(existingCredential.status)}
+                      </div>
+                    </div>
+                  </CardTitle>
+                  <CardDescription className="text-white/60">
+                    {config.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col justify-end">
+                  {existingCredential ? (
+                    <div className="space-y-3">
+                      <div className="text-sm text-white/70">
+                        <div>
+                          <strong>Connected as:</strong> {existingCredential.name}
+                        </div>
+                        {existingCredential.metadata?.shopName && (
+                          <div>
+                            <strong>Store:</strong> {existingCredential.metadata.shopName}
+                          </div>
+                        )}
+                        <div>
+                          <strong>Added:</strong>{" "}
+                          {new Date(
+                            existingCredential.createdAt
+                          ).toLocaleDateString()}
+                        </div>
+                        {existingCredential.lastUsed && (
+                          <div>
+                            <strong>Last used:</strong>{" "}
+                            {new Date(
+                              existingCredential.lastUsed
+                            ).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 hover:bg-white/5 text-white"
+                        >
+                          <Settings className="w-4 h-4 mr-1" />
+                          Settings
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 hover:bg-red-500/10 text-white hover:text-red-400"
+                          onClick={() => deleteCredential(existingCredential.id)}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        if (platform === "shopify") {
+                          setShowShopifyModal(true);
+                        }
+                        if (platform === "whatsapp") {
+                          setShowWhatsAppModal(true);
+                        }
+                        if (platform === "openai") {
+                          setShowOpenAIModal(true);
+                        }
+                        if (platform === "facebook") {
+                          setShowFacebookModal(true);
+                        }
+                        if (platform === "instagram") {
+                          setShowInstagramModal(true);
+                        }
+                      }}
+                      className="w-full bg-[#FF6900] hover:bg-[#FF6900]/90 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Connect {config.name}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Connected Credentials List */}
+      {credentials.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-white">
+            Connected Credentials
+          </h2>
+          <div className="space-y-3">
+            {credentials.map((credential) => {
+              const platformConfig =
+                PLATFORM_CONFIG[
+                  credential.platform as keyof typeof PLATFORM_CONFIG
+                ];
+              const Icon = platformConfig?.icon || Key;
+
+              return (
+                <Card
+                  key={credential.id}
+                  className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-[#FF6900]/10 flex items-center justify-center">
+                          <Icon className="w-6 h-6 text-[#FF6900]" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">{credential.name}</h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-sm text-white/70">
+                              {platformConfig?.name || credential.platform}
+                            </span>
+                            {getStatusBadge(credential.status)}
+                          </div>
+                          {credential.metadata?.shopName && (
+                            <p className="text-sm text-white/70 mt-1">
+                              {credential.metadata.shopName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 hover:bg-white/5 text-white"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-white/10 hover:bg-red-500/10 text-white hover:text-red-400"
+                          onClick={() => deleteCredential(credential.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {credentials.length === 0 && !loading && (
+        <Card className="text-center py-12 bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
+          <CardContent>
+            <Key className="w-12 h-12 mx-auto mb-4 text-white/40" />
+            <h3 className="text-lg font-semibold mb-2">No credentials connected</h3>
+            <p className="text-white/70 mb-6">
+              Connect your first platform integration to start building powerful
+              workflows.
+            </p>
+            <Button
+              onClick={() => setShowShopifyModal(true)}
+              className="bg-[#FF6900] hover:bg-[#FF6900]/90 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Connect Shopify Store
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Shopify Connection Modal */}
+      <ShopifyConnectionModal
+        open={showShopifyModal}
+        onClose={() => setShowShopifyModal(false)}
+        onConnectionSuccess={async () => {
+          setShowShopifyModal(false);
+          await invalidateCredentials();
+          toast.success("Shopify store connected successfully!");
+        }}
+      />
+
+      {/* Other provider modals (wired for future use) */}
+      <WhatsAppConnectionModal
+        open={showWhatsAppModal}
+        onClose={() => setShowWhatsAppModal(false)}
+      />
+      <OpenAIConnectionModal
+        open={showOpenAIModal}
+        onClose={() => setShowOpenAIModal(false)}
+      />
+      <FacebookConnectionModal
+        open={showFacebookModal}
+        onClose={() => setShowFacebookModal(false)}
+      />
+      <InstagramConnectionModal
+        open={showInstagramModal}
+        onClose={() => setShowInstagramModal(false)}
+      />
+    </div>
+  );
+}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
+import { useBackendAuth } from "@/lib/contexts/BackendAuthContext";
 import Image from "next/image";
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
 export default function Navbar() {
   const router = useRouter();
   const { user } = useAuth();
+  const { user: backendUser, isAuthenticated: backendAuthenticated } = useBackendAuth();
   const [activeSection, setActiveSection] = useState("hero");
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -92,8 +94,10 @@ export default function Navbar() {
     }
   };
 
+  const isLoggedIn = !!user || !!backendUser || backendAuthenticated;
+
   const handleGetStarted = () => {
-    if (user) {
+    if (isLoggedIn) {
       router.push('/dashboard');
     } else {
       router.push('/sign-up');
@@ -102,7 +106,7 @@ export default function Navbar() {
   };
 
   const handleWorkflowsClick = () => {
-    if (user) {
+    if (isLoggedIn) {
       router.push('/workflows');
     } else {
       router.push('/sign-up');

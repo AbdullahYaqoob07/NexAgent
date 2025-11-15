@@ -2,6 +2,7 @@ import { type Metadata } from 'next'
 import { Geist, Geist_Mono, Montserrat } from 'next/font/google'
 import { AuthProvider } from '@/lib/AuthContext'
 import { BackendAuthProvider } from '@/lib/contexts/BackendAuthContext'
+import { ReactQueryProvider } from '@/lib/ReactQueryProvider'
 import './globals.css'
 
 const geistSans = Geist({
@@ -33,13 +34,15 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${geistSans.variable} ${geistMono.variable} ${montserrat.variable} antialiased h-full bg-black`}>
-        <AuthProvider>
-          <BackendAuthProvider>
-            <div className="h-full">
-              {children}
-            </div>
-          </BackendAuthProvider>
-        </AuthProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <BackendAuthProvider>
+              <div className="h-full">
+                {children}
+              </div>
+            </BackendAuthProvider>
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   )

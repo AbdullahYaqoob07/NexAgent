@@ -1,0 +1,46 @@
+@startuml UC-05_Profile_States
+
+title UC-05: User Profile - State Machine Diagram
+
+skinparam StateBackgroundColor #E3F2FD
+skinparam StateBorderColor #1976D2
+skinparam StateTextColor #0D47A1
+skinparam ArrowColor #1976D2
+skinparam ArrowThickness 2
+
+[*] --> ViewingProfile
+
+state ViewingProfile {
+    state "Profile Loaded" as ProfileLoaded
+    ProfileLoaded --> [*]
+}
+
+ViewingProfile --> EditingProfile: User clicks edit
+
+state EditingProfile {
+    state "Form Active" as FormActive
+    state "Changes Made" as ChangesMade
+    FormActive --> ChangesMade: User modifies
+    ChangesMade --> FormActive: Cancel
+    ChangesMade --> [*]
+}
+
+EditingProfile --> SavingProfile: User clicks save
+
+state SavingProfile {
+    state "Validate Data" as ValidData
+    state "Send to API" as SendAPI
+    ValidData --> SendAPI: Valid
+    SendAPI --> [*]
+}
+
+SavingProfile --> SaveSuccessful: Save OK
+SaveSuccessful --> ViewingProfile: Redirect
+
+SavingProfile --> SaveFailed: Error
+SaveFailed --> EditingProfile: Retry
+
+ViewingProfile --> [*]
+
+@enduml
+

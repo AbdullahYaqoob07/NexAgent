@@ -1,0 +1,59 @@
+@startuml UC-12_Activity
+title UC-12: Assign User Roles (Admin)
+skinparam ActivityBackgroundColor #E8F5E9
+skinparam ActivityBorderColor #2E7D32
+skinparam ArrowColor #2E7D32
+
+start
+:Admin accesses user management panel;
+:Verify admin privileges;
+:Display list of all users;
+if (Search for user?) then (Yes)
+    :Admin enters username/email;
+    :Query user database;
+    :Return matching users;
+endif
+:Display user details:
+    • Name
+    • Email
+    • Current role
+    • Account status
+    • Created date;
+if (Admin selects user?) then (Yes)
+    :Open role assignment dialog;
+else (Browse list)
+endif
+:Display available roles:
+    • Admin
+    • User
+    • Viewer;
+:Show current role (highlighted);
+:Display permissions for each role;
+if (Admin selects new role?) then (Yes)
+    :Validate role change is allowed:
+        • Check not self-role modification
+        • Check target user exists
+        • Check role is valid;
+    if (Validation passed?) then (Yes)
+        :Confirm role change with admin;
+        :Create audit log entry:
+            • Who changed (admin_id)
+            • What changed (role)
+            • From role
+            • To role
+            • Timestamp
+            • Reason (optional);
+        :Update user document in database;
+        :Update user permissions cache;
+        :Send notification to user:
+            "Your role has been changed to {role}";
+        :Log action in system audit;
+        :Display success message;
+    else (Validation failed)
+        :Show error message;
+        :Log failed attempt;
+    endif
+endif
+:Update role assignment complete;
+stop
+@enduml

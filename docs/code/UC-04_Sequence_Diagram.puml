@@ -1,0 +1,122 @@
+@startuml UC-04_Execute_Workflow_Sequence
+
+title UC-04: Execute Workflow - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #D32F2F
+skinparam ActorBackgroundColor #FFEBEE
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #FFF9C4
+
+actor Trigger
+participant ExecutionEngine
+participant ExecutionService
+participant Database as DB
+participant WorkflowService
+participant IntegrationService
+participant ErrorHandler
+participant AnalyticsService
+
+Trigger -> ExecutionEngine: 1. Workflow Trigger Event
+note right of Trigger
+  Trigger Types:
+  • Manual execution
+  • Scheduled
+  • Webhook
+  • Third-party event
+end note
+
+ExecutionEngine -> ExecutionService: 2. start_execution(workflow_id, trigger_data)
+
+ExecutionService -> DB: 3. Fetch Workflow
+activate DB
+DB --> ExecutionService: 4. Workflow object
+deactivate DB
+
+ExecutionService -> DB: 5. Create Execution Record
+activate DB
+DB --> ExecutionService: 6. execution_id
+deactivate DB
+
+ExecutionService -> ExecutionService: 7. Initialize execution_context
+
+ExecutionEngine --> Trigger: 8. execution_id (async response)
+
+ExecutionService -> ExecutionService: 9. Get first node (trigger)
+ExecutionService -> ExecutionService: 10. Execute node
+
+loop For Each Step
+    ExecutionService -> WorkflowService: 11. Get step configuration
+    WorkflowService -> DB: 12. Query step config
+    DB --> WorkflowService: 13. Config data
+    WorkflowService --> ExecutionService: 14. Step details
+    
+    ExecutionService -> IntegrationService: 15. execute_api_call(integration, endpoint, params)
+    
+    alt API Call Successful
+        IntegrationService --> ExecutionService: 16. Return response data
+        ExecutionService -> DB: 17. Log step execution
+        activate DB
+        DB --> ExecutionService: 18. Logged
+        deactivate DB
+        
+        ExecutionService -> ExecutionService: 19. Evaluate conditions on edges
+        ExecutionService -> ExecutionService: 20. Determine next step
+    else API Call Failed
+        IntegrationService --> ExecutionService: 16. Error response
+        ExecutionService -> ErrorHandler: 17. handle_error(error, context)
+        
+        note right of ErrorHandler
+          Error Classification:
+          • Classify by severity
+          • Check retry policy
+          • Decide action
+        end note
+        
+        ErrorHandler --> ExecutionService: 18. {retry: true, delay: 5s}
+        ExecutionService -> ExecutionService: 19. Wait 5 seconds
+        ExecutionService -> IntegrationService: 20. Retry API call (exponential backoff)
+        
+        alt Retry Succeeds
+            IntegrationService --> ExecutionService: 21. Success
+            ExecutionService -> ExecutionService: 22. Continue
+        else Max Retries Exceeded
+            ExecutionService -> ErrorHandler: 23. Log fatal error
+            ErrorHandler -> DB: 24. Update execution status = "failed"
+            DB --> ErrorHandler: 25. Updated
+            ExecutionService -> AnalyticsService: 26. Track failure event
+            AnalyticsService -> DB: 27. Store event
+            DB --> AnalyticsService: 28. Stored
+            ExecutionService --> Trigger: 29. Error notification sent
+        end
+    end
+end
+
+ExecutionService -> ExecutionService: 30. All steps completed
+
+ExecutionService -> DB: 31. Update execution status = "success"
+activate DB
+DB --> ExecutionService: 32. Updated
+deactivate DB
+
+ExecutionService -> DB: 33. Record end_time & duration
+activate DB
+DB --> ExecutionService: 34. Updated
+deactivate DB
+
+ExecutionService -> AnalyticsService: 35. Track execution completion
+AnalyticsService -> DB: 36. Store analytics event
+activate DB
+DB --> AnalyticsService: 37. Stored
+deactivate DB
+
+ExecutionService -> DB: 38. Increment workflow execution_count
+activate DB
+DB --> ExecutionService: 39. Updated
+deactivate DB
+
+ExecutionService --> ExecutionEngine: 40. Return {status: "success", logs: [...]}
+
+ExecutionEngine -> Trigger: 41. Send completion notification
+
+@enduml

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -67,7 +68,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         {/* Brand */}
         <div className="p-6 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF6900] to-[#FF8555]" />
+          <Image
+            src="/favicon.ico"
+            alt="NexAgent logo"
+            width={40}
+            height={40}
+            className="rounded-lg"
+            priority
+          />
           <div>
             <h1 className="text-xl font-bold">Nex<span className="text-[#FF6900]">Agent</span></h1>
             <p className="text-xs text-white/50">Admin Console</p>

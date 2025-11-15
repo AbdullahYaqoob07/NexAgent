@@ -1,0 +1,18 @@
+@startuml UC-07_Export
+title UC-07: Export Report States
+skinparam StateBackgroundColor #E1F5FE
+skinparam StateBorderColor #0288D1
+
+[*] --> Format
+state Format as "Select Format"
+Format --> Range: Chosen
+state Range as "Select Range"
+Range --> Exporting: Confirmed
+state Exporting as "Exporting"
+Exporting --> Ready: Complete
+state Ready as "Ready"
+Ready --> Download: Download
+state Download as "Downloading"
+Download --> Ready
+Ready --> [*]
+@enduml
