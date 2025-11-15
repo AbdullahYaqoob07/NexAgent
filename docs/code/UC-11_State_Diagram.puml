@@ -1,0 +1,214 @@
+@startuml UC-11_States
+title UC-11: Credential Management - State Machine Diagram
+skinparam StateBackgroundColor #F3E5F5
+skinparam StateBorderColor #7B1FA2
+skinparam StateTextColor #4A148C
+skinparam ArrowColor #7B1FA2
+skinparam ArrowThickness 2
+
+[*] --> CredentialsInterface
+
+state CredentialsInterface {
+    state "Load Credentials Page" as LoadPage
+    state "Fetch Existing Credentials" as FetchCreds
+    state "Display Credentials List" as DisplayList
+    
+    LoadPage --> FetchCreds: Page loaded
+    FetchCreds --> DisplayList: Credentials fetched
+    DisplayList --> [*]
+}
+
+CredentialsInterface --> UserAction: Credentials displayed
+
+state UserAction <<choice>>
+
+UserAction --> AddingCredential: Click add credential
+UserAction --> EditingCredential: Click edit
+UserAction --> DeletingCredential: Click delete
+
+state AddingCredential {
+    state "Open Add Form" as OpenForm
+    OpenForm --> [*]
+}
+
+AddingCredential --> SelectingService: Form opened
+
+state SelectingService {
+    state "Display Service List" as DisplayServices
+    state "User Selects Service" as SelectService
+    state "Load Service Template" as LoadTemplate
+    
+    DisplayServices --> SelectService: Services displayed
+    SelectService --> LoadTemplate: Service selected
+    LoadTemplate --> [*]
+}
+
+SelectingService --> EnteringData: Service selected
+
+state EnteringData {
+    state "Display Input Fields" as DisplayFields
+    state "User Enters Data" as EnterData
+    DisplayFields --> EnterData: Fields displayed
+    EnterData --> [*]
+}
+
+EnteringData --> ValidatingFormat: Data entered
+
+state ValidatingFormat {
+    state "Check Not Empty" as CheckEmpty
+    state "Validate Format" as ValidateFormat
+    state "Check Length" as CheckLength
+    
+    CheckEmpty --> ValidateFormat: Emptiness checked
+    ValidateFormat --> CheckLength: Format validated
+    CheckLength --> [*]
+}
+
+ValidatingFormat --> FormatCheck <<choice>>
+
+state FormatCheck <<choice>>
+
+FormatCheck --> EncryptingCredential: Format valid
+FormatCheck --> ValidationError: Format invalid
+
+state ValidationError {
+    state "Display Error Message" as DisplayError
+    state "Highlight Invalid Fields" as HighlightFields
+    DisplayError --> HighlightFields: Error displayed
+    HighlightFields --> [*]
+}
+
+ValidationError --> EnteringData: User corrects
+
+state EncryptingCredential {
+    state "Generate Salt" as GenSalt
+    state "Derive Key" as DeriveKey
+    state "Apply AES-256 Encryption" as ApplyEnc
+    
+    GenSalt --> DeriveKey: Salt generated
+    DeriveKey --> ApplyEnc: Key derived
+    ApplyEnc --> [*]
+}
+
+EncryptingCredential --> StoringCredential: Encrypted
+
+state StoringCredential {
+    state "Create Database Record" as CreateRecord
+    state "Store Encrypted Value" as StoreEncrypted
+    state "Store Metadata" as StoreMetadata
+    
+    CreateRecord --> StoreEncrypted: Record created
+    StoreEncrypted --> StoreMetadata: Value stored
+    StoreMetadata --> [*]
+}
+
+StoringCredential --> TestingCredential: Stored in DB
+
+state TestingCredential {
+    state "Prepare Test Request" as PrepRequest
+    state "Call Service API" as CallAPI
+    state "Validate Response" as ValidateResponse
+    
+    PrepRequest --> CallAPI: Request prepared
+    CallAPI --> ValidateResponse: API called
+    ValidateResponse --> [*]
+}
+
+TestingCredential --> TestResult <<choice>>
+
+state TestResult <<choice>>
+
+TestResult --> TestSuccess: Test successful
+TestResult --> TestFailed: Test failed
+
+state TestSuccess {
+    state "Mark as Valid" as MarkValid
+    state "Update is_valid=true" as UpdateValid
+    state "Store Success Time" as StoreSucTime
+    
+    MarkValid --> UpdateValid: Marked valid
+    UpdateValid --> StoreSucTime: Updated
+    StoreSucTime --> [*]
+}
+
+state TestFailed {
+    state "Mark as Invalid" as MarkInvalid
+    state "Log Error Details" as LogError
+    state "Display Test Error" as DisplayTestError
+    
+    MarkInvalid --> LogError: Marked invalid
+    LogError --> DisplayTestError: Error logged
+    DisplayTestError --> [*]
+}
+
+TestSuccess --> AuditLogging: Validation succeeded
+TestFailed --> RetryOption: Validation failed
+
+state RetryOption {
+    state "Offer Retry" as OfferRetry
+    OfferRetry --> [*]
+}
+
+RetryOption --> EnteringData: User retries
+
+state AuditLogging {
+    state "Create Audit Record" as CreateAudit
+    state "Log Timestamp" as LogTime
+    state "Log User Action" as LogAction
+    
+    CreateAudit --> LogTime: Audit created
+    LogTime --> LogAction: Time logged
+    LogAction --> [*]
+}
+
+AuditLogging --> DisplaySuccess: Audit logged
+
+state DisplaySuccess {
+    state "Show Success Message" as ShowSuccess
+    state "Add to Credentials List" as AddList
+    state "Update UI" as UpdateUI
+    
+    ShowSuccess --> AddList: Success shown
+    AddList --> UpdateUI: Added to list
+    UpdateUI --> [*]
+}
+
+DisplaySuccess --> [*]: Credential added successfully
+
+state EditingCredential {
+    state "Load Credential" as LoadCred
+    state "Show Edit Form" as ShowEdit
+    LoadCred --> ShowEdit: Credential loaded
+    ShowEdit --> [*]
+}
+
+state DeletingCredential {
+    state "Confirm Deletion" as ConfirmDel
+    state "Remove from Database" as RemoveDB
+    state "Log Deletion" as LogDel
+    
+    ConfirmDel --> RemoveDB: Deletion confirmed
+    RemoveDB --> LogDel: Removed
+    LogDel --> [*]
+}
+
+EditingCredential --> EnteringData: Editing
+DeletingCredential --> CredentialsInterface: Deleted
+
+note right of EncryptingCredential
+  Encryption Details:
+  • Algorithm: AES-256-CBC
+  • Key derivation: PBKDF2
+  • Iterations: 100,000
+  • Random salt per credential
+end note
+
+note right of TestingCredential
+  Test Validation:
+  • API endpoint call
+  • Response code check
+  • Timeout: 30s
+  • Rate limit aware
+end note
+
+@enduml

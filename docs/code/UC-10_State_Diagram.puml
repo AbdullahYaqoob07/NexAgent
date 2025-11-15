@@ -1,0 +1,225 @@
+@startuml UC-10_States
+title UC-10: Template Purchase - State Machine Diagram
+skinparam StateBackgroundColor #E3F2FD
+skinparam StateBorderColor #1565C0
+skinparam StateTextColor #0D47A1
+skinparam ArrowColor #1565C0
+skinparam ArrowThickness 2
+
+[*] --> TemplateSelected
+
+state TemplateSelected {
+    state "Get Template ID" as GetID
+    state "Fetch Template Details" as FetchDetails
+    state "Load Pricing" as LoadPricing
+    
+    GetID --> FetchDetails: ID captured
+    FetchDetails --> LoadPricing: Details fetched
+    LoadPricing --> [*]
+}
+
+TemplateSelected --> AuthenticationCheck: Template selected
+
+state AuthenticationCheck {
+    state "Verify User Token" as VerifyToken
+    state "Check Session Valid" as CheckSession
+    VerifyToken --> CheckSession: Token verified
+    CheckSession --> [*]
+}
+
+AuthenticationCheck --> LicenseCheck: User authenticated
+
+state LicenseCheck {
+    state "Query User Licenses" as QueryLicenses
+    state "Check if Already Owned" as CheckOwned
+    QueryLicenses --> CheckOwned: Licenses queried
+    CheckOwned --> [*]
+}
+
+LicenseCheck --> PriceCheck: License status checked
+
+state PriceCheck <<choice>>
+
+PriceCheck --> FreeTemplate: Template is free
+PriceCheck --> PaidTemplate: Template is paid
+
+state FreeTemplate {
+    state "Install Directly" as InstallDirect
+    InstallDirect --> [*]
+}
+
+state PaidTemplate {
+    state "Display Pricing" as DisplayPrice
+    state "Show Payment Methods" as ShowMethods
+    DisplayPrice --> ShowMethods: Price displayed
+    ShowMethods --> [*]
+}
+
+FreeTemplate --> Installation: Free template
+PaidTemplate --> CreatingCheckout: Paid template
+
+state CreatingCheckout {
+    state "Generate Checkout Session" as GenSession
+    state "Create Session ID" as CreateSession
+    state "Store Session in DB" as StoreSession
+    
+    GenSession --> CreateSession: Session generated
+    CreateSession --> StoreSession: Session created
+    StoreSession --> [*]
+}
+
+CreatingCheckout --> RedirectingToPayment: Session created
+
+state RedirectingToPayment {
+    state "Generate Stripe URL" as GenStripeURL
+    state "Redirect to Payment" as RedirectPayment
+    GenStripeURL --> RedirectPayment: URL generated
+    RedirectPayment --> [*]
+}
+
+RedirectingToPayment --> UserPayment: Redirected to Stripe
+
+state UserPayment {
+    state "Display Payment Form" as DisplayForm
+    state "User Enters Details" as EnterDetails
+    state "Validate Input" as ValidateInput
+    
+    DisplayForm --> EnterDetails: Form shown
+    EnterDetails --> ValidateInput: Details entered
+    ValidateInput --> [*]
+}
+
+UserPayment --> ProcessingPayment: Payment info entered
+
+state ProcessingPayment {
+    state "Call Stripe API" as CallStripe
+    state "Process Payment" as ProcessPay
+    state "Return Status" as ReturnStatus
+    
+    CallStripe --> ProcessPay: API called
+    ProcessPay --> ReturnStatus: Payment processed
+    ReturnStatus --> [*]
+}
+
+ProcessingPayment --> PaymentDecision <<choice>>
+
+state PaymentDecision <<choice>>
+
+PaymentDecision --> PaymentSuccess: Payment successful
+PaymentDecision --> PaymentFailed: Payment declined/failed
+
+state PaymentSuccess {
+    state "Create Purchase Record" as CreateRecord
+    state "Assign License" as AssignLicense
+    state "Store in Database" as StoreDB
+    
+    CreateRecord --> AssignLicense: Record created
+    AssignLicense --> StoreDB: License assigned
+    StoreDB --> [*]
+}
+
+state PaymentFailed {
+    state "Log Failed Transaction" as LogFailed
+    state "Record Error Reason" as RecordError
+    state "Store for Retry" as StoreRetry
+    
+    LogFailed --> RecordError: Transaction logged
+    RecordError --> StoreRetry: Error recorded
+    StoreRetry --> [*]
+}
+
+PaymentSuccess --> GeneratingInvoice: Purchase created
+PaymentFailed --> PaymentRetry: Payment failed
+
+state PaymentRetry {
+    state "Display Error Message" as DisplayError
+    state "Offer Retry" as OfferRetry
+    DisplayError --> OfferRetry: Error shown
+    OfferRetry --> [*]
+}
+
+PaymentRetry --> ProcessingPayment: User retries
+
+state GeneratingInvoice {
+    state "Create Invoice Record" as CreateInvoice
+    state "Store Invoice" as StoreInvoice
+    state "Generate PDF" as GenPDF
+    
+    CreateInvoice --> StoreInvoice: Invoice created
+    StoreInvoice --> GenPDF: Stored
+    GenPDF --> [*]
+}
+
+GeneratingInvoice --> SendingConfirmation: Invoice generated
+
+state SendingConfirmation {
+    state "Compose Email" as ComposeEmail
+    state "Send Confirmation" as SendConfirm
+    state "Log Sent" as LogSent
+    
+    ComposeEmail --> SendConfirm: Email composed
+    SendConfirm --> LogSent: Email sent
+    LogSent --> [*]
+}
+
+SendingConfirmation --> UpdatingAnalytics: Email sent
+
+state UpdatingAnalytics {
+    state "Record Sales" as RecordSales
+    state "Calculate Commission" as CalcCommission
+    state "Update Seller Payout" as UpdatePayout
+    
+    RecordSales --> CalcCommission: Sale recorded
+    CalcCommission --> UpdatePayout: Commission calculated
+    UpdatePayout --> [*]
+}
+
+UpdatingAnalytics --> Installation: Analytics updated
+
+state Installation {
+    state "Install Template" as InstallTemp
+    state "Update User Workflows" as UpdateWorkflows
+    state "Set Status Active" as SetActive
+    
+    InstallTemp --> UpdateWorkflows: Template installed
+    UpdateWorkflows --> SetActive: Workflows updated
+    SetActive --> [*]
+}
+
+Installation --> DisplaySuccess: Installation complete
+
+state DisplaySuccess {
+    state "Show Success Message" as ShowSuccess
+    state "Display Template Link" as DisplayLink
+    state "Offer Next Actions" as OfferActions
+    
+    ShowSuccess --> DisplayLink: Success shown
+    DisplayLink --> OfferActions: Link displayed
+    OfferActions --> [*]
+}
+
+DisplaySuccess --> [*]: Purchase and installation complete
+
+note right of PriceCheck
+  Pricing Logic:
+  • Free templates: Direct install
+  • Paid templates: Stripe checkout
+  • Subscription level: Discount tiers
+end note
+
+note right of ProcessingPayment
+  PCI DSS Compliance:
+  • Stripe handles all CC data
+  • No direct CC storage
+  • Secure token handling
+  • 3D Secure support
+end note
+
+note right of UpdatingAnalytics
+  Revenue Split:
+  • Developer: 80%
+  • Platform: 20%
+  • Monthly payouts
+end note
+
+@enduml

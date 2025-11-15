@@ -1,0 +1,36 @@
+@startuml UC-07_Export_Report
+
+title UC-07: Export Usage Report - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #0288D1
+skinparam ActorBackgroundColor #E1F5FE
+skinparam ParticipantBackgroundColor #FFFFFF
+
+actor User
+participant Frontend
+participant "API Gateway" as API
+participant AnalyticsService
+participant Database as DB
+participant "Export Service" as ExportSvc
+participant "Cloud Storage" as Storage
+
+User -> Frontend: 1. Click "Export Report"
+Frontend -> User: 2. Show format options (PDF/CSV/Excel)
+User -> Frontend: 3. Select format & date range
+Frontend -> API: 4. POST /api/v1/analytics/export
+API -> AnalyticsService: 5. generate_report(user_id, format, period)
+AnalyticsService -> DB: 6. Query all analytics data
+DB --> AnalyticsService: 7. Complete dataset
+AnalyticsService -> ExportSvc: 8. format_report(data, format)
+ExportSvc --> ExportSvc: 9. Generate document (PDF/CSV/Excel)
+ExportSvc --> AnalyticsService: 10. File bytes
+AnalyticsService -> Storage: 11. Upload report
+Storage --> AnalyticsService: 12. File URL
+AnalyticsService -> DB: 13. Log export event
+DB --> AnalyticsService: 14. Logged
+AnalyticsService --> API: 15. Return {download_url, file_name}
+API --> Frontend: 16. 200 OK + download link
+Frontend --> User: 17. Provide download link
+
+@enduml

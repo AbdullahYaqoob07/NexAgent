@@ -1,0 +1,38 @@
+@startuml UC-07_Export_Report
+
+title UC-07: Export Usage Report
+
+skinparam ActivityBackgroundColor #F1F8E9
+skinparam ActivityBorderColor #33691E
+skinparam ActivityFontColor #1B5E20
+skinparam ArrowColor #33691E
+
+start
+:User on Analytics page clicks "Export Report";
+:System displays export options modal:\n- Format: PDF, CSV, JSON, Excel\n- Period: Last 7d, 30d, 90d, custom\n- Content sections: Key Metrics, Workflow Performance, Execution Trends, Error Analysis, Integration Usage, Resource Usage\n- Delivery: Download, Email, or Both;
+
+:User confirms export settings;
+:System shows "Generating report...";
+
+:AnalyticsService.generate_report() executed:\n- Query all relevant analytics data\n- Aggregate metrics for period\n- Calculate trends and comparisons\n- Build report data structure;
+
+:Format conversion based on selected format:\n- PDF: PDFGenerator creates template with charts, tables, branding\n- CSV: Create CSV rows from metrics with headers\n- JSON: Serialize report object to JSON with metadata\n- EXCEL: Create workbook with multiple sheets (Summary, Workflows, Trends, Errors, Integrations);
+
+:File generation completes;
+if (Email selected?) then (Yes)
+    :Create email with report attached;
+    :EmailService sends to user email;
+    :Show "Report sent to {email}";
+else (No)
+    :Store file in Firebase Storage (temporary);
+    :Generate download URL (expires in 7 days);
+    :Start browser download;
+endif
+
+:Update user usage.exportsThisMonth += 1;
+:Analytics logs "report_exported" event;
+:Display success notification;
+:Report export complete;
+stop
+
+@enduml

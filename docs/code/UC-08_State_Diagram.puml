@@ -1,0 +1,205 @@
+@startuml UC-08_States
+title UC-08: Error Handling - State Machine Diagram
+skinparam StateBackgroundColor #FFEBEE
+skinparam StateBorderColor #D32F2F
+skinparam StateTextColor #B71C1C
+skinparam ArrowColor #D32F2F
+skinparam ArrowThickness 2
+
+[*] --> WorkflowRunning
+
+state WorkflowRunning {
+    state "Executing Steps" as ExecSteps
+    ExecSteps --> [*]
+}
+
+WorkflowRunning --> ErrorDetected: Exception thrown
+
+state ErrorDetected {
+    state "Capture Exception" as CaptureEx
+    state "Extract Context" as ExtractCtx
+    state "Get Stack Trace" as GetTrace
+    
+    CaptureEx --> ExtractCtx: Exception captured
+    ExtractCtx --> GetTrace: Context extracted
+    GetTrace --> [*]
+}
+
+ErrorDetected --> ClassifyingError: Error captured
+
+state ClassifyingError {
+    state "Identify Error Type" as IdentifyType
+    state "Determine Severity" as DetermineSev
+    state "Check Retryable" as CheckRetry
+    
+    IdentifyType --> DetermineSev: Type identified
+    DetermineSev --> CheckRetry: Severity determined
+    CheckRetry --> [*]
+}
+
+ClassifyingError --> ErrorLogging: Error classified
+
+state ErrorLogging {
+    state "Create Log Record" as CreateLog
+    state "Store in Database" as StoreDB
+    state "Index by ID" as IndexID
+    
+    CreateLog --> StoreDB: Log created
+    StoreDB --> IndexID: Stored
+    IndexID --> [*]
+}
+
+ErrorLogging --> SeverityCheck: Error logged
+
+state SeverityCheck <<choice>>
+
+SeverityCheck --> CriticalHandling: Critical severity
+SeverityCheck --> WarningHandling: Warning severity
+SeverityCheck --> InfoHandling: Info severity
+
+state CriticalHandling {
+    state "Alert Administrators" as AlertAdmin
+    state "Halt Execution" as HaltExec
+    state "Send Urgent Notification" as SendUrgent
+    
+    AlertAdmin --> HaltExec: Admins alerted
+    HaltExec --> SendUrgent: Execution halted
+    SendUrgent --> [*]
+}
+
+state WarningHandling {
+    state "Send User Warning" as SendWarning
+    SendWarning --> [*]
+}
+
+state InfoHandling {
+    state "Log to Analytics" as LogAnalytics
+    LogAnalytics --> [*]
+}
+
+CriticalHandling --> RetryDecision: Critical handled
+WarningHandling --> RetryDecision: Warning handled
+InfoHandling --> RetryDecision: Info handled
+
+state RetryDecision <<choice>>
+
+RetryDecision --> RetryLogic: Retryable error
+RetryDecision --> SkipOrAbort: Not retryable
+
+state RetryLogic {
+    state "Check Attempt Count" as CheckCount
+    state "Check Max Retries" as CheckMax
+    CheckCount --> CheckMax: Count checked
+    CheckMax --> [*]
+}
+
+RetryLogic --> RetryDecision2 <<choice>>
+
+state RetryDecision2 <<choice>>
+
+RetryDecision2 --> CalculatingBackoff: Retries available
+RetryDecision2 --> SkipOrAbort: Max retries exceeded
+
+state CalculatingBackoff {
+    state "Calculate Delay" as CalcDelay
+    state "Apply Exponential Formula" as ApplyFormula
+    state "Set Retry Timer" as SetTimer
+    
+    CalcDelay --> ApplyFormula: Delay calculated
+    ApplyFormula --> SetTimer: Formula applied
+    SetTimer --> [*]
+}
+
+CalculatingBackoff --> WaitingBackoff: Backoff calculated
+
+state WaitingBackoff {
+    state "Wait for Delay" as WaitDelay
+    state "Monitor Timeout" as MonitorTimeout
+    WaitDelay --> MonitorTimeout: Waiting
+    MonitorTimeout --> [*]
+}
+
+WaitingBackoff --> RetryingOperation: Delay completed
+
+state RetryingOperation {
+    state "Re-execute Failed Step" as ReExecStep
+    ReExecStep --> [*]
+}
+
+RetryingOperation --> ExecSteps: Operation retried
+
+state SkipOrAbort <<choice>>
+
+SkipOrAbort --> SkippingStep: Skip policy enabled
+SkipOrAbort --> AbortingWorkflow: Abort policy enabled
+
+state SkippingStep {
+    state "Mark Step Skipped" as MarkSkipped
+    state "Continue to Next" as ContinueNext
+    MarkSkipped --> ContinueNext: Step skipped
+    ContinueNext --> [*]
+}
+
+state AbortingWorkflow {
+    state "Mark Workflow Failed" as MarkFailed
+    state "Cleanup Resources" as Cleanup
+    MarkFailed --> Cleanup: Marked failed
+    Cleanup --> [*]
+}
+
+SkippingStep --> ExecSteps: Continuing
+AbortingWorkflow --> ExecutionFailed: Aborting
+
+ExecSteps --> AllStepsCompleted: All steps done
+ExecSteps --> ExecutionFailed: Unrecoverable error
+
+state AllStepsCompleted {
+    state "Mark Success" as MarkSuccess
+    MarkSuccess --> [*]
+}
+
+AllStepsCompleted --> ExecutionSuccess: Completed
+
+state ExecutionFailed {
+    state "Record Failure" as RecordFail
+    state "Send Failure Notification" as SendFail
+    RecordFail --> SendFail: Failure recorded
+    SendFail --> [*]
+}
+
+state ExecutionSuccess {
+    state "Record Success" as RecordSuccess
+    state "Send Success Notification" as SendSuccess
+    RecordSuccess --> SendSuccess: Success recorded
+    SendSuccess --> [*]
+}
+
+ExecutionFailed --> [*]: Workflow failed
+ExecutionSuccess --> [*]: Workflow succeeded
+
+note right of ClassifyingError
+  Error Types:
+  • NetworkError
+  • TimeoutError
+  • AuthorizationError
+  • ValidationError
+  • APIError
+  • InternalError
+end note
+
+note right of RetryLogic
+  Retry Policy:
+  • Max attempts: 3
+  • Exponential backoff
+  • 1st: 5s, 2nd: 25s, 3rd: 125s
+  • Jitter for distribution
+end note
+
+note right of CalculatingBackoff
+  Backoff Formula:
+  delay = min(base_delay * (2 ^ attempt) + jitter, max_delay)
+  base_delay = 5s
+  max_delay = 300s
+end note
+
+@enduml

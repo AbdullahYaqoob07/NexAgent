@@ -1,0 +1,43 @@
+@startuml UC-06_Analytics_States
+
+title UC-06: Analytics Dashboard - State Machine Diagram
+
+skinparam StateBackgroundColor #FFF3E0
+skinparam StateBorderColor #F57C00
+
+[*] --> LoadingDashboard
+
+state LoadingDashboard {
+    state "Fetch Data" as FetchData
+    state "Calculate Metrics" as CalcMetrics
+    state "Render Charts" as RenderCharts
+    FetchData --> CalcMetrics: Data received
+    CalcMetrics --> RenderCharts: Metrics ready
+    RenderCharts --> [*]
+}
+
+LoadingDashboard --> DashboardReady
+
+state DashboardReady {
+    state "Display Dashboard" as DisplayDash
+    DisplayDash --> [*]
+}
+
+DashboardReady --> FilteringData: User changes filter
+
+state FilteringData {
+    state "Update Filter" as UpdateFilter
+    state "Recalculate" as Recalc
+    UpdateFilter --> Recalc: Filter applied
+    Recalc --> [*]
+}
+
+FilteringData --> DashboardReady: Refresh
+
+DashboardReady --> ExportingData: User clicks export
+ExportingData --> DashboardReady: Export done
+
+DashboardReady --> [*]
+
+@enduml
+

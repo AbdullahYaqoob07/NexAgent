@@ -1,0 +1,192 @@
+@startuml UC-01_User_Authentication_States
+
+title UC-01: User Authentication - State Machine Diagram
+
+skinparam StateBackgroundColor #E3F2FD
+skinparam StateBorderColor #1976D2
+skinparam StateTextColor #0D47A1
+skinparam ArrowColor #0277BD
+skinparam ArrowThickness 2
+
+[*] --> NotRegistered
+
+state NotRegistered {
+    state "Unregistered User" as Unreg
+    Unreg --> [*]
+}
+
+NotRegistered --> RegistrationForm: User initiates registration
+RegistrationForm --> ValidatingCredentials: Submit form
+
+state ValidatingCredentials {
+    state "Email Validation" as EmailVal
+    state "Password Strength Check" as PasswordVal
+    EmailVal --> PasswordVal: Valid Email
+    PasswordVal --> [*]
+}
+
+ValidatingCredentials --> CreatingAccount: All validations pass
+CreatingAccount --> EmailNotSent: Email service unavailable
+CreatingAccount --> PendingEmailVerification: Account created Email sent
+
+state PendingEmailVerification {
+    state "Awaiting Verification Link" as AwaitLink
+    state "Resend Option Available" as ResendOpt
+    AwaitLink --> ResendOpt: Time-based
+    ResendOpt --> AwaitLink: User clicks resend
+}
+
+PendingEmailVerification --> VerifyingEmail: User clicks verification link
+VerifyingEmail --> EmailVerified: Token valid Email confirmed
+VerifyingEmail --> TokenExpired: Token expired Redirect to resend
+TokenExpired --> PendingEmailVerification: Resend new link
+
+EmailNotSent --> RegistrationForm: Retry
+ValidatingCredentials --> RegistrationForm: Validation failed
+
+state EmailVerified {
+    state "Ready for Login" as ReadyLogin
+    ReadyLogin --> [*]
+}
+
+EmailVerified --> LoginForm: User navigates to login
+LoginForm --> EnteringCredentials: User enters email & password
+
+state EnteringCredentials {
+    state "Email Input" as EmailIn
+    state "Password Input" as PassIn
+    EmailIn --> PassIn: Email entered
+    PassIn --> [*]
+}
+
+EnteringCredentials --> AuthenticatingUser: Submit credentials
+
+state AuthenticatingUser {
+    state "Firebase Auth Check" as FirebaseCheck
+    state "Verifying Email Confirmed" as EmailConfCheck
+    FirebaseCheck --> EmailConfCheck: Credentials valid
+}
+
+AuthenticatingUser --> AuthenticationFailed: Invalid credentials or account not found
+AuthenticationFailed --> LoginForm: Retry login
+
+AuthenticatingUser --> ActiveSession: Email verified Token generated
+
+state ActiveSession {
+    state "Session Started" as SessionStart
+    state "User Authenticated" as UserAuth
+    state "Token Valid" as TokenValid
+    SessionStart --> UserAuth: Load user profile
+    UserAuth --> TokenValid: Tokens stored
+    TokenValid --> [*]
+}
+
+ActiveSession --> [*]: Session established Redirect to dashboard
+
+ActiveSession --> TokenRefreshing: Token near expiry
+TokenRefreshing --> ActiveSession: New token issued
+
+ActiveSession --> LoggingOut: User clicks logout
+
+state LoggingOut {
+    state "Clear Session" as ClearSess
+    state "Invalidate Token" as InvalidToken
+    ClearSess --> InvalidToken: Session cleared
+    InvalidToken --> [*]
+}
+
+LoggingOut --> NotAuthenticated
+
+NotAuthenticated --> LoginForm: User can login again
+
+LoginForm --> ForgotPasswordClick: User clicks "Forgot Password"
+
+state ForgotPasswordClick {
+    state "Enter Email" as EnterEmail
+    EnterEmail --> [*]
+}
+
+ForgotPasswordClick --> SendingResetEmail: Submit email
+
+state SendingResetEmail {
+    state "Generate Reset Token" as GenToken
+    state "Send Email" as SendEmail
+    GenToken --> SendEmail: Token created
+    SendEmail --> [*]
+}
+
+SendingResetEmail --> ResetEmailSent: Email queued
+
+state ResetEmailSent {
+    state "Awaiting User Action" as AwaitReset
+    AwaitReset --> [*]
+}
+
+ResetEmailSent --> ClickingResetLink: User clicks email link
+
+state ClickingResetLink {
+    state "Token Validation" as TokenVal
+    TokenVal --> [*]
+}
+
+ClickingResetLink --> ResetLinkValid: Token valid & not expired
+ClickingResetLink --> ResetLinkExpired: Token expired or invalid
+
+ResetLinkExpired --> SendingResetEmail: Request new reset link
+
+ResetLinkValid --> EnteringNewPassword: Redirect to form
+
+state EnteringNewPassword {
+    state "New Password Input" as NewPassIn
+    state "Confirm Password" as ConfirmPass
+    NewPassIn --> ConfirmPass: Password entered
+    ConfirmPass --> [*]
+}
+
+EnteringNewPassword --> ValidatingNewPassword: Submit
+
+state ValidatingNewPassword {
+    state "Password Strength" as PassStrength
+    state "Match Confirmation" as MatchConf
+    PassStrength --> MatchConf: Strong password
+}
+
+ValidatingNewPassword --> PasswordValidationFailed: Weak password or mismatch
+PasswordValidationFailed --> EnteringNewPassword: Try again
+
+ValidatingNewPassword --> UpdatingPassword: All checks pass
+
+state UpdatingPassword {
+    state "Firebase Update" as FirebaseUpdate
+    state "Confirm Success" as ConfirmSuccess
+    FirebaseUpdate --> ConfirmSuccess: Password updated
+    ConfirmSuccess --> [*]
+}
+
+UpdatingPassword --> PasswordResetSuccessful
+
+state PasswordResetSuccessful {
+    state "Show Success Message" as SuccessMsg
+    SuccessMsg --> [*]
+}
+
+PasswordResetSuccessful --> LoginForm: Redirect to login
+
+note right of ActiveSession
+  User can perform actions:
+  • Create/Edit Workflows
+  • Execute Workflows
+  • View Analytics
+  • Manage Settings
+  • Access Marketplace
+end note
+
+note right of TokenRefreshing
+  Automatic refresh happens when:
+  • Token nears expiry
+  • User performs action
+  • Within refresh window
+end note
+
+@enduml
+

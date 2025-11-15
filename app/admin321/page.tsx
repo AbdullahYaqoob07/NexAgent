@@ -4,51 +4,120 @@ import { useEffect, useState } from "react";
 import apiClient from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendingUp, Activity, Users, Coins } from "lucide-react";
 import Image from "next/image";
 
+interface BillingAnalytics {
+  mrr: number;
+  arr: number;
+  churnRate: number;
+  totalUsers: number;
+  payingUsers: number;
+  trialUsers: number;
+  canceledUsers: number;
+  usersByPlan: Record<string, number>;
+  revenueByPlan: Record<string, number>;
+  newSubscriptionsThisMonth: number;
+  failedPaymentsThisMonth: number;
+}
+
+interface SystemHealth {
+  status: string;
+  uptimePercentage: number;
+  errorRate: number;
+  totalRequests: number;
+}
+
 export default function AdminOverviewPage() {
   const [revenue, setRevenue] = useState<string | number>("Loading...");
-  const [projects, setProjects] = useState<string | number>("Loading...");
-  const [timeSpent, setTimeSpent] = useState<string | number>("Loading...");
+  const [activeUsers, setActiveUsers] = useState<string | number>("Loading...");
+  const [churn, setChurn] = useState<string | number>("Loading...");
   const [resources, setResources] = useState<string | number>("Loading...");
+  const [billingAnalytics, setBillingAnalytics] = useState<BillingAnalytics | null>(null);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
 
   useEffect(() => {
-    // Revenue: try admin analytics; require admin token
+    // Billing admin analytics: revenue + user metrics + plan distribution
     apiClient
       .get("/api/billing/admin/analytics")
       .then((res) => {
         const data = res.data;
-        if (data && (data.totalRevenue !== undefined)) {
-          setRevenue(`$${Number(data.totalRevenue).toLocaleString()}`);
-        } else {
+        if (!data) {
           setRevenue("API not Available for this");
+          setActiveUsers("API not Available for this");
+          setChurn("API not Available for this");
+          return;
         }
+
+        const mrr = Number(data.mrr ?? 0);
+        const arr = Number(data.arr ?? 0);
+        setRevenue(`$${(mrr || arr).toLocaleString()}`);
+
+        setActiveUsers(
+          data.paying_users !== undefined && data.total_users !== undefined
+            ? `${data.paying_users}/${data.total_users} paying`
+            : "API not Available for this"
+        );
+
+        if (data.churn_rate !== undefined) {
+          setChurn(`${(Number(data.churn_rate) * 100).toFixed(1)}%`);
+        } else {
+          setChurn("API not Available for this");
+        }
+
+        setBillingAnalytics({
+          mrr,
+          arr,
+          churnRate: Number(data.churn_rate ?? 0),
+          totalUsers: Number(data.total_users ?? 0),
+          payingUsers: Number(data.paying_users ?? 0),
+          trialUsers: Number(data.trial_users ?? 0),
+          canceledUsers: Number(data.canceled_users ?? 0),
+          usersByPlan: data.users_by_plan || {},
+          revenueByPlan: data.revenue_by_plan || {},
+          newSubscriptionsThisMonth: Number(data.new_subscriptions_this_month ?? 0),
+          failedPaymentsThisMonth: Number(data.failed_payments_this_month ?? 0),
+        });
       })
-      .catch(() => setRevenue("API not Available for this"));
+      .catch(() => {
+        setRevenue("API not Available for this");
+        setActiveUsers("API not Available for this");
+        setChurn("API not Available for this");
+      });
 
-    // Projects: no dedicated API; mark as not available
-    setProjects("API not Available for this");
-
-    // Time spent: no dedicated API; mark as not available
-    setTimeSpent("API not Available for this");
-
-    // Resources: try system resource usage
+    // Resources: system resource usage
     apiClient
       .get("/api/v1/analytics/system/resource-usage")
       .then((res) => {
-        const m = res.data?.metrics;
-        if (m) {
-          const cpu = Math.round(m.cpuPercent ?? m.cpu?.percent ?? 0);
-          const mem = Math.round(m.memoryPercent ?? m.memory?.percent ?? 0);
+        // API returns ResourceUsageMetrics directly: { cpuUsage, memoryUsage, ... }
+        const m = res.data;
+        if (m && (m.cpuUsage !== undefined || m.memoryUsage !== undefined)) {
+          const cpu = Math.round(m.cpuUsage ?? 0);
+          const mem = Math.round(m.memoryUsage ?? 0);
           setResources(`${cpu}% CPU • ${mem}% MEM`);
         } else {
           setResources("API not Available for this");
         }
       })
       .catch(() => setResources("API not Available for this"));
+
+    // System health: uptime, error rate, total requests
+    apiClient
+      .get("/api/v1/analytics/system/health")
+      .then((res) => {
+        const d = res.data;
+        if (!d) return;
+        setSystemHealth({
+          status: d.status,
+          uptimePercentage: Number(d.uptimePercentage ?? 0),
+          errorRate: Number(d.errorRate ?? 0),
+          totalRequests: Number(d.totalRequests ?? 0),
+        });
+      })
+      .catch(() => {
+        setSystemHealth(null);
+      });
   }, []);
 
   return (
@@ -84,38 +153,38 @@ export default function AdminOverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-white text-sm">Total revenue</CardTitle>
+            <CardTitle className="text-white text-sm">MRR / ARR</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{revenue}</span>
               <TrendingUp className="w-5 h-5 text-emerald-400" />
             </div>
-            <p className="text-xs text-white/50 mt-2">Data source check</p>
+            <p className="text-xs text-white/50 mt-2">From billing admin analytics</p>
           </CardContent>
         </Card>
         <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-white text-sm">Projects</CardTitle>
+            <CardTitle className="text-white text-sm">Active customers</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{projects}</span>
+              <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{activeUsers}</span>
               <Activity className="w-5 h-5 text-blue-400" />
             </div>
-            <p className="text-xs text-white/50 mt-2">Data source check</p>
+            <p className="text-xs text-white/50 mt-2">Paying vs total users</p>
           </CardContent>
         </Card>
         <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-white text-sm">Time spent</CardTitle>
+            <CardTitle className="text-white text-sm">Churn rate</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{timeSpent}</span>
+              <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{churn}</span>
               <Users className="w-5 h-5 text-purple-400" />
             </div>
-            <p className="text-xs text-white/50 mt-2">Data source check</p>
+            <p className="text-xs text-white/50 mt-2">Monthly churn</p>
           </CardContent>
         </Card>
         <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
@@ -136,89 +205,96 @@ export default function AdminOverviewPage() {
         {/* Project summary */}
         <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white">Project summary</CardTitle>
+            <CardTitle className="text-white">Plan performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-white/70">Name</TableHead>
-                  <TableHead className="text-white/70">Project manager</TableHead>
-                  <TableHead className="text-white/70">Due date</TableHead>
-                  <TableHead className="text-white/70">Status</TableHead>
-                  <TableHead className="text-right text-white/70">Progress</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  { name: "Nelsa web development", pm: "Om prakash sao", due: "May 25, 2025", status: "Completed", progress: 100, color: "emerald" },
-                  { name: "Datascale AI app", pm: "Nelisan mando", due: "Jun 20, 2025", status: "Delayed", progress: 28, color: "yellow" },
-                  { name: "Media channel branding", pm: "Truvelly priya", due: "July 13, 2025", status: "At risk", progress: 15, color: "red" },
-                  { name: "Corfix iOS app", pm: "Matte hanney", due: "Dec 20, 2025", status: "Completed", progress: 100, color: "emerald" },
-                ].map((r) => (
-                  <TableRow key={r.name}>
-                    <TableCell className="text-white">{r.name}</TableCell>
-                    <TableCell className="text-white/80">{r.pm}</TableCell>
-                    <TableCell className="text-white/60">{r.due}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-white/10 border-white/10 text-white">
-                        {r.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center gap-2 justify-end">
-                        <span className="text-xs text-white/60 w-10 text-right">{r.progress}%</span>
-                        <Progress value={r.progress} className="w-36 h-2" />
-                      </div>
-                    </TableCell>
+            {billingAnalytics ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-white/70">Plan</TableHead>
+                    <TableHead className="text-white/70">Users</TableHead>
+                    <TableHead className="text-white/70">MRR share</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {Object.keys(billingAnalytics.usersByPlan).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-white/60 text-center">
+                        No billing data yet
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    Object.entries(billingAnalytics.usersByPlan).map(([planId, users]) => {
+                      const revenue = billingAnalytics.revenueByPlan[planId] ?? 0;
+                      const totalRevenue = Object.values(billingAnalytics.revenueByPlan).reduce(
+                        (sum, v) => sum + (v ?? 0),
+                        0
+                      );
+                      const share = totalRevenue > 0 ? (revenue / totalRevenue) * 100 : 0;
+                      return (
+                        <TableRow key={planId}>
+                          <TableCell className="text-white">{planId}</TableCell>
+                          <TableCell className="text-white/80">{users}</TableCell>
+                          <TableCell className="text-white/60">
+                            {`$${Number(revenue).toLocaleString()} (${share.toFixed(1)}%)`}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-white/60 text-sm">Loading billing analytics...</div>
+            )}
           </CardContent>
         </Card>
 
         {/* Overall progress */}
         <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
-            <CardTitle className="text-white">Overall Progress</CardTitle>
+            <CardTitle className="text-white">Billing health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-6">
-              <div className="relative w-48 h-48">
-                <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg]">
-                  <path d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
-                  <path d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831" fill="none" stroke="#FF6900" strokeWidth="3" strokeDasharray="72, 100" />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold">72%</div>
-                    <div className="text-xs text-white/60">Completed</div>
+            {billingAnalytics ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs text-white/60 mb-1">Churn rate</div>
+                  <div className="text-2xl font-bold text-white">
+                    {(billingAnalytics.churnRate * 100).toFixed(1)}%
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-xs text-white/70">
+                  <div>
+                    <div className="text-white text-base font-semibold">
+                      {billingAnalytics.newSubscriptionsThisMonth}
+                    </div>
+                    <div>New subs (30d)</div>
+                  </div>
+                  <div>
+                    <div className="text-orange-400 text-base font-semibold">
+                      {billingAnalytics.failedPaymentsThisMonth}
+                    </div>
+                    <div>Failed payments (30d)</div>
+                  </div>
+                  <div>
+                    <div className="text-white text-base font-semibold">
+                      {billingAnalytics.totalUsers}
+                    </div>
+                    <div>Total users</div>
+                  </div>
+                  <div>
+                    <div className="text-emerald-400 text-base font-semibold">
+                      {billingAnalytics.payingUsers}
+                    </div>
+                    <div>Paying users</div>
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-4 gap-4 w-full mt-6 text-center text-xs text-white/60">
-                <div>
-                  <div className="text-white text-base font-semibold">95</div>
-                  <div>Total</div>
-                </div>
-                <div>
-                  <div className="text-emerald-400 text-base font-semibold">26</div>
-                  <div>Completed</div>
-                </div>
-                <div>
-                  <div className="text-yellow-400 text-base font-semibold">35</div>
-                  <div>Delayed</div>
-                </div>
-                <div>
-                  <div className="text-orange-400 text-base font-semibold">35</div>
-                  <div>On going</div>
-                </div>
-              </div>
-            </div>
+            ) : (
+              <div className="text-white/60 text-sm">Loading billing health...</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -226,19 +302,40 @@ export default function AdminOverviewPage() {
       {/* Today tasks (simplified) */}
       <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
         <CardHeader>
-          <CardTitle className="text-white">Today task</CardTitle>
+          <CardTitle className="text-white">System status</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {[
-            { t: "Create a user flow of social application design", s: "Approved" },
-            { t: "Landing page design for Fintech project of singapore", s: "In review" },
-            { t: "Interactive prototype for app screens of delarnine project", s: "On going" },
-          ].map((i) => (
-            <div key={i.t} className="flex items-center justify-between py-2 border-b border-white/10 last:border-0">
-              <div className="text-white/90 text-sm">{i.t}</div>
-              <Badge variant="outline" className="border-white/20 text-white/80">{i.s}</Badge>
-            </div>
-          ))}
+        <CardContent className="space-y-3 text-sm">
+          {systemHealth ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Status</span>
+                <Badge
+                  variant="outline"
+                  className="border-white/20 text-white/80 capitalize"
+                >
+                  {systemHealth.status}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Uptime</span>
+                <span className="text-white">
+                  {systemHealth.uptimePercentage.toFixed(2)}%
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Error rate</span>
+                <span className="text-white">{systemHealth.errorRate.toFixed(2)}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Total requests (last 5m)</span>
+                <span className="text-white">
+                  {systemHealth.totalRequests.toLocaleString()}
+                </span>
+              </div>
+            </>
+          ) : (
+            <div className="text-white/60">System health metrics not available.</div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,0 +1,30 @@
+@startuml UC-06_View_Analytics
+
+title UC-06: View Usage Analytics
+
+skinparam ActivityBackgroundColor #FFF3E0
+skinparam ActivityBorderColor #E65100
+skinparam ActivityFontColor #BF360C
+skinparam ArrowColor #E65100
+
+start
+:User navigates to Analytics page;
+:System displays dashboard loading state;
+:AnalyticsService.get_dashboard_overview() called;
+:Service aggregates data for selected period (default: Last 30 days);
+
+:System displays dashboard sections:\n- KEY METRICS: Total Workflows, Active Workflows, Total Executions, Success Rate, Avg Execution Time\n- WORKFLOW PERFORMANCE: Each workflow's metrics, trends, last executed time\n- EXECUTION TRENDS: Line charts of executions per day, success vs failure\n- ERROR ANALYSIS: Most common errors, error rate by workflow, top failing nodes\n- INTEGRATION USAGE: Connected integrations count, API calls per integration\n- RESOURCE USAGE: Storage used/limit, API calls/limit, team members/limit;
+
+:User can filter/customize view:\n- Time period picker (7d, 30d, 90d, custom)\n- Workflow selector (all or specific)\n- Status filter (all, success, failed)\n- Export options (CSV, JSON, PDF);
+
+:User clicks on metric for details;
+:System expands workflow performance breakdown;
+:User views step-by-step execution logs;
+:System renders all visualizations:\n- Charts (Chart.js/D3.js)\n- Tables with sorting/pagination\n- Cards with key metrics\n- Progress bars for resource usage;
+
+:Real-time updates via WebSocket;
+:Analytics logs "analytics_viewed" event;
+:Dashboard fully loaded and interactive;
+stop
+
+@enduml

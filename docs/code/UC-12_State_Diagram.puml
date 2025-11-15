@@ -1,0 +1,222 @@
+@startuml UC-12_States
+title UC-12: Role Assignment - State Machine Diagram
+skinparam StateBackgroundColor #E8F5E9
+skinparam StateBorderColor #2E7D32
+skinparam StateTextColor #1B5E20
+skinparam ArrowColor #2E7D32
+skinparam ArrowThickness 2
+
+[*] --> AdminAuthentication
+
+state AdminAuthentication {
+    state "Verify Admin Token" as VerifyAdmin
+    state "Check Admin Permissions" as CheckPerms
+    VerifyAdmin --> CheckPerms: Admin token verified
+    CheckPerms --> [*]
+}
+
+AdminAuthentication --> LoadingUsers: Admin authenticated
+
+state LoadingUsers {
+    state "Query All Users" as QueryUsers
+    state "Sort by Recent" as SortRecent
+    state "Paginate Results" as PaginateResults
+    
+    QueryUsers --> SortRecent: Users queried
+    SortRecent --> PaginateResults: Sorted
+    PaginateResults --> [*]
+}
+
+LoadingUsers --> DisplayingUsers: Users loaded
+
+state DisplayingUsers {
+    state "Render User List" as RenderList
+    state "Show User Cards" as ShowCards
+    state "Display Current Roles" as DisplayRoles
+    
+    RenderList --> ShowCards: List rendered
+    ShowCards --> DisplayRoles: Cards displayed
+    DisplayRoles --> [*]
+}
+
+DisplayingUsers --> UserAction: Users displayed
+
+state UserAction <<choice>>
+
+UserAction --> SearchingUser: Admin searches
+UserAction --> SelectingUser: Admin selects user
+
+state SearchingUser {
+    state "Accept Search Input" as AcceptSearch
+    state "Query Database" as QueryDB
+    state "Return Results" as ReturnResults
+    
+    AcceptSearch --> QueryDB: Search input received
+    QueryDB --> ReturnResults: Results retrieved
+    ReturnResults --> [*]
+}
+
+SearchingUser --> DisplayingUsers: Results displayed
+
+state SelectingUser {
+    state "Get User ID" as GetUserID
+    state "Fetch User Details" as FetchDetails
+    GetUserID --> FetchDetails: ID captured
+    FetchDetails --> [*]
+}
+
+SelectingUser --> RoleSelectionDialog: User selected
+
+state RoleSelectionDialog {
+    state "Open Role Dialog" as OpenDialog
+    state "Display Available Roles" as DisplayRoles2
+    state "Show Current Role" as ShowCurrent
+    state "Display Permissions" as DisplayPerms
+    
+    OpenDialog --> DisplayRoles2: Dialog opened
+    DisplayRoles2 --> ShowCurrent: Roles displayed
+    ShowCurrent --> DisplayPerms: Current shown
+    DisplayPerms --> [*]
+}
+
+RoleSelectionDialog --> AdminSelectsRole: Dialog displayed
+
+state AdminSelectsRole {
+    state "Admin Clicks New Role" as ClickRole
+    ClickRole --> [*]
+}
+
+AdminSelectsRole --> ValidatingRoleChange: Role clicked
+
+state ValidatingRoleChange {
+    state "Check User Exists" as CheckExists
+    state "Check Not Self-Role" as CheckSelf
+    state "Check Role Valid" as CheckValid
+    state "Validate Permissions" as ValidatePerms
+    
+    CheckExists --> CheckSelf: User verified
+    CheckSelf --> CheckValid: Not self-change
+    CheckValid --> ValidatePerms: Role valid
+    ValidatePerms --> [*]
+}
+
+ValidatingRoleChange --> ValidationResult <<choice>>
+
+state ValidationResult <<choice>>
+
+ValidationResult --> RoleChangeConfirm: Validation passed
+ValidationResult --> ValidationError: Validation failed
+
+state ValidationError {
+    state "Display Error" as DisplayErr
+    state "Log Failed Attempt" as LogFailed
+    DisplayErr --> LogFailed: Error shown
+    LogFailed --> [*]
+}
+
+ValidationError --> RoleSelectionDialog: Back to dialog
+
+state RoleChangeConfirm {
+    state "Show Confirmation" as ShowConfirm
+    state "Admin Confirms" as ConfirmAdmin
+    ShowConfirm --> ConfirmAdmin: Confirmation shown
+    ConfirmAdmin --> [*]
+}
+
+RoleChangeConfirm --> CreatingAuditLog: Confirmed
+
+state CreatingAuditLog {
+    state "Create Audit Record" as CreateAudit
+    state "Record Admin ID" as RecordAdmin
+    state "Record Old Role" as RecordOld
+    state "Record New Role" as RecordNew
+    state "Record Timestamp" as RecordTime
+    
+    CreateAudit --> RecordAdmin: Audit created
+    RecordAdmin --> RecordOld: Admin recorded
+    RecordOld --> RecordNew: Old role recorded
+    RecordNew --> RecordTime: New role recorded
+    RecordTime --> [*]
+}
+
+CreatingAuditLog --> UpdatingDatabase: Audit logged
+
+state UpdatingDatabase {
+    state "Update User Document" as UpdateUser
+    state "Set New Role" as SetRole
+    state "Update Permissions" as UpdatePerms
+    state "Store in Firestore" as StoreDB
+    
+    UpdateUser --> SetRole: Document updated
+    SetRole --> UpdatePerms: Role set
+    UpdatePerms --> StoreDB: Permissions updated
+    StoreDB --> [*]
+}
+
+UpdatingDatabase --> CachingUpdate: Database updated
+
+state CachingUpdate {
+    state "Invalidate Cache" as InvalidateCache
+    state "Update Permissions Cache" as UpdateCache
+    InvalidateCache --> UpdateCache: Cache invalidated
+    UpdateCache --> [*]
+}
+
+CachingUpdate --> NotifyingUser: Cache updated
+
+state NotifyingUser {
+    state "Compose Notification" as ComposeNotif
+    state "Send to User" as SendUser
+    state "Log Sent" as LogSent
+    
+    ComposeNotif --> SendUser: Notification composed
+    SendUser --> LogSent: Notification sent
+    LogSent --> [*]
+}
+
+NotifyingUser --> LoggingAction: User notified
+
+state LoggingAction {
+    state "Create System Log" as CreateLog
+    state "Log Role Change" as LogRoleChange
+    CreateLog --> LogRoleChange: Log created
+    LogRoleChange --> [*]
+}
+
+LoggingAction --> DisplaySuccess: Action logged
+
+state DisplaySuccess {
+    state "Show Success Message" as ShowSuccess
+    state "Update UI" as UpdateUI
+    state "Refresh User List" as RefreshList
+    
+    ShowSuccess --> UpdateUI: Success shown
+    UpdateUI --> RefreshList: UI updated
+    RefreshList --> [*]
+}
+
+DisplaySuccess --> [*]: Role assignment complete
+
+note right of AdminAuthentication
+  Admin Verification:
+  • Check Firebase admin claims
+  • Verify session valid
+  • Check IP whitelist (optional)
+end note
+
+note right of ValidatingRoleChange
+  Validation Rules:
+  • Cannot change own role
+  • Target user must exist
+  • Role must be valid
+  • Permission hierarchy check
+end note
+
+note right of UpdatingDatabase
+  Available Roles:
+  • Admin: Full system access
+  • User: Regular user access
+  • Viewer: Read-only access
+end note
+
+@enduml

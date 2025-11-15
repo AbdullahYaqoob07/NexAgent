@@ -343,10 +343,19 @@ class AnalyticsDB:
                     'timestamp': latest_metrics.get('timestamp', datetime.utcnow())
                 }
             else:
+                # No recent metrics: still return a full SystemHealthResponse-compatible object
                 return {
                     'success': True,
                     'status': 'unknown',
-                    'message': 'No recent metrics available'
+                    'uptime': 0,
+                    'uptimePercentage': 0.0,
+                    'totalRequests': 0,
+                    'successfulRequests': 0,
+                    'failedRequests': 0,
+                    'avgResponseTime': 0.0,
+                    'errorRate': 0.0,
+                    'activeConnections': 0,
+                    'timestamp': datetime.utcnow(),
                 }
         except Exception as e:
             logger.error(f"❌ Failed to get system health: {str(e)}")

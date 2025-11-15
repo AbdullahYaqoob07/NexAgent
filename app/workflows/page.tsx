@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
 import { useRouter } from 'next/navigation';
@@ -18,10 +19,28 @@ export default function WorkflowsPage() {
   const router = useRouter();
   const { user: firebaseUser, loading: authLoading } = useAuth();
   const { user: backendUser, loading: backendLoading, isAuthenticated } = useBackendAuth();
-  const [workflows, setWorkflows] = useState<BackendWorkflow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  const {
+    data: workflowsResponse,
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['workflows'],
+    queryFn: async () => {
+      const response = await workflowService.listWorkflows({ page: 1, pageSize: 50 });
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to load workflows');
+      }
+      return response;
+    },
+    enabled: !!isAuthenticated && !authLoading && !backendLoading,
+    staleTime: 30 * 1000,
+  });
+
+  const workflows = workflowsResponse?.workflows ?? [];
+  const errorMessage = (error as Error | null)?.message ?? null;
 
   // Check auth and redirect if needed
   useEffect(() => {
@@ -35,42 +54,20 @@ export default function WorkflowsPage() {
     });
     
     if (!authLoading && !backendLoading) {
-      if (!firebaseUser || !isAuthenticated) {
-        console.log('No authenticated user, redirecting to sign-in');
+      // Only redirect to sign-in if we have neither Firebase nor backend auth
+      if (!firebaseUser && !isAuthenticated) {
+        console.log('No authenticated user (Firebase or backend), redirecting to sign-in');
         router.push('/sign-in');
       }
     }
   }, [firebaseUser, backendUser, isAuthenticated, authLoading, backendLoading, router]);
 
-  // Fetch workflows from backend
+  // Refetch when auth state transitions to authenticated
   useEffect(() => {
-    const fetchWorkflows = async () => {
-      // Wait for both Firebase and backend auth to complete
-      if (authLoading || backendLoading) return;
-      if (!firebaseUser || !isAuthenticated) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await workflowService.listWorkflows({
-          page: 1,
-          pageSize: 50,
-        });
-        
-        if (response.success) {
-          setWorkflows(response.workflows);
-        }
-      } catch (err: any) {
-        console.error('Failed to fetch workflows:', err);
-        setError(err.message || 'Failed to load workflows');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWorkflows();
-  }, [firebaseUser, isAuthenticated, authLoading, backendLoading]);
+    if (!authLoading && !backendLoading && isAuthenticated) {
+      refetch();
+    }
+  }, [authLoading, backendLoading, isAuthenticated, refetch]);
 
   // Delete workflow
   const handleDelete = async (workflowId: string) => {

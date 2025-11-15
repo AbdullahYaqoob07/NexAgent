@@ -1,0 +1,50 @@
+@startuml UC-01_Registration_Login
+
+title UC-01: User Registration and Login
+
+skinparam ActivityBackgroundColor #E1F5FE
+skinparam ActivityBorderColor #0277BD
+skinparam ActivityFontColor #01579B
+skinparam LifelineBorderColor #0277BD
+skinparam ParticipantBorderColor #0277BD
+skinparam ArrowColor #0277BD
+
+start
+:User opens application;
+:Navigates to Sign Up/Sign In;
+
+if (Registration or Login?) then (Registration)
+    :Enters email, password, display name;
+    :System validates input;
+    if (Validation passed?) then (Yes)
+        :Firebase creates user account;
+        :Firestore creates user document with profile,\nsubscription, usage, security, workspace;
+        :System sends verification email;
+        :User clicks email verification link;
+        :System marks email as verified;
+        :System creates session token;
+        :User redirected to onboarding;
+        :Analytics logs "user_signup" event;
+        :Display success notification;
+    else (No)
+        :Display validation error;
+        :User retries;
+    endif
+else (Login)
+    :Enters email and password;
+    :System validates credentials with Firebase;
+    :Firebase verifies password hash;
+    :System retrieves user profile from Firestore;
+    :System checks subscription status;
+    :System creates session token & refresh token;
+    :Tokens stored in browser/client storage;
+    :User redirected to dashboard;
+    :System updates lastLoginAt timestamp;
+    :Analytics logs "user_login" event;
+    :Display dashboard;
+endif
+
+:Session established;
+stop
+
+@enduml

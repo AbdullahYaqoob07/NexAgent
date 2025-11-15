@@ -66,10 +66,17 @@ export const authService = {
   /**
    * Verify Firebase ID token
    * POST /api/v1/auth/verify-token
+   *
+   * Backend expects a payload of the shape: { token: string }
+   * but some callers may still send { idToken }. Normalize here.
    */
   async verifyToken(data: TokenVerifyRequest): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post<AuthResponse>(`${AUTH_BASE}/verify-token`, data);
+      const payload: Record<string, string> = (data as any).token
+        ? { token: (data as any).token }
+        : { token: (data as any).idToken };
+
+      const response = await apiClient.post<AuthResponse>(`${AUTH_BASE}/verify-token`, payload);
       
       // Store session token if provided
       if (response.data.access_token) {

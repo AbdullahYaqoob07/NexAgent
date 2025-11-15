@@ -1,0 +1,30 @@
+@startuml UC-05_View_Profile
+
+title UC-05: View User Profile - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #1976D2
+skinparam ActorBackgroundColor #E3F2FD
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam SequenceGroupBackgroundColor #FFF9C4
+
+actor User
+participant Frontend
+participant "API Gateway" as API
+participant FirebaseService
+participant Database as DB
+
+User -> Frontend: 1. Click Profile/Settings
+Frontend -> API: 2. GET /api/v1/users/profile
+API -> FirebaseService: 3. get_user_profile(user_id)
+FirebaseService -> DB: 4. Fetch user document
+DB --> FirebaseService: 5. User data + profile
+FirebaseService -> DB: 6. Fetch subscription
+DB --> FirebaseService: 7. Subscription details
+FirebaseService -> DB: 8. Fetch usage stats
+DB --> FirebaseService: 9. Usage data
+FirebaseService --> API: 10. Return complete user object
+API --> Frontend: 11. 200 OK + user profile
+Frontend --> User: 12. Display profile page
+
+@enduml

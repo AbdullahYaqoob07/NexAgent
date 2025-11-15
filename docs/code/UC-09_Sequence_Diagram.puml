@@ -1,0 +1,36 @@
+@startuml UC-09_Explore_Marketplace
+
+title UC-09: Explore Marketplace - Sequence Diagram
+
+skinparam SequenceArrowThickness 2
+skinparam SequenceArrowColor #6A1B9A
+skinparam ActorBackgroundColor #F3E5F5
+skinparam ParticipantBackgroundColor #FFFFFF
+
+actor User
+participant Frontend
+participant "API Gateway" as API
+participant MarketplaceService
+participant Database as DB
+
+User -> Frontend: 1. Click Marketplace
+Frontend -> API: 2. GET /api/v1/marketplace/items?category=templates&page=1
+API -> MarketplaceService: 3. list_marketplace_items(category, page, filters)
+MarketplaceService -> DB: 4. Query marketplace_collection
+DB --> MarketplaceService: 5. Items paginated
+MarketplaceService -> DB: 6. Fetch item ratings & reviews
+DB --> MarketplaceService: 7. Rating data
+MarketplaceService --> API: 8. Return {items[], pagination, filters}
+API --> Frontend: 9. 200 OK + marketplace data
+Frontend --> User: 10. Display marketplace grid
+
+User -> Frontend: 11. Search for "email"
+Frontend -> API: 12. GET /api/v1/marketplace/search?q=email&filters=...
+API -> MarketplaceService: 13. search_marketplace(query, filters)
+MarketplaceService -> DB: 14. Full-text search
+DB --> MarketplaceService: 15. Search results
+MarketplaceService --> API: 16. Return results
+API --> Frontend: 17. 200 OK + search results
+Frontend --> User: 18. Display filtered results
+
+@enduml
