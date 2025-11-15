@@ -30,17 +30,12 @@ export default function SignInPage() {
       await signIn(email, password);
       
       // Check if user is admin and redirect accordingly
-      setTimeout(() => {
-        const isAdmin = localStorage.getItem('user_is_admin') === 'true';
-        const redirectUrl = localStorage.getItem('admin_redirect_url');
-        
-        if (isAdmin && redirectUrl) {
-          console.log('🔐 Redirecting admin user to:', redirectUrl);
-          router.push(redirectUrl);
-        } else {
-          router.push('/dashboard');
-        }
-      }, 100); // Small delay to ensure localStorage is updated
+      if (email === 'admin@gmail.com') {
+        console.log('🔐 Admin user detected, redirecting to admin panel');
+        router.push('/admin321');
+      } else {
+        router.push('/dashboard');
+      }
       
     } catch (error: any) {
       setError(error.message);
@@ -54,20 +49,19 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      await signInWithGoogle();
+      const result = await signInWithGoogle();
       
-      // Check if user is admin and redirect accordingly
+      // Check if user is admin and redirect accordingly  
       setTimeout(() => {
-        const isAdmin = localStorage.getItem('user_is_admin') === 'true';
-        const redirectUrl = localStorage.getItem('admin_redirect_url');
-        
-        if (isAdmin && redirectUrl) {
-          console.log('🔐 Redirecting admin user to:', redirectUrl);
-          router.push(redirectUrl);
+        // Get user email from Firebase after sign in
+        const userEmail = result?.user?.email;
+        if (userEmail === 'admin@gmail.com') {
+          console.log('🔐 Admin user detected, redirecting to admin panel');
+          router.push('/admin321');
         } else {
           router.push('/dashboard');
         }
-      }, 100); // Small delay to ensure localStorage is updated
+      }, 200);
       
     } catch (error: any) {
       setError(error.message);

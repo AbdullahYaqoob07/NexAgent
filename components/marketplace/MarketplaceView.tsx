@@ -249,9 +249,11 @@ function NexaCard({ nx }: { nx: NexaItem; variant: 'portrait' }) {
             <button className="flex-1 px-3 py-2 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center justify-center gap-1.5 transition-colors">
               <Eye className="w-4 h-4" /> Preview
             </button>
-            <button className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center justify-center gap-1.5 transition-colors">
-              <Plug className="w-4 h-4" /> Integrate
-            </button>
+            <Link href={`/marketplace/integrate/${nx.id}`} className="flex-1">
+              <button className="w-full px-3 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center justify-center gap-1.5 transition-colors">
+                <Plug className="w-4 h-4" /> Integrate
+              </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -260,50 +262,72 @@ function NexaCard({ nx }: { nx: NexaItem; variant: 'portrait' }) {
 }
 
 function NexaRow({ nx }: { nx: NexaItem }) {
+  const imageSource = getImageForCard(nx.name, nx.image);
+  
   return (
-    <div className="group bg-white/5 border border-white/10 hover:border-white/20 rounded-xl overflow-hidden backdrop-blur-xl p-3 flex gap-4 items-stretch">
-      <div className="relative w-40 h-28 shrink-0 overflow-hidden rounded-md">
-        <img src={nx.image} alt={nx.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        <div className="absolute bottom-1 left-1 inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border border-white/20 bg-black/50 text-white/80 backdrop-blur">
-          <Plug className="w-3 h-3" /> {nx.installs.toLocaleString()}
+    <div className="group bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 hover:border-white/10 rounded-2xl overflow-hidden transition-all flex gap-4">
+      {/* Image with overlays */}
+      <div className="relative w-64 shrink-0 overflow-hidden">
+        {/* Background image */}
+        <img src={imageSource} alt={nx.name} className="w-full h-full object-cover" />
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
+        
+        {/* Top badges */}
+        <div className="absolute top-3 left-3 z-10">
+          <div className="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
+            {nx.category}
+          </div>
+        </div>
+        <div className="absolute top-3 right-3 z-10">
+          <div className="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
+            {nx.price}
+          </div>
+        </div>
+        
+        {/* Bottom rating badge */}
+        <div className="absolute bottom-3 left-3 z-10">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white">
+            <div className="inline-flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-xs font-medium">{nx.rating}</span>
+            </div>
+            <span className="text-white/40 text-xs">•</span>
+            <div className="inline-flex items-center gap-1">
+              <Plug className="w-3 h-3" />
+              <span className="text-xs">{nx.installs.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="flex-1 min-w-0 flex flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-white font-semibold truncate" title={nx.name}>{nx.name}</h3>
-            <div className="mt-1 flex items-center gap-2 text-xs">
-              <span className="px-2 py-0.5 rounded-full border border-white/15 bg-white/5 text-white/70">{nx.category}</span>
-              <span className="text-white/40">Updated {nx.updated}</span>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="inline-flex items-center gap-1 text-white/80"><Star className="w-4 h-4 text-yellow-400" /> {nx.rating}</div>
-            <div className="text-xs text-white/60 mt-1">{nx.price}</div>
-          </div>
+      
+      {/* Content */}
+      <div className="flex-1 min-w-0 flex flex-col p-5">
+        {/* Title and description */}
+        <div className="flex-1">
+          <h3 className="text-white font-semibold text-lg truncate mb-2" title={nx.name}>{nx.name}</h3>
+          <p className="text-white/60 text-sm line-clamp-2">{nx.description}</p>
         </div>
-        <p className="text-white/70 text-sm line-clamp-2 mt-2">{nx.description}</p>
-        <div className="mt-auto pt-3 flex items-center justify-between">
+        
+        {/* Footer */}
+        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-white/10 text-[10px] text-white/70 flex items-center justify-center">{nx.author.split(' ').map(w => w[0]).join('').slice(0,2)}</div>
+            <div className="w-7 h-7 rounded-full bg-white/10 text-[11px] text-white/70 flex items-center justify-center font-medium">
+              {nx.author.split(' ').map(w => w[0]).join('').slice(0,2)}
+            </div>
             <div className="text-xs text-white/60">{nx.author}</div>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            {nx.tools && nx.tools.length > 0 && (
-              <div className="flex gap-2">
-                {nx.tools.slice(0,8).map((t, i) => (
-                  <ToolIcon key={`${t}-${i}`} keyName={t} size={22} />
-                ))}
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              <button className="px-2.5 py-1.5 text-xs rounded-md border border-white/15 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center gap-1">
-                <Eye className="w-3.5 h-3.5" /> Preview
+          
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <button className="px-4 py-2 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center gap-1.5 transition-colors">
+              <Eye className="w-4 h-4" /> Preview
+            </button>
+            <Link href={`/marketplace/integrate/${nx.id}`}>
+              <button className="px-4 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center gap-1.5 transition-colors">
+                <Plug className="w-4 h-4" /> Integrate
               </button>
-              <button className="px-2.5 py-1.5 text-xs rounded-md bg-[#FF6900] hover:bg-[#E55D00] text-white inline-flex items-center gap-1">
-                <Plug className="w-3.5 h-3.5" /> Integrate
-              </button>
-            </div>
+            </Link>
           </div>
         </div>
       </div>

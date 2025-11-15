@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendingUp, Activity, Users, Coins } from "lucide-react";
+import Image from "next/image";
 
 export default function AdminOverviewPage() {
   const [revenue, setRevenue] = useState<string | number>("Loading...");
@@ -51,10 +52,37 @@ export default function AdminOverviewPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Background decorative SVGs */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        {/* Top-left background */}
+        <div className="absolute -top-10 -left-10 md:-top-16 md:-left-8 opacity-40 md:opacity-60">
+          <Image
+            src="/assets/dashboard/BG-left.svg"
+            alt=""
+            width={700}
+            height={700}
+            className="max-w-none select-none"
+            priority
+          />
+        </div>
+
+        {/* Right-aligned background */}
+        <div className="absolute top-10 right-0 md:-top-4 opacity-40 md:opacity-70">
+          <Image
+            src="/assets/dashboard/BG-right.svg"
+            alt=""
+            width={600}
+            height={600}
+            className="max-w-none select-none"
+            priority
+          />
+        </div>
+      </div>
+
       {/* Overview cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white text-sm">Total revenue</CardTitle>
           </CardHeader>
@@ -66,7 +94,7 @@ export default function AdminOverviewPage() {
             <p className="text-xs text-white/50 mt-2">Data source check</p>
           </CardContent>
         </Card>
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white text-sm">Projects</CardTitle>
           </CardHeader>
@@ -78,7 +106,7 @@ export default function AdminOverviewPage() {
             <p className="text-xs text-white/50 mt-2">Data source check</p>
           </CardContent>
         </Card>
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white text-sm">Time spent</CardTitle>
           </CardHeader>
@@ -90,7 +118,7 @@ export default function AdminOverviewPage() {
             <p className="text-xs text-white/50 mt-2">Data source check</p>
           </CardContent>
         </Card>
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white text-sm">Resources</CardTitle>
           </CardHeader>
@@ -106,7 +134,7 @@ export default function AdminOverviewPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Project summary */}
-        <Card className="bg-white/5 border-white/10 lg:col-span-2">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-white">Project summary</CardTitle>
           </CardHeader>
@@ -151,7 +179,7 @@ export default function AdminOverviewPage() {
         </Card>
 
         {/* Overall progress */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Overall Progress</CardTitle>
           </CardHeader>
@@ -196,7 +224,7 @@ export default function AdminOverviewPage() {
       </div>
 
       {/* Today tasks (simplified) */}
-      <Card className="bg-white/5 border-white/10">
+      <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
         <CardHeader>
           <CardTitle className="text-white">Today task</CardTitle>
         </CardHeader>
