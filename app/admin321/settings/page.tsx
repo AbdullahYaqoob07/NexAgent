@@ -69,7 +69,15 @@ interface SystemSettings {
 export default function AdminSettingsPage() {
   const [feeConfig, setFeeConfig] = useState<FeeConfig | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>({
+    maintenance_mode: false,
+    max_concurrent_executions: 100,
+    api_rate_limit: 1000,
+    session_timeout_minutes: 60,
+    max_file_upload_size_mb: 100,
+    smtp_enabled: false,
+    analytics_retention_days: 90,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingFees, setEditingFees] = useState(false);
@@ -89,48 +97,13 @@ export default function AdminSettingsPage() {
         apiClient.get("/api/marketplace/admin/config/categories"),
       ]);
 
-      setFeeConfig(feesRes.data || {});
+      setFeeConfig(feesRes.data || null);
       setCategories(Array.isArray(categoriesRes.data) ? categoriesRes.data : []);
-
-      // Set default system settings (would come from API in full implementation)
-      setSystemSettings({
-        maintenance_mode: false,
-        max_concurrent_executions: 100,
-        api_rate_limit: 1000,
-        session_timeout_minutes: 60,
-        max_file_upload_size_mb: 100,
-        smtp_enabled: true,
-        analytics_retention_days: 90,
-      });
     } catch (error) {
       console.error("❌ Settings API Error:", error);
-      // Fallback data
-      setFeeConfig({
-        seller_commission_percentage: 20,
-        platform_fee_percentage: 5,
-        payment_processor_fee_percentage: 2.9,
-        minimum_payout_amount: 50,
-        maximum_transaction_amount: 100000,
-        refund_processing_fee_percentage: 0,
-        last_updated: new Date().toISOString(),
-        updated_by: "admin@example.com",
-      });
-
-      setCategories([
-        { id: "cat_1", name: "Automation", description: "Workflow automation templates", is_active: true },
-        { id: "cat_2", name: "Integration", description: "API and tool integrations", is_active: true },
-        { id: "cat_3", name: "AI & ML", description: "Artificial intelligence workflows", is_active: true },
-      ]);
-
-      setSystemSettings({
-        maintenance_mode: false,
-        max_concurrent_executions: 100,
-        api_rate_limit: 1000,
-        session_timeout_minutes: 60,
-        max_file_upload_size_mb: 100,
-        smtp_enabled: true,
-        analytics_retention_days: 90,
-      });
+      // On error, prefer explicit empty state over demo data
+      setFeeConfig(null);
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -141,7 +114,7 @@ export default function AdminSettingsPage() {
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
     if (confirmDialog.open && confirmDialog.stage === 1) {
       setCountdown(5);
       // Generate random values only once when entering stage 1
@@ -165,7 +138,9 @@ export default function AdminSettingsPage() {
       setSessionCount(0);
       setCacheSize(0);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [confirmDialog.open, confirmDialog.stage]);
 
   const saveFeeConfig = async () => {
@@ -174,10 +149,10 @@ export default function AdminSettingsPage() {
     try {
       await apiClient.put("/api/marketplace/admin/config/fees", feeConfig);
       setEditingFees(false);
-      alert("Fee configuration saved successfully!");
+      // Refresh from backend so we always show canonical values
+      await fetchSettings();
     } catch (error) {
       console.error("Error saving fees:", error);
-      alert("Failed to save fee configuration");
     } finally {
       setSaving(false);
     }
@@ -191,13 +166,12 @@ export default function AdminSettingsPage() {
 
     try {
       await apiClient.post("/api/marketplace/admin/config/categories", newCategory);
-      setCategories([...categories, { id: `cat_${Date.now()}`, ...newCategory, is_active: true }]);
+      // Re-fetch from backend instead of pushing a fake local ID
+      await fetchSettings();
       setNewCategory({ name: "", description: "" });
       setIsAddCategoryDialogOpen(false);
-      alert("Category added successfully!");
     } catch (error) {
       console.error("Error adding category:", error);
-      alert("Failed to add category");
     }
   };
 
@@ -508,6 +482,16 @@ export default function AdminSettingsPage() {
         {/* Categories Tab */}
         <TabsContent value="categories" className="space-y-4">
 
+          {categories.length === 0 ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="py-16 flex flex-col items-center justify-center text-center">
+                <p className="text-white/80 font-medium mb-2">No categories configured yet</p>
+                <p className="text-white/50 text-sm mb-4 max-w-md">
+                  Use "Add Category" to define marketplace categories. These will be used to organize Nexas in the marketplace.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {categories.map((category) => (
               <Card key={category.id} className="bg-white/5 border-white/10">
@@ -531,6 +515,7 @@ export default function AdminSettingsPage() {
               </Card>
             ))}
           </div>
+          )}
         </TabsContent>
 
         {/* System Settings Tab */}

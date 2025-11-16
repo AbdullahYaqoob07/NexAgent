@@ -66,6 +66,32 @@ import {
   Target,
 } from "lucide-react";
 
+// Backend-aligned API response types
+interface NotificationListApiResponse {
+  success: boolean;
+  notifications: Notification[];
+  total: number;
+  page: number;
+  page_size: number;
+  unread_count: number;
+}
+
+interface NotificationStatsApiResponse extends NotificationStats {}
+
+type NotificationChannelType = "email" | "push" | "in_app" | "sms" | "webhook" | "slack";
+
+interface NotificationPreferences {
+  success: boolean;
+  user_id: string;
+  enabled_channels: NotificationChannelType[];
+  // notification_types is present in backend but not yet visualized here.
+  notification_types: Record<string, boolean>;
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  timezone: string;
+  updated_at: string;
+}
+
 interface Notification {
   id: string;
   user_id: string;
@@ -115,6 +141,7 @@ interface BulkOperationResult {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [stats, setStats] = useState<NotificationStats | null>(null);
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -131,8 +158,8 @@ export default function NotificationsPage() {
 
   const fetchNotificationsData = async () => {
     try {
-      const [notificationsRes, statsRes] = await Promise.all([
-        apiClient.get("/api/v1/notifications", {
+      const [notificationsRes, statsRes, prefsRes] = await Promise.all([
+        apiClient.get<NotificationListApiResponse>("/api/v1/notifications", {
           params: {
             page: currentPage,
             page_size: pageSize,
@@ -142,136 +169,19 @@ export default function NotificationsPage() {
             include_read: true,
           },
         }),
-        apiClient.get("/api/v1/notifications/stats"),
+        apiClient.get<NotificationStatsApiResponse>("/api/v1/notifications/stats"),
+        apiClient.get<NotificationPreferences>("/api/v1/notifications/preferences"),
       ]);
 
-      setNotifications(typeof notificationsRes.data === 'string' ? [] : (notificationsRes.data?.notifications || []));
-      setStats(typeof statsRes.data === 'string' ? null : statsRes.data);
-      
+      setNotifications(notificationsRes.data.notifications || []);
+      setStats(statsRes.data || null);
+      setPreferences(prefsRes.data || null);
       setLastRefresh(new Date());
     } catch (error) {
       console.error("❌ Notifications API Error:", error);
-      // Set fallback data for demonstration
-      setNotifications([
-        {
-          id: "notif_1",
-          user_id: "user_123",
-          title: "Workflow Completed Successfully",
-          message: "Your workflow 'Data Processing Pipeline' has completed successfully with 1,245 records processed.",
-          notification_type: "workflow_success",
-          priority: "medium",
-          status: "delivered",
-          channels: ["email", "in_app"],
-          metadata: { workflow_id: "wf_789", records_processed: 1245 },
-          action_url: "/workflows/wf_789",
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          sent_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          delivered_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          delivery_attempts: 1,
-        },
-        {
-          id: "notif_2",
-          user_id: "user_456",
-          title: "Security Alert",
-          message: "Unusual login activity detected from a new device in Tokyo, Japan.",
-          notification_type: "security_alert",
-          priority: "critical",
-          status: "sent",
-          channels: ["email", "push", "sms"],
-          metadata: { location: "Tokyo, Japan", device: "iPhone 15" },
-          created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          sent_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          delivery_attempts: 1,
-        },
-        {
-          id: "notif_3",
-          user_id: "user_789",
-          title: "Payment Failed",
-          message: "Your payment of $49.99 for Pro Plan subscription has failed. Please update your payment method.",
-          notification_type: "payment_failed",
-          priority: "high",
-          status: "failed",
-          channels: ["email", "in_app"],
-          metadata: { amount: 49.99, plan: "Pro Plan" },
-          action_url: "/billing/payment-methods",
-          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          delivery_attempts: 3,
-          last_error: "SMTP server connection timeout",
-        },
-        {
-          id: "notif_4",
-          user_id: "user_101",
-          title: "Quota Warning",
-          message: "You have used 85% of your monthly API quota. Consider upgrading to avoid service interruption.",
-          notification_type: "quota_warning",
-          priority: "medium",
-          status: "read",
-          channels: ["in_app", "email"],
-          metadata: { quota_used: 85, quota_limit: 10000 },
-          action_url: "/billing/upgrade",
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          sent_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          delivered_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          read_at: new Date(Date.now() - 23 * 60 * 60 * 1000).toISOString(),
-          delivery_attempts: 1,
-        },
-        {
-          id: "notif_5",
-          user_id: "user_202",
-          title: "Team Invitation",
-          message: "You've been invited to join the 'Acme Corp Development' team by john.doe@acme.com.",
-          notification_type: "team_invitation",
-          priority: "medium",
-          status: "pending",
-          channels: ["email", "in_app"],
-          metadata: { team_name: "Acme Corp Development", inviter: "john.doe@acme.com" },
-          scheduled_for: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          action_url: "/teams/invitations",
-          created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          delivery_attempts: 0,
-        },
-      ]);
-
-      setStats({
-        success: true,
-        total_notifications: 2847,
-        unread_count: 23,
-        read_count: 2824,
-        by_type: {
-          workflow_success: 856,
-          workflow_failed: 124,
-          security_alert: 89,
-          quota_warning: 245,
-          payment_failed: 67,
-          team_invitation: 156,
-          system_maintenance: 34,
-        },
-        by_priority: {
-          low: 456,
-          medium: 1890,
-          high: 423,
-          critical: 78,
-        },
-        by_status: {
-          pending: 12,
-          sent: 45,
-          delivered: 2567,
-          read: 189,
-          failed: 23,
-          retrying: 11,
-        },
-        recent_activity: [
-          { type: "workflow_success", count: 12, timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
-          { type: "security_alert", count: 3, timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-          { type: "quota_warning", count: 8, timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() },
-        ],
-      });
+      setNotifications([]);
+      setStats(null);
+      setPreferences(null);
     } finally {
       setLoading(false);
     }
@@ -530,25 +440,25 @@ export default function NotificationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <KPICard
           title="Total Notifications"
-          value={stats?.total_notifications.toLocaleString() || "0"}
+          value={stats ? stats.total_notifications.toLocaleString() : "0"}
           icon={<Bell className="w-4 h-4" />}
           color="text-white"
         />
         <KPICard
           title="Unread"
-          value={stats?.unread_count.toString() || "0"}
+          value={stats ? stats.unread_count.toString() : "0"}
           icon={<BellOff className="w-4 h-4" />}
           color="text-yellow-400"
         />
         <KPICard
           title="Delivered"
-          value={stats?.by_status?.delivered?.toString() || "0"}
+          value={stats?.by_status?.delivered?.toString() ?? "0"}
           icon={<CheckCircle className="w-4 h-4" />}
           color="text-emerald-400"
         />
         <KPICard
           title="Failed"
-          value={stats?.by_status?.failed?.toString() || "0"}
+          value={stats?.by_status?.failed?.toString() ?? "0"}
           icon={<XCircle className="w-4 h-4" />}
           color="text-red-400"
         />
@@ -556,117 +466,164 @@ export default function NotificationsPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max w-full">
+        {/* Status pie */}
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Notification Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                delivered: { color: "#10B981" },
-                sent: { color: "#3B82F6" },
-                pending: { color: "#F59E0B" },
-                failed: { color: "#EF4444" }
-              }}
-              className="h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie 
-                  data={statusData} 
-                  dataKey="value" 
-                  nameKey="name" 
-                  innerRadius={40} 
-                  outerRadius={90}
-                  paddingAngle={2}
+            {statusData.length === 0 ? (
+              <div className="h-[300px] flex items-center justify-center text-sm text-white/60">
+                No notification status data available yet.
+              </div>
+            ) : (
+              <>
+                <ChartContainer
+                  config={{
+                    delivered: { color: "#10B981" },
+                    sent: { color: "#3B82F6" },
+                    pending: { color: "#F59E0B" },
+                    failed: { color: "#EF4444" },
+                  }}
+                  className="h-[300px] w-full"
                 >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={40}
+                        outerRadius={90}
+                        paddingAngle={2}
+                      >
+                        {statusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {statusData.slice(0, 4).map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white/5 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.fill }}
+                        />
+                        <span className="text-white/90 text-sm">{item.name}</span>
+                      </div>
+                      <span className="text-white font-semibold text-sm">
+                        {item.value}
+                      </span>
+                    </div>
                   ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {statusData.slice(0, 4).map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                    <span className="text-white/90 text-sm">{item.name}</span>
-                  </div>
-                  <span className="text-white font-semibold text-sm">{item.value}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
+        {/* Priority pie */}
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Priority Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                critical: { color: "#DC2626" },
-                high: { color: "#EF4444" },
-                medium: { color: "#F59E0B" },
-                low: { color: "#3B82F6" }
-              }}
-              className="h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie 
-                  data={priorityData} 
-                  dataKey="value" 
-                  nameKey="name" 
-                  innerRadius={40} 
-                  outerRadius={90}
-                  paddingAngle={2}
+            {priorityData.length === 0 ? (
+              <div className="h-[300px] flex items-center justify-center text-sm text-white/60">
+                No priority distribution data available yet.
+              </div>
+            ) : (
+              <>
+                <ChartContainer
+                  config={{
+                    critical: { color: "#DC2626" },
+                    high: { color: "#EF4444" },
+                    medium: { color: "#F59E0B" },
+                    low: { color: "#3B82F6" },
+                  }}
+                  className="h-[300px] w-full"
                 >
-                  {priorityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={priorityData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={40}
+                        outerRadius={90}
+                        paddingAngle={2}
+                      >
+                        {priorityData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+                <div className="mt-4 space-y-2">
+                  {priorityData.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white/5 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.fill }}
+                        />
+                        <span className="text-white/90 text-sm">{item.name}</span>
+                      </div>
+                      <span className="text-white font-semibold text-sm">
+                        {item.value}
+                      </span>
+                    </div>
                   ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-            <div className="mt-4 space-y-2">
-              {priorityData.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                    <span className="text-white/90 text-sm">{item.name}</span>
-                  </div>
-                  <span className="text-white font-semibold text-sm">{item.value}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
+        {/* Recent activity line chart */}
         <Card className="bg-white/5 border-white/10">
           <CardHeader>
             <CardTitle className="text-white">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{ count: { label: "Notifications", color: "#FF6900" } }}
-              className="h-[300px] w-full"
-            >
-              <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={recentActivityData} margin={{ left: 12, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="time" tick={{ fill: "#9CA3AF" }} />
-                <YAxis tick={{ fill: "#9CA3AF" }} />
-                <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={2} dot={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </LineChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {recentActivityData.length === 0 ? (
+              <div className="h-[300px] flex items-center justify-center text-sm text-white/60">
+                No recent notification activity.
+              </div>
+            ) : (
+              <ChartContainer
+                config={{ count: { label: "Notifications", color: "#FF6900" } }}
+                className="h-[300px] w-full"
+              >
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={recentActivityData} margin={{ left: 12, right: 12 }}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="time" tick={{ fill: "#9CA3AF" }} />
+                    <YAxis tick={{ fill: "#9CA3AF" }} />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="var(--color-count)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -818,8 +775,15 @@ export default function NotificationsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredNotifications.map((notification) => (
-                    <TableRow key={notification.id}>
+                  {filteredNotifications.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-white/60">
+                        No notifications found for the current filters.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredNotifications.map((notification) => (
+                      <TableRow key={notification.id}>
                       <TableCell>
                         <input 
                           type="checkbox" 
@@ -888,7 +852,8 @@ export default function NotificationsPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
               </div>
@@ -901,7 +866,12 @@ export default function NotificationsPage() {
             <CardHeader>
               <CardTitle className="text-white">Notification Types Analytics</CardTitle>
             </CardHeader>
-            <CardContent>
+          <CardContent>
+            {typeData.length === 0 ? (
+              <div className="h-80 flex items-center justify-center text-sm text-white/60">
+                No notification type analytics available yet.
+              </div>
+            ) : (
               <ChartContainer
                 config={{ value: { label: "Count", color: "#FF6900" } }}
                 className="h-80"
@@ -920,11 +890,13 @@ export default function NotificationsPage() {
                   <ChartTooltip content={<ChartTooltipContent />} />
                 </BarChart>
               </ChartContainer>
+            )}
             </CardContent>
-          </Card>
+        </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(stats?.by_type || {}).map(([type, count]) => (
+            {stats && Object.keys(stats.by_type || {}).length > 0 ? (
+              Object.entries(stats.by_type || {}).map(([type, count]) => (
               <Card key={type} className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-3 text-lg">
@@ -939,53 +911,52 @@ export default function NotificationsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            ))
+            ) : (
+              <div className="text-sm text-white/60">
+                No per-type notification analytics available yet.
+              </div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="channels" className="space-y-6 w-full overflow-x-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ChannelCard 
-              name="Email" 
+            <ChannelCard
+              name="Email"
               icon={<Mail className="w-6 h-6" />}
               description="HTML email notifications with templates"
-              active={true}
-              deliveryRate={98.5}
+              active={preferences?.enabled_channels.includes("email") ?? false}
             />
-            <ChannelCard 
-              name="In-App" 
+            <ChannelCard
+              name="In-App"
               icon={<Monitor className="w-6 h-6" />}
               description="Real-time notifications in the application"
-              active={true}
-              deliveryRate={99.9}
+              active={preferences?.enabled_channels.includes("in_app") ?? false}
             />
-            <ChannelCard 
-              name="Push Notifications" 
+            <ChannelCard
+              name="Push Notifications"
               icon={<Smartphone className="w-6 h-6" />}
               description="Mobile and browser push notifications"
-              active={true}
-              deliveryRate={87.2}
+              active={preferences?.enabled_channels.includes("push") ?? false}
             />
-            <ChannelCard 
-              name="SMS" 
+            <ChannelCard
+              name="SMS"
               icon={<MessageSquare className="w-6 h-6" />}
               description="Text message notifications for critical alerts"
-              active={false}
-              deliveryRate={95.8}
+              active={preferences?.enabled_channels.includes("sms") ?? false}
             />
-            <ChannelCard 
-              name="Slack" 
+            <ChannelCard
+              name="Slack"
               icon={<Slack className="w-6 h-6" />}
               description="Team notifications via Slack integration"
-              active={true}
-              deliveryRate={92.1}
+              active={preferences?.enabled_channels.includes("slack") ?? false}
             />
-            <ChannelCard 
-              name="Webhook" 
+            <ChannelCard
+              name="Webhook"
               icon={<Webhook className="w-6 h-6" />}
               description="Custom HTTP endpoints for integrations"
-              active={true}
-              deliveryRate={94.7}
+              active={preferences?.enabled_channels.includes("webhook") ?? false}
             />
           </div>
         </TabsContent>
@@ -1274,13 +1245,11 @@ function ChannelCard({
   icon,
   description,
   active,
-  deliveryRate
 }: {
   name: string;
   icon: React.ReactNode;
   description: string;
   active: boolean;
-  deliveryRate: number;
 }) {
   return (
     <Card className="bg-white/5 border-white/10">
@@ -1300,8 +1269,15 @@ function ChannelCard({
       <CardContent>
         <p className="text-white/70 text-sm mb-4">{description}</p>
         <div className="flex items-center justify-between">
-          <div className="text-sm text-white/60">Delivery Rate</div>
-          <div className="text-lg font-semibold text-emerald-400">{deliveryRate}%</div>
+          <div className="text-sm text-white/60">Channel Status</div>
+          <div
+            className={
+              "text-sm font-semibold " +
+              (active ? "text-emerald-400" : "text-white/60")
+            }
+          >
+            {active ? "Enabled for this user" : "Disabled for this user"}
+          </div>
         </div>
       </CardContent>
     </Card>

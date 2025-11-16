@@ -5,7 +5,6 @@ import apiClient from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ChartContainer,
   ChartLegend,
@@ -24,66 +23,120 @@ import {
   PieChart,
   Pie,
   Cell,
-  ResponsiveContainer,
 } from "recharts";
-import { Activity, AlertTriangle, Clock, Cpu, Gauge, Network, Server, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, Clock, Gauge, Server, TrendingUp } from "lucide-react";
+
+// Types matching backend analytics responses
+interface EventTimelinePoint {
+  timestamp: string;
+  count: number;
+}
+
+interface EventTimelineResponse {
+  success: boolean;
+  timeline: EventTimelinePoint[];
+  period: string;
+}
+
+interface SystemHealthResponseDTO {
+  success: boolean;
+  status: string;
+  uptime: number;
+  uptimePercentage: number;
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  avgResponseTime: number;
+  errorRate: number;
+  activeConnections: number;
+  timestamp: string;
+}
+
+interface ApiMetric {
+  endpoint: string;
+  method: string;
+  totalCalls: number;
+  successfulCalls: number;
+  failedCalls: number;
+  avgLatency: number;
+  p50Latency: number;
+  p95Latency: number;
+  p99Latency: number;
+  minLatency: number;
+  maxLatency: number;
+  errorRate: number;
+}
+
+interface ApiMetricsResponse {
+  success: boolean;
+  metrics: ApiMetric[];
+  timestamp: string;
+}
+
+interface ErrorRateResponse {
+  totalErrors: number;
+  errorRate: number;
+  errorsByType: Record<string, number>;
+  errorsByEndpoint: Record<string, number>;
+  criticalErrors: number;
+  warningErrors: number;
+  topErrors: { type: string; count: number }[];
+  timestamp: string;
+}
+
+interface WorkflowOverviewResponse {
+  success: boolean;
+  overview: {
+    totalExecutions: number;
+    successfulExecutions: number;
+    failedExecutions: number;
+    successRate: number;
+    period: string;
+  };
+}
 
 export default function Page() {
-  const [timeline, setTimeline] = useState<any[]>([]);
-  const [system, setSystem] = useState<any | null>(null);
-  const [apiMetrics, setApiMetrics] = useState<any[]>([]);
-  const [errors, setErrors] = useState<any | null>(null);
-  const [overview, setOverview] = useState<any | null>(null);
+  const [timeline, setTimeline] = useState<EventTimelinePoint[]>([]);
+  const [system, setSystem] = useState<SystemHealthResponseDTO | null>(null);
+  const [apiMetrics, setApiMetrics] = useState<ApiMetric[]>([]);
+  const [errors, setErrors] = useState<ErrorRateResponse | null>(null);
+  const [overview, setOverview] = useState<WorkflowOverviewResponse["overview"] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       try {
         const [timelineRes, systemRes, apiRes, errorRes, wfOverview] = await Promise.all([
-          apiClient.get("/api/v1/analytics/events/timeline", { params: { timeRange: "24h", interval: "hour" } }),
-          apiClient.get("/api/v1/analytics/system/health"),
-          apiClient.get("/api/v1/analytics/system/api-metrics", { params: { timeRange: "24h" } }),
-          apiClient.get("/api/v1/analytics/system/error-rate", { params: { timeRange: "24h" } }),
-          apiClient.get("/api/v1/analytics/workflows/overview", { params: { timeRange: "30d" } }),
+          apiClient.get<EventTimelineResponse>("/api/v1/analytics/events/timeline", {
+            params: { timeRange: "24h", interval: "hour" },
+          }),
+          apiClient.get<SystemHealthResponseDTO>("/api/v1/analytics/system/health"),
+          apiClient.get<ApiMetricsResponse>("/api/v1/analytics/system/api-metrics", {
+            params: { timeRange: "24h" },
+          }),
+          apiClient.get<ErrorRateResponse>("/api/v1/analytics/system/error-rate", {
+            params: { timeRange: "24h" },
+          }),
+          apiClient.get<WorkflowOverviewResponse>("/api/v1/analytics/workflows/overview", {
+            params: { timeRange: "30d" },
+          }),
         ]);
         if (!mounted) return;
-        
-        console.log('📊 Analytics Data Received:', {
-          timeline: timelineRes.data,
-          system: systemRes.data,
-          apiMetrics: apiRes.data,
-          errors: errorRes.data,
-          overview: wfOverview.data
-        });
-        
-        // Handle timeline data - check if it's a proper object or string
-        const timelineData = typeof timelineRes.data === 'string' ? [] : (timelineRes.data?.timeline || []);
-        setTimeline(timelineData);
-        
-        // Handle system data - check if it's a proper object or string
-        const systemData = typeof systemRes.data === 'string' ? null : systemRes.data;
-        setSystem(systemData);
-        
-        // Handle API metrics - check if it's a proper object or string
-        const apiData = typeof apiRes.data === 'string' ? [] : (apiRes.data?.metrics || []);
-        setApiMetrics(apiData);
-        
-        // Handle errors data - check if it's a proper object or string
-        const errorsData = typeof errorRes.data === 'string' ? null : errorRes.data;
-        setErrors(errorsData);
-        
-        // Handle overview data - check if it's a proper object or string
-        const overviewData = typeof wfOverview.data === 'string' ? null : (wfOverview.data?.overview || wfOverview.data);
-        setOverview(overviewData);
-        
+
+        setTimeline(timelineRes.data.timeline || []);
+        setSystem(systemRes.data);
+        setApiMetrics(apiRes.data.metrics || []);
+        setErrors(errorRes.data);
+        setOverview(wfOverview.data.overview);
       } catch (error) {
-        console.error('❌ Analytics API Error:', error);
-        // No fallback data - will show empty/zero values
+        console.error("❌ Analytics API Error:", error);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
+
     return () => {
       mounted = false;
     };
@@ -139,18 +192,25 @@ export default function Page() {
             <CardTitle className="text-white">Events timeline (24h)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{ count: { label: "Events", color: "#FF6900" } }}
-              className="h-72"
-            >
-              <LineChart data={timelineData} margin={{ left: 12, right: 12, top: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fill: "#9CA3AF" }} />
-                <YAxis tick={{ fill: "#9CA3AF" }} />
-                <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={2} dot={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </LineChart>
-            </ChartContainer>
+            {timelineData.length === 0 ? (
+              <div className="h-72 flex flex-col items-center justify-center text-white/50">
+                <Activity className="w-12 h-12 mb-3 opacity-30" />
+                <p className="text-sm">No events recorded in the last 24 hours</p>
+              </div>
+            ) : (
+              <ChartContainer
+                config={{ count: { label: "Events", color: "#FF6900" } }}
+                className="h-72"
+              >
+                <LineChart data={timelineData} margin={{ left: 12, right: 12, top: 8, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis dataKey="name" tick={{ fill: "#9CA3AF" }} />
+                  <YAxis tick={{ fill: "#9CA3AF" }} />
+                  <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={2} dot={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </LineChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -160,17 +220,25 @@ export default function Page() {
             <CardTitle className="text-white">Errors by type (24h)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{ a: { color: "#FF6900" } }} className="h-72">
-              <PieChart>
-                <Pie data={errorTypeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
-                  {errorTypeData.map((_, i) => (
-                    <Cell key={i} fill={["#FF6900", "#EF4444", "#F59E0B", "#22C55E", "#3B82F6", "#A855F7"][i % 6]} />
-                  ))}
-                </Pie>
-                <ChartLegend content={<ChartLegendContent />} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </PieChart>
-            </ChartContainer>
+            {errorTypeData.length === 0 ? (
+              <div className="h-72 flex flex-col items-center justify-center text-white/50">
+                <AlertTriangle className="w-12 h-12 mb-3 opacity-30" />
+                <p className="text-sm">No errors recorded</p>
+                <p className="text-xs mt-1">System running smoothly</p>
+              </div>
+            ) : (
+              <ChartContainer config={{ a: { color: "#FF6900" } }} className="h-72">
+                <PieChart>
+                  <Pie data={errorTypeData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80}>
+                    {errorTypeData.map((_, i) => (
+                      <Cell key={i} fill={["#FF6900", "#EF4444", "#F59E0B", "#22C55E", "#3B82F6", "#A855F7"][i % 6]} />
+                    ))}
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent />} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -182,15 +250,22 @@ export default function Page() {
             <CardTitle className="text-white">API latency p95 (top endpoints)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={{ p95: { label: "p95 latency", color: "#60A5FA" } }} className="h-72">
-              <BarChart data={apiLatencyBars} margin={{ left: 12, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fill: "#9CA3AF" }} interval={0} angle={-30} textAnchor="end" height={60} />
-                <YAxis tick={{ fill: "#9CA3AF" }} />
-                <Bar dataKey="p95" fill="var(--color-p95)" radius={[4, 4, 0, 0]} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </BarChart>
-            </ChartContainer>
+            {apiLatencyBars.length === 0 ? (
+              <div className="h-72 flex flex-col items-center justify-center text-white/50">
+                <Server className="w-12 h-12 mb-3 opacity-30" />
+                <p className="text-sm">No API calls recorded</p>
+              </div>
+            ) : (
+              <ChartContainer config={{ p95: { label: "p95 latency", color: "#60A5FA" } }} className="h-72">
+                <BarChart data={apiLatencyBars} margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis dataKey="name" tick={{ fill: "#9CA3AF" }} interval={0} angle={-30} textAnchor="end" height={60} />
+                  <YAxis tick={{ fill: "#9CA3AF" }} />
+                  <Bar dataKey="p95" fill="var(--color-p95)" radius={[4, 4, 0, 0]} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </BarChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -200,28 +275,36 @@ export default function Page() {
             <CardTitle className="text-white">API metrics (24h)</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-white/70">Endpoint</TableHead>
-                  <TableHead className="text-white/70">Calls</TableHead>
-                  <TableHead className="text-white/70">Success</TableHead>
-                  <TableHead className="text-white/70">Error%</TableHead>
-                  <TableHead className="text-right text-white/70">p95 (ms)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(apiMetrics || []).slice(0, 8).map((m: any) => (
-                  <TableRow key={`${m.method}-${m.endpoint}`}>
-                    <TableCell className="text-white/90">{m.method} {m.endpoint}</TableCell>
-                    <TableCell className="text-white/70">{m.totalCalls}</TableCell>
-                    <TableCell className="text-white/70">{m.successfulCalls}</TableCell>
-                    <TableCell className="text-white/70">{m.errorRate}%</TableCell>
-                    <TableCell className="text-right text-white/90">{Math.round(m.p95Latency)}</TableCell>
+            {apiMetrics.length === 0 ? (
+              <div className="h-72 flex flex-col items-center justify-center text-white/50">
+                <Clock className="w-12 h-12 mb-3 opacity-30" />
+                <p className="text-sm">No API metrics available</p>
+                <p className="text-xs mt-1">Waiting for API activity</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-white/70">Endpoint</TableHead>
+                    <TableHead className="text-white/70">Calls</TableHead>
+                    <TableHead className="text-white/70">Success</TableHead>
+                    <TableHead className="text-white/70">Error%</TableHead>
+                    <TableHead className="text-right text-white/70">p95 (ms)</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {apiMetrics.slice(0, 8).map((m) => (
+                    <TableRow key={`${m.method}-${m.endpoint}`}>
+                      <TableCell className="text-white/90">{m.method} {m.endpoint}</TableCell>
+                      <TableCell className="text-white/70">{m.totalCalls}</TableCell>
+                      <TableCell className="text-white/70">{m.successfulCalls}</TableCell>
+                      <TableCell className="text-white/70">{m.errorRate}%</TableCell>
+                      <TableCell className="text-right text-white/90">{Math.round(m.p95Latency)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

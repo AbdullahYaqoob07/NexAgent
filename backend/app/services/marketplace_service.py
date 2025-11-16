@@ -537,8 +537,53 @@ class MarketplaceService:
             return NexaListResponse(nexas=[], total=0, page=1, page_size=page_size, total_pages=0, has_next=False, has_prev=False)
 
     # =============================================================================
-    # ADMIN OPERATIONS
+    # ADMIN OPERATIONS & CONFIGURATION
     # =============================================================================
+
+    async def get_fee_configuration(self) -> Dict[str, Any]:
+        """Return current marketplace fee configuration for admin settings UI."""
+        try:
+            return await marketplace_db.get_fee_config()
+        except Exception as e:
+            logger.error(f"Error getting fee configuration: {str(e)}")
+            return {}
+
+    async def update_fee_configuration(self, fee_config: Dict[str, Any], admin_user_id: str) -> Dict[str, Any]:
+        """Update marketplace fee configuration.
+
+        The caller is expected to enforce super-admin authorization.
+        """
+        try:
+            success = await marketplace_db.update_fee_config(fee_config, admin_user_id)
+            if success:
+                return {'success': True, 'message': 'Fee configuration updated successfully'}
+            return {'success': False, 'error': 'Failed to update fee configuration'}
+        except Exception as e:
+            logger.error(f"Error updating fee configuration: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
+    async def get_category_configuration(self) -> List[Dict[str, Any]]:
+        """Return all marketplace categories for admin configuration UI."""
+        try:
+            return await marketplace_db.get_categories()
+        except Exception as e:
+            logger.error(f"Error getting category configuration: {str(e)}")
+            return []
+
+    async def add_category(self, category_data: Dict[str, Any], admin_user_id: str) -> Dict[str, Any]:
+        """Create a new marketplace category from admin panel."""
+        try:
+            category_id = await marketplace_db.add_category(category_data, admin_user_id)
+            if not category_id:
+                return {'success': False, 'error': 'Failed to create category'}
+            return {
+                'success': True,
+                'message': 'Category created successfully',
+                'category_id': category_id,
+            }
+        except Exception as e:
+            logger.error(f"Error adding category: {str(e)}")
+            return {'success': False, 'error': str(e)}
 
     async def moderate_nexa(self, moderation_data: AdminNexaModerationRequest, admin_user_id: str) -> Dict[str, Any]:
         """Moderate a Nexa (admin only)"""

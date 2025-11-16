@@ -199,43 +199,21 @@ class AnalyticsService:
         self,
         time_range: TimeRange = TimeRange.LAST_24_HOURS
     ) -> Dict[str, Any]:
-        """Get API performance metrics"""
+        """Get API performance metrics.
+
+        Currently there is no real request-tracking backend wired up, so we
+        return an empty metrics array instead of any mocked data. Once
+        request tracking is implemented, this method should aggregate and
+        return real metrics from the underlying store.
+        """
         start, end = self.parse_time_range(time_range)
-        
-        # Mock implementation - in production, integrate with request tracking
+
+        # No real metrics yet – return empty list so frontend can show
+        # an explicit "no data" state instead of fake rows.
         return {
             'success': True,
-            'metrics': [
-                {
-                    'endpoint': '/api/v1/workflows',
-                    'method': 'GET',
-                    'totalCalls': 1250,
-                    'successfulCalls': 1230,
-                    'failedCalls': 20,
-                    'avgLatency': 125.5,
-                    'p50Latency': 98.2,
-                    'p95Latency': 245.8,
-                    'p99Latency': 450.3,
-                    'minLatency': 45.2,
-                    'maxLatency': 980.1,
-                    'errorRate': 1.6
-                },
-                {
-                    'endpoint': '/api/v1/integrations/connections',
-                    'method': 'POST',
-                    'totalCalls': 580,
-                    'successfulCalls': 575,
-                    'failedCalls': 5,
-                    'avgLatency': 210.3,
-                    'p50Latency': 180.5,
-                    'p95Latency': 380.2,
-                    'p99Latency': 550.7,
-                    'minLatency': 120.3,
-                    'maxLatency': 850.2,
-                    'errorRate': 0.86
-                }
-            ],
-            'timestamp': datetime.utcnow()
+            'metrics': [],
+            'timestamp': datetime.utcnow(),
         }
     
     async def get_error_rate_metrics(
@@ -316,23 +294,154 @@ class AnalyticsService:
         self,
         time_range: TimeRange = TimeRange.LAST_30_DAYS
     ) -> Dict[str, Any]:
-        """Get user engagement metrics"""
+        """Get user engagement metrics based on real Firestore data.
+
+        - totalUsers is derived from the users collection (via dashboard overview)
+        - *Active* users are users with at least one `user_action` event in the
+          selected time range.
+        - Daily/weekly/monthly actives are based on activity in the last
+          1/7/30 days respectively.
+        - newUsers are users whose first action is within the selected range;
+          returningUsers are the rest of the active cohort.
+        - Engagement rate is activeUsers / totalUsers.
+
+        On any failure we return zeros instead of hardcoded demo values so the
+        frontend can show an honest empty state rather than fake data.
+        """
         start, end = self.parse_time_range(time_range)
-        
-        # Mock implementation - in production, compute from actual user data
-        return {
-            'success': True,
-            'totalUsers': 1250,
-            'activeUsers': 850,
-            'dailyActiveUsers': 450,
-            'weeklyActiveUsers': 680,
-            'monthlyActiveUsers': 850,
-            'newUsers': 85,
-            'returningUsers': 765,
-            'avgSessionsPerUser': 12.5,
-            'avgActionsPerUser': 45.2,
-            'engagementRate': 68.0
-        }
+
+        # Determine total users using the same logic as the dashboard overview.
+        total_users = 0
+        try:
+            dashboard = await self.db.get_dashboard_overview(start, end)
+            if dashboard.get('success'):
+                users_info = dashboard.get('users') or {}
+                total_users = int(users_info.get('total', 0))
+        except Exception as e:
+            logger.error(f"Failed to load total users for engagement metrics: {e}")
+            total_users = 0
+
+        try:
+            # Pull user_action events for the period and derive activity stats.
+            events_result = await self.db.get_events(
+                start_date=start,
+                end_date=end,
+                user_id=None,
+                workflow_id=None,
+                event_type='user_action',
+                limit=10000,
+                offset=0,
+            )
+
+            if not events_result.get('success'):
+                logger.error(
+                    "get_user_engagement_metrics: events query failed: %s",
+                    events_result.get('error'),
+                )
+                # Return zeros rather than fake numbers.
+                return {
+                    'success': True,
+                    'totalUsers': total_users,
+                    'activeUsers': 0,
+                    'dailyActiveUsers': 0,
+                    'weeklyActiveUsers': 0,
+                    'monthlyActiveUsers': 0,
+                    'newUsers': 0,
+                    'returningUsers': 0,
+                    'avgSessionsPerUser': 0.0,
+                    'avgActionsPerUser': 0.0,
+                    'engagementRate': 0.0,
+                }
+
+            events = events_result.get('events', [])
+
+            now = datetime.utcnow()
+            day_ago = now - timedelta(days=1)
+            week_ago = now - timedelta(days=7)
+
+            monthly_users = set()
+            weekly_users = set()
+            daily_users = set()
+
+            user_sessions: Dict[str, set] = {}
+            user_actions: Dict[str, int] = {}
+            first_seen: Dict[str, datetime] = {}
+
+            for event in events:
+                uid = event.get('userId')
+                ts = event.get('timestamp')
+                if not uid or not isinstance(ts, datetime):
+                    continue
+
+                # Track active sets
+                monthly_users.add(uid)
+                if ts >= week_ago:
+                    weekly_users.add(uid)
+                if ts >= day_ago:
+                    daily_users.add(uid)
+
+                # Aggregate sessions/actions
+                user_actions[uid] = user_actions.get(uid, 0) + 1
+                props = event.get('properties') or {}
+                session_id = props.get('sessionId')
+                if session_id:
+                    sessions = user_sessions.setdefault(uid, set())
+                    sessions.add(session_id)
+
+                prev_first = first_seen.get(uid)
+                if prev_first is None or ts < prev_first:
+                    first_seen[uid] = ts
+
+            active_users = len(monthly_users)
+            total_sessions = sum(len(user_sessions.get(uid, set())) for uid in monthly_users)
+            total_actions = sum(user_actions.get(uid, 0) for uid in monthly_users)
+
+            avg_sessions_per_user = (
+                float(total_sessions) / active_users if active_users > 0 else 0.0
+            )
+            avg_actions_per_user = (
+                float(total_actions) / active_users if active_users > 0 else 0.0
+            )
+
+            # A "new" user is one whose first action falls inside the period
+            new_users = sum(1 for ts in first_seen.values() if ts >= start)
+            returning_users = max(active_users - new_users, 0)
+
+            engagement_rate = (
+                float(active_users) / float(total_users) * 100.0
+                if total_users > 0
+                else 0.0
+            )
+
+            return {
+                'success': True,
+                'totalUsers': total_users,
+                'activeUsers': active_users,
+                'dailyActiveUsers': len(daily_users),
+                'weeklyActiveUsers': len(weekly_users),
+                'monthlyActiveUsers': active_users,
+                'newUsers': new_users,
+                'returningUsers': returning_users,
+                'avgSessionsPerUser': avg_sessions_per_user,
+                'avgActionsPerUser': avg_actions_per_user,
+                'engagementRate': engagement_rate,
+            }
+        except Exception as e:
+            logger.error(f"Failed to compute user engagement metrics: {e}")
+            # Still no fake data – just zeros if something goes wrong.
+            return {
+                'success': True,
+                'totalUsers': total_users,
+                'activeUsers': 0,
+                'dailyActiveUsers': 0,
+                'weeklyActiveUsers': 0,
+                'monthlyActiveUsers': 0,
+                'newUsers': 0,
+                'returningUsers': 0,
+                'avgSessionsPerUser': 0.0,
+                'avgActionsPerUser': 0.0,
+                'engagementRate': 0.0,
+            }
     
     # ==================== Dashboard ====================
     

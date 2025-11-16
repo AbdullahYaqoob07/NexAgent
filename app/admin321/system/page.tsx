@@ -106,99 +106,24 @@ export default function SystemPage() {
   const fetchSystemData = async () => {
     try {
       const [healthRes, resourcesRes, apiRes, uptimeRes] = await Promise.all([
-        apiClient.get("/api/v1/analytics/system/health"),
-        apiClient.get("/api/v1/analytics/system/resource-usage"),
-        apiClient.get("/api/v1/analytics/system/api-metrics", { params: { timeRange: "24h" } }),
-        apiClient.get("/api/v1/analytics/system/uptime", { params: { timeRange: "30d" } }),
+        apiClient.get<SystemHealth>("/api/v1/analytics/system/health"),
+        apiClient.get<ResourceUsage>("/api/v1/analytics/system/resource-usage"),
+        apiClient.get<{ success: boolean; metrics: APIMetric[]; timestamp: string }>(
+          "/api/v1/analytics/system/api-metrics",
+          { params: { timeRange: "24h" } },
+        ),
+        apiClient.get<UptimeData>("/api/v1/analytics/system/uptime", {
+          params: { timeRange: "30d" },
+        }),
       ]);
 
-      setHealth(typeof healthRes.data === 'string' ? null : healthRes.data);
-      setResources(typeof resourcesRes.data === 'string' ? resourcesRes.data?.metrics || null : resourcesRes.data);
-      setApiMetrics(typeof apiRes.data === 'string' ? [] : apiRes.data?.metrics || []);
-      setUptimeData(typeof uptimeRes.data === 'string' ? null : uptimeRes.data);
+      setHealth(healthRes.data);
+      setResources(resourcesRes.data);
+      setApiMetrics(apiRes.data.metrics || []);
+      setUptimeData(uptimeRes.data);
       setLastRefresh(new Date());
     } catch (error) {
       console.error("❌ System API Error:", error);
-      // Set fallback data for demonstration
-      setHealth({
-        success: true,
-        status: "healthy",
-        uptime: 1234567,
-        uptimePercentage: 99.97,
-        totalRequests: 2847392,
-        successfulRequests: 2844581,
-        failedRequests: 2811,
-        avgResponseTime: 127.8,
-        errorRate: 0.098,
-        activeConnections: 342,
-        timestamp: new Date().toISOString(),
-      });
-
-      setResources({
-        cpuUsage: 23.4,
-        memoryUsage: 68.2,
-        memoryUsedMB: 5467,
-        memoryTotalMB: 8192,
-        diskUsage: 45.8,
-        diskUsedGB: 229,
-        diskTotalGB: 500,
-        activeThreads: 87,
-        timestamp: new Date().toISOString(),
-      });
-
-      setApiMetrics([
-        {
-          endpoint: "/api/v1/analytics",
-          method: "GET",
-          totalCalls: 45231,
-          successfulCalls: 44987,
-          failedCalls: 244,
-          avgLatency: 89.4,
-          p50Latency: 67.2,
-          p95Latency: 234.1,
-          p99Latency: 456.7,
-          minLatency: 23.1,
-          maxLatency: 1234.5,
-          errorRate: 0.54,
-        },
-        {
-          endpoint: "/api/v1/workflows",
-          method: "POST",
-          totalCalls: 12847,
-          successfulCalls: 12703,
-          failedCalls: 144,
-          avgLatency: 156.2,
-          p50Latency: 134.8,
-          p95Latency: 387.3,
-          p99Latency: 678.9,
-          minLatency: 45.6,
-          maxLatency: 2134.2,
-          errorRate: 1.12,
-        },
-        {
-          endpoint: "/api/v1/integrations",
-          method: "GET",
-          totalCalls: 28934,
-          successfulCalls: 28801,
-          failedCalls: 133,
-          avgLatency: 73.6,
-          p50Latency: 58.4,
-          p95Latency: 189.7,
-          p99Latency: 334.2,
-          minLatency: 18.9,
-          maxLatency: 876.4,
-          errorRate: 0.46,
-        },
-      ]);
-
-      setUptimeData({
-        success: true,
-        uptime: 99.97,
-        totalDowntime: 1440, // 24 minutes
-        incidents: 2,
-        lastIncident: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        timeRange: "30d",
-      });
     } finally {
       setLoading(false);
     }
@@ -229,6 +154,15 @@ export default function SystemPage() {
       default:
         return { color: "text-gray-400", bg: "bg-gray-500/20", icon: <Server className="w-4 h-4" /> };
     }
+  }, [health]);
+
+  const healthStatusSubtitle = useMemo(() => {
+    // When we either have explicit "unknown" from backend OR no health data at all,
+    // tell the user we haven't seen recent system metrics.
+    if (!health || health.status === "unknown") {
+      return "No updates about API metrics in the last 5 minutes";
+    }
+    return undefined;
   }, [health]);
 
   const resourceAlerts = useMemo(() => {
@@ -310,6 +244,7 @@ export default function SystemPage() {
         <StatusCard
           title="System Status"
           value={health?.status || "Unknown"}
+          subtitle={healthStatusSubtitle}
           icon={healthStatus.icon}
           color={healthStatus.color}
           bg={healthStatus.bg}
@@ -483,76 +418,84 @@ export default function SystemPage() {
               <CardTitle className="text-white">API Performance Metrics</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-white/70">Endpoint</TableHead>
-                    <TableHead className="text-white/70">Calls</TableHead>
-                    <TableHead className="text-white/70">Success Rate</TableHead>
-                    <TableHead className="text-white/70">Avg Latency</TableHead>
-                    <TableHead className="text-white/70">P95</TableHead>
-                    <TableHead className="text-white/70">Error Rate</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {apiMetrics.map((metric, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-mono text-white/90">
-                        <div className="flex items-center gap-2">
+              {apiMetrics.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center text-white/50">
+                  <Server className="w-10 h-10 mb-3 opacity-40" />
+                  <p className="text-sm">No API performance metrics available</p>
+                  <p className="text-xs mt-1">Metrics will appear here once requests start flowing</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-white/70">Endpoint</TableHead>
+                      <TableHead className="text-white/70">Calls</TableHead>
+                      <TableHead className="text-white/70">Success Rate</TableHead>
+                      <TableHead className="text-white/70">Avg Latency</TableHead>
+                      <TableHead className="text-white/70">P95</TableHead>
+                      <TableHead className="text-white/70">Error Rate</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {apiMetrics.map((metric, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono text-white/90">
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`font-mono text-xs border-white/30 ${
+                                metric.method === 'GET' ? 'text-emerald-400 bg-emerald-500/10' :
+                                metric.method === 'POST' ? 'text-blue-400 bg-blue-500/10' :
+                                metric.method === 'PUT' ? 'text-yellow-400 bg-yellow-500/10' :
+                                metric.method === 'DELETE' ? 'text-red-400 bg-red-500/10' :
+                                'text-white/70 bg-white/5'
+                              }`}
+                            >
+                              {metric.method}
+                            </Badge>
+                            <span className="text-white/90">{metric.endpoint}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-white/70">
+                          {metric.totalCalls.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
                           <Badge 
                             variant="outline" 
-                            className={`font-mono text-xs border-white/30 ${
-                              metric.method === 'GET' ? 'text-emerald-400 bg-emerald-500/10' :
-                              metric.method === 'POST' ? 'text-blue-400 bg-blue-500/10' :
-                              metric.method === 'PUT' ? 'text-yellow-400 bg-yellow-500/10' :
-                              metric.method === 'DELETE' ? 'text-red-400 bg-red-500/10' :
-                              'text-white/70 bg-white/5'
+                            className={`${
+                              ((metric.successfulCalls / metric.totalCalls) * 100) > 95
+                                ? 'border-emerald-500/30 text-emerald-400'
+                                : 'border-yellow-500/30 text-yellow-400'
                             }`}
                           >
-                            {metric.method}
+                            {((metric.successfulCalls / metric.totalCalls) * 100).toFixed(1)}%
                           </Badge>
-                          <span className="text-white/90">{metric.endpoint}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-white/70">
-                        {metric.totalCalls.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={`${
-                            ((metric.successfulCalls / metric.totalCalls) * 100) > 95
-                              ? 'border-emerald-500/30 text-emerald-400'
-                              : 'border-yellow-500/30 text-yellow-400'
-                          }`}
-                        >
-                          {((metric.successfulCalls / metric.totalCalls) * 100).toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-white/90">
-                        {Math.round(metric.avgLatency)}ms
-                      </TableCell>
-                      <TableCell className="text-white/90">
-                        {Math.round(metric.p95Latency)}ms
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline"
-                          className={`${
-                            metric.errorRate > 5
-                              ? 'border-red-500/30 text-red-400'
-                              : metric.errorRate > 1
-                              ? 'border-yellow-500/30 text-yellow-400'
-                              : 'border-emerald-500/30 text-emerald-400'
-                          }`}
-                        >
-                          {metric.errorRate.toFixed(2)}%
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        </TableCell>
+                        <TableCell className="text-white/90">
+                          {Math.round(metric.avgLatency)}ms
+                        </TableCell>
+                        <TableCell className="text-white/90">
+                          {Math.round(metric.p95Latency)}ms
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline"
+                            className={`${
+                              metric.errorRate > 5
+                                ? 'border-red-500/30 text-red-400'
+                                : metric.errorRate > 1
+                                ? 'border-yellow-500/30 text-yellow-400'
+                                : 'border-emerald-500/30 text-emerald-400'
+                            }`}
+                          >
+                            {metric.errorRate.toFixed(2)}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

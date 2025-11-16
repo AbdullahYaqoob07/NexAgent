@@ -5,6 +5,7 @@ from app.services.firebase_service import firebase_service
 from app.services.analytics_service import analytics_service
 from app.core.security import rate_limit
 from typing import Optional, List
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)

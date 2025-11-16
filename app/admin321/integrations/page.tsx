@@ -649,7 +649,7 @@ export default function IntegrationsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {integration.webhookSupport && (
-                        <Shield className="w-4 h-4 text-emerald-400" title="Webhook Support" />
+                        <Shield className="w-4 h-4 text-emerald-400" />
                       )}
                       <Badge variant={integration.isActive ? "default" : "secondary"} className="text-xs">
                         {integration.isActive ? "Active" : "Inactive"}

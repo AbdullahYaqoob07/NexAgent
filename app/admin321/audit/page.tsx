@@ -53,6 +53,69 @@ import {
   Zap,
 } from "lucide-react";
 
+// Backend-aligned API response types
+interface AuditLogApiResponse {
+  success: boolean;
+  logs: AuditLog[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface SecurityLogsApiResponse {
+  success: boolean;
+  logs: SecurityEvent[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+interface AuditStatisticsApiResponse extends AuditStatistics {}
+
+interface BackendComplianceAlert {
+  id: string;
+  alertType: string;
+  severity: string;
+  standard: string;
+  title: string;
+  description: string;
+  acknowledged: boolean;
+  createdAt: string;
+}
+
+interface ComplianceAlertsApiResponse {
+  success: boolean;
+  alerts: BackendComplianceAlert[];
+  total: number;
+  criticalCount: number;
+  warningCount: number;
+}
+
+interface ComplianceStatisticsApiResponse {
+  overallComplianceScore: number;
+  complianceByStandard: Record<string, number>;
+  totalViolations: number;
+  violationsByType: Record<string, number>;
+  dataSubjectRequests: number;
+  avgResponseTime: number;
+  retentionPolicyCompliance: boolean;
+}
+
+interface ComplianceReportSummary {
+  id: string;
+  standard: string;
+  reportPeriod: string;
+  generatedAt: string;
+  complianceScore: number;
+  status: string;
+}
+
+interface ComplianceReportsApiResponse {
+  success: boolean;
+  reports: ComplianceReportSummary[];
+  total: number;
+}
+
 interface AuditLog {
   id: string;
   eventType: string;
@@ -111,6 +174,8 @@ export default function AuditPage() {
   const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
   const [statistics, setStatistics] = useState<AuditStatistics | null>(null);
   const [complianceAlerts, setComplianceAlerts] = useState<ComplianceAlert[]>([]);
+  const [complianceStats, setComplianceStats] = useState<ComplianceStatisticsApiResponse | null>(null);
+  const [complianceReports, setComplianceReports] = useState<ComplianceReportSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<string>("all");
@@ -122,203 +187,60 @@ export default function AuditPage() {
 
   const fetchAuditData = async () => {
     try {
-      const [logsRes, securityRes, statsRes] = await Promise.all([
-        apiClient.get("/api/v1/audit/logs", {
-          params: {
-            page: currentPage,
-            pageSize: pageSize,
-            searchQuery: searchQuery || undefined,
-            severity: severityFilter !== "all" ? severityFilter : undefined,
-            eventType: eventTypeFilter !== "all" ? eventTypeFilter : undefined,
-          },
-        }),
-        apiClient.get("/api/v1/audit/security/events", {
-          params: {
-            page: 1,
-            pageSize: 20,
-            resolved: false,
-          },
-        }),
-        apiClient.get("/api/v1/audit/logs/statistics/summary"),
-      ]);
+      const [logsRes, securityRes, statsRes, alertsRes, compStatsRes, reportsRes] =
+        await Promise.all([
+          apiClient.get<AuditLogApiResponse>("/api/v1/audit/logs", {
+            params: {
+              page: currentPage,
+              pageSize,
+              searchQuery: searchQuery || undefined,
+              severity: severityFilter !== "all" ? severityFilter : undefined,
+              eventType: eventTypeFilter !== "all" ? eventTypeFilter : undefined,
+            },
+          }),
+          apiClient.get<SecurityLogsApiResponse>("/api/v1/audit/security/events", {
+            params: {
+              page: 1,
+              pageSize: 20,
+              resolved: false,
+            },
+          }),
+          apiClient.get<AuditStatisticsApiResponse>(
+            "/api/v1/audit/logs/statistics/summary",
+          ),
+          apiClient.get<ComplianceAlertsApiResponse>(
+            "/api/v1/audit/compliance/alerts",
+            { params: { limit: 50 } },
+          ),
+          apiClient.get<ComplianceStatisticsApiResponse>(
+            "/api/v1/audit/compliance/statistics",
+          ),
+          apiClient.get<ComplianceReportsApiResponse>(
+            "/api/v1/audit/compliance/reports",
+            { params: { limit: 4 } },
+          ),
+        ]);
 
-      setAuditLogs(typeof logsRes.data === 'string' ? [] : (logsRes.data?.logs || []));
-      setSecurityEvents(typeof securityRes.data === 'string' ? [] : (securityRes.data?.events || []));
-      setStatistics(typeof statsRes.data === 'string' ? null : statsRes.data);
-      
-      // Mock compliance alerts
-      setComplianceAlerts([
-        {
-          id: "alert_1",
-          type: "GDPR Violation",
-          severity: "critical",
-          message: "Data retention period exceeded for 5 records",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          resolved: false,
-        },
-        {
-          id: "alert_2",
-          type: "SOC2 Warning",
-          severity: "warning",
-          message: "Unusual access pattern detected for user admin@company.com",
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          resolved: false,
-        },
-        {
-          id: "alert_3",
-          type: "Access Control",
-          severity: "error",
-          message: "Unauthorized API access attempt blocked",
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          resolved: true,
-        },
-      ]);
-      
+      setAuditLogs(logsRes.data.logs || []);
+      setSecurityEvents(securityRes.data.logs || []);
+      setStatistics(statsRes.data || null);
+
+      setComplianceAlerts(
+        (alertsRes.data.alerts || []).map((a) => ({
+          id: a.id,
+          type: `${a.standard.toUpperCase()} • ${a.alertType}`,
+          severity: a.severity,
+          message: a.description || a.title,
+          timestamp: a.createdAt,
+          resolved: a.acknowledged,
+        })),
+      );
+
+      setComplianceStats(compStatsRes.data || null);
+      setComplianceReports(reportsRes.data.reports || []);
       setLastRefresh(new Date());
     } catch (error) {
       console.error("❌ Audit API Error:", error);
-      // Set fallback data for demonstration
-      setAuditLogs([
-        {
-          id: "log_1",
-          eventType: "user_login",
-          severity: "info",
-          userId: "user_123",
-          userName: "John Doe",
-          ipAddress: "192.168.1.100",
-          userAgent: "Mozilla/5.0...",
-          resourceType: "session",
-          resourceId: "session_456",
-          resourceName: "User Session",
-          action: "login",
-          description: "User logged in successfully",
-          metadata: { source: "web_app" },
-          changes: {},
-          status: "success",
-          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "log_2",
-          eventType: "workflow_created",
-          severity: "info",
-          userId: "user_456",
-          userName: "Jane Smith",
-          ipAddress: "192.168.1.101",
-          resourceType: "workflow",
-          resourceId: "workflow_789",
-          resourceName: "Data Processing Pipeline",
-          action: "created",
-          description: "Created new workflow for data processing",
-          metadata: { category: "automation" },
-          changes: { before: null, after: { name: "Data Processing Pipeline" } },
-          status: "success",
-          timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "log_3",
-          eventType: "failed_login",
-          severity: "warning",
-          userId: "user_789",
-          userName: "Unknown User",
-          ipAddress: "10.0.0.25",
-          resourceType: "authentication",
-          action: "login_attempt",
-          description: "Failed login attempt - invalid credentials",
-          metadata: { attempts: 3, source: "mobile_app" },
-          changes: {},
-          status: "failed",
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "log_4",
-          eventType: "data_exported",
-          severity: "info",
-          userId: "user_123",
-          userName: "John Doe",
-          ipAddress: "192.168.1.100",
-          resourceType: "data",
-          resourceId: "export_001",
-          resourceName: "Customer Data Export",
-          action: "exported",
-          description: "User exported customer data for analysis",
-          metadata: { format: "CSV", records: 1250 },
-          changes: {},
-          status: "success",
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "log_5",
-          eventType: "unauthorized_access",
-          severity: "critical",
-          userId: "unknown",
-          ipAddress: "203.0.113.42",
-          resourceType: "api",
-          resourceId: "api_endpoint_sensitive",
-          action: "access_attempt",
-          description: "Unauthorized access attempt to sensitive API endpoint",
-          metadata: { endpoint: "/api/v1/admin/users", blocked: true },
-          changes: {},
-          status: "blocked",
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        },
-      ]);
-
-      setSecurityEvents([
-        {
-          id: "sec_1",
-          eventType: "brute_force_attack",
-          severity: "critical",
-          ipAddress: "203.0.113.42",
-          description: "Multiple failed login attempts detected",
-          threatLevel: 9,
-          mitigationAction: "IP address temporarily blocked",
-          resolved: false,
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          id: "sec_2",
-          eventType: "suspicious_activity",
-          severity: "warning",
-          userId: "user_suspicious",
-          ipAddress: "10.0.0.25",
-          description: "Unusual data access pattern detected",
-          threatLevel: 6,
-          mitigationAction: "User account flagged for review",
-          resolved: false,
-          timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        },
-      ]);
-
-      setStatistics({
-        success: true,
-        totalEvents: 15420,
-        eventsByType: {
-          user_login: 3500,
-          workflow_created: 1250,
-          data_accessed: 8500,
-          failed_login: 320,
-          data_exported: 850,
-        },
-        eventsBySeverity: {
-          info: 14000,
-          warning: 1200,
-          error: 200,
-          critical: 20,
-        },
-        eventsByUser: [
-          { userId: "user_123", count: 450 },
-          { userId: "user_456", count: 380 },
-          { userId: "user_789", count: 250 },
-        ],
-        successRate: 97.5,
-        failureRate: 2.5,
-        topActions: [
-          { action: "accessed", count: 5200 },
-          { action: "created", count: 2800 },
-          { action: "updated", count: 1900 },
-        ],
-        period: "Last 30 days",
-      });
     } finally {
       setLoading(false);
     }
@@ -374,22 +296,29 @@ export default function AuditPage() {
   };
 
   const chartData = useMemo(() => {
-    if (!statistics) return [];
+    if (!statistics || statistics.totalEvents === 0) return [];
     return Object.entries(statistics.eventsBySeverity).map(([severity, count]) => ({
       name: severity.charAt(0).toUpperCase() + severity.slice(1),
       value: count,
-      fill: severity === "critical" ? "#DC2626" :
-           severity === "error" ? "#EA580C" :
-           severity === "warning" ? "#D97706" : "#2563EB"
+      fill:
+        severity === "critical"
+          ? "#DC2626"
+          : severity === "error"
+          ? "#EA580C"
+          : severity === "warning"
+          ? "#D97706"
+          : "#2563EB",
     }));
   }, [statistics]);
 
   const eventTypeData = useMemo(() => {
-    if (!statistics) return [];
-    return Object.entries(statistics.eventsByType).slice(0, 6).map(([type, count]) => ({
-      name: type.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase()),
-      value: count
-    }));
+    if (!statistics || statistics.totalEvents === 0) return [];
+    return Object.entries(statistics.eventsByType)
+      .slice(0, 6)
+      .map(([type, count]) => ({
+        name: type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+        value: count,
+      }));
   }, [statistics]);
 
   if (loading) {
@@ -448,13 +377,13 @@ export default function AuditPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <KPICard
           title="Total Events"
-          value={statistics?.totalEvents.toLocaleString() || "0"}
+          value={statistics ? statistics.totalEvents.toLocaleString() : "0"}
           icon={<Activity className="w-4 h-4" />}
           color="text-white"
         />
         <KPICard
           title="Success Rate"
-          value={`${statistics?.successRate.toFixed(1) || "0"}%`}
+          value={`${statistics ? statistics.successRate.toFixed(1) : "0.0"}%`}
           icon={<CheckCircle className="w-4 h-4" />}
           color="text-emerald-400"
         />
@@ -473,7 +402,7 @@ export default function AuditPage() {
       </div>
 
       {/* Compliance Alerts */}
-      {complianceAlerts.filter(alert => !alert.resolved).length > 0 && (
+      {complianceAlerts.filter((alert) => !alert.resolved).length > 0 && (
         <Card className="bg-red-500/10 border-red-500/30">
           <CardHeader>
             <CardTitle className="text-red-400 flex items-center gap-2">
@@ -483,7 +412,7 @@ export default function AuditPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {complianceAlerts.filter(alert => !alert.resolved).map((alert) => (
+              {complianceAlerts.filter((alert) => !alert.resolved).map((alert) => (
                 <div key={alert.id} className="flex items-center justify-between p-3 bg-red-500/5 rounded-lg border border-red-500/20">
                   <div className="flex items-center gap-3">
                     {getSeverityIcon(alert.severity)}
@@ -509,48 +438,61 @@ export default function AuditPage() {
             <CardTitle className="text-white">Events by Severity</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{
-                critical: { color: "#DC2626" },
-                error: { color: "#EA580C" },
-                warning: { color: "#D97706" },
-                info: { color: "#2563EB" }
-              }}
-              className="h-64"
-            >
-              <PieChart>
-                <Pie 
-                  data={chartData} 
-                  dataKey="value" 
-                  nameKey="name" 
-                  innerRadius={40} 
-                  outerRadius={90}
-                  paddingAngle={2}
-                  stroke="rgba(255,255,255,0.1)"
-                  strokeWidth={1}
+            {chartData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-sm text-white/60">
+                No audit events available for the selected period.
+              </div>
+            ) : (
+              <>
+                <ChartContainer
+                  config={{
+                    critical: { color: "#DC2626" },
+                    error: { color: "#EA580C" },
+                    warning: { color: "#D97706" },
+                    info: { color: "#2563EB" },
+                  }}
+                  className="h-64"
                 >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={40}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      stroke="rgba(255,255,255,0.1)"
+                      strokeWidth={1}
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </PieChart>
+                </ChartContainer>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {chartData.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white/5 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.fill }}
+                        />
+                        <span className="text-white/90 text-sm">{item.name}</span>
+                      </div>
+                      <span className="text-white font-semibold text-sm">
+                        {item.value.toLocaleString()}
+                      </span>
+                    </div>
                   ))}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
-              </PieChart>
-            </ChartContainer>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {chartData.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: item.fill }}
-                    />
-                    <span className="text-white/90 text-sm">{item.name}</span>
-                  </div>
-                  <span className="text-white font-semibold text-sm">{item.value.toLocaleString()}</span>
                 </div>
-              ))}
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -559,24 +501,34 @@ export default function AuditPage() {
             <CardTitle className="text-white">Top Event Types</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={{ value: { label: "Events", color: "#FF6900" } }}
-              className="h-72"
-            >
-              <BarChart data={eventTypeData} margin={{ left: 12, right: 12 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: "#9CA3AF" }} 
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis tick={{ fill: "#9CA3AF" }} />
-                <Bar dataKey="value" fill="var(--color-value)" radius={[4, 4, 0, 0]} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-              </BarChart>
-            </ChartContainer>
+            {eventTypeData.length === 0 ? (
+              <div className="h-72 flex items-center justify-center text-sm text-white/60">
+                No audit event types to display yet.
+              </div>
+            ) : (
+              <ChartContainer
+                config={{ value: { label: "Events", color: "#FF6900" } }}
+                className="h-72"
+              >
+                <BarChart data={eventTypeData} margin={{ left: 12, right: 12 }}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: "#9CA3AF" }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis tick={{ fill: "#9CA3AF" }} />
+                  <Bar
+                    dataKey="value"
+                    fill="var(--color-value)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </BarChart>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -697,15 +649,24 @@ export default function AuditPage() {
                     <TableHead className="text-white/70">Timestamp</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {auditLogs.map((log) => (
+              <TableBody>
+                {auditLogs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-32 text-center text-white/60">
+                      No audit events found for the selected filters.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  auditLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {getEventTypeIcon(log.eventType)}
                           <div>
                             <div className="font-medium text-white/90">
-                              {log.eventType.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
+                              {log.eventType
+                                .replace("_", " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}
                             </div>
                             <div className="text-sm text-white/60">{log.description}</div>
                           </div>
@@ -738,16 +699,22 @@ export default function AuditPage() {
                             {getSeverityIcon(log.severity)}
                             <span className="ml-1">{log.severity}</span>
                           </Badge>
-                          <Badge 
-                            variant="outline" 
-                            className={log.status === "success" ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}
+                          <Badge
+                            variant="outline"
+                            className={
+                              log.status === "success"
+                                ? "border-emerald-500/30 text-emerald-400"
+                                : "border-red-500/30 text-red-400"
+                            }
                           >
                             {log.status}
                           </Badge>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-mono text-white/70 text-sm">{log.ipAddress || "Unknown"}</div>
+                        <div className="font-mono text-white/70 text-sm">
+                          {log.ipAddress || "Unknown"}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-white/70 text-sm">
@@ -755,8 +722,9 @@ export default function AuditPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
+                  ))
+                )}
+              </TableBody>
               </Table>
             </CardContent>
           </Card>
@@ -784,54 +752,72 @@ export default function AuditPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {securityEvents.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-red-400" />
-                          <span className="text-white/90">
-                            {event.eventType.replace("_", " ").replace(/\b\w/g, l => l.toUpperCase())}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className={`w-3 h-3 rounded-full ${
-                              event.threatLevel >= 8 ? "bg-red-500" :
-                              event.threatLevel >= 6 ? "bg-orange-500" :
-                              event.threatLevel >= 4 ? "bg-yellow-500" : "bg-green-500"
-                            }`}
-                          />
-                          <span className="text-white/90">{event.threatLevel}/10</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-mono text-white/70 text-sm">{event.ipAddress}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-white/90">{event.description}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-white/70 text-sm">
-                          {event.mitigationAction || "No action taken"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={event.resolved ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}
-                        >
-                          {event.resolved ? "Resolved" : "Active"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-white/70 text-sm">
-                          {new Date(event.timestamp).toLocaleString()}
-                        </div>
+                  {securityEvents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center text-white/60">
+                        No security events detected in the selected period.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    securityEvents.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-red-400" />
+                            <span className="text-white/90">
+                              {event.eventType
+                                .replace("_", " ")
+                                .replace(/\b\w/g, (l) => l.toUpperCase())}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-3 h-3 rounded-full ${
+                                event.threatLevel >= 8
+                                  ? "bg-red-500"
+                                  : event.threatLevel >= 6
+                                  ? "bg-orange-500"
+                                  : event.threatLevel >= 4
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                              }`}
+                            />
+                            <span className="text-white/90">{event.threatLevel}/10</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-mono text-white/70 text-sm">{event.ipAddress}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-white/90">{event.description}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-white/70 text-sm">
+                            {event.mitigationAction || "No action taken"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={
+                              event.resolved
+                                ? "border-emerald-500/30 text-emerald-400"
+                                : "border-red-500/30 text-red-400"
+                            }
+                          >
+                            {event.resolved ? "Resolved" : "Active"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-white/70 text-sm">
+                            {new Date(event.timestamp).toLocaleString()}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -840,35 +826,44 @@ export default function AuditPage() {
 
         <TabsContent value="compliance" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white/5 border-white/10">
+        <Card className="bg-white/5 border-white/10">
               <CardHeader>
                 <CardTitle className="text-white">Compliance Status</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <ComplianceItem 
-                  standard="GDPR" 
-                  status="Compliant" 
-                  score={98} 
-                  color="text-emerald-400"
-                />
-                <ComplianceItem 
-                  standard="SOC 2" 
-                  status="Compliant" 
-                  score={95} 
-                  color="text-emerald-400"
-                />
-                <ComplianceItem 
-                  standard="HIPAA" 
-                  status="Needs Review" 
-                  score={78} 
-                  color="text-yellow-400"
-                />
-                <ComplianceItem 
-                  standard="ISO 27001" 
-                  status="Compliant" 
-                  score={92} 
-                  color="text-emerald-400"
-                />
+                {complianceStats &&
+                Object.keys(complianceStats.complianceByStandard || {}).length > 0 ? (
+                  Object.entries(complianceStats.complianceByStandard).map(
+                    ([standard, score]) => {
+                      const s = Number(score);
+                      const status =
+                        s >= 90
+                          ? "Compliant"
+                          : s >= 70
+                          ? "Needs Review"
+                          : "Non-compliant";
+                      const color =
+                        s >= 90
+                          ? "text-emerald-400"
+                          : s >= 70
+                          ? "text-yellow-400"
+                          : "text-red-400";
+                      return (
+                        <ComplianceItem
+                          key={standard}
+                          standard={standard.toUpperCase()}
+                          status={status}
+                          score={s}
+                          color={color}
+                        />
+                      );
+                    },
+                  )
+                ) : (
+                  <div className="text-sm text-white/60">
+                    No compliance statistics available yet.
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -877,26 +872,22 @@ export default function AuditPage() {
                 <CardTitle className="text-white">Recent Reports</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <ReportItem 
-                  title="Monthly GDPR Compliance Report" 
-                  date="2025-01-01" 
-                  status="Generated"
-                />
-                <ReportItem 
-                  title="SOC 2 Audit Trail" 
-                  date="2025-01-15" 
-                  status="In Progress"
-                />
-                <ReportItem 
-                  title="Security Incident Summary" 
-                  date="2025-01-20" 
-                  status="Generated"
-                />
-                <ReportItem 
-                  title="Data Access Audit" 
-                  date="2025-01-25" 
-                  status="Pending"
-                />
+                {complianceReports.length === 0 ? (
+                  <div className="text-sm text-white/60">
+                    No compliance reports generated yet.
+                  </div>
+                ) : (
+                  complianceReports.map((report) => (
+                    <ReportItem
+                      key={report.id}
+                      title={`${report.standard.toUpperCase()} ${
+                        report.reportPeriod
+                      }`}
+                      date={report.generatedAt}
+                      status={report.status}
+                    />
+                  ))
+                )}
               </CardContent>
             </Card>
           </div>
@@ -907,36 +898,49 @@ export default function AuditPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {complianceAlerts.map((alert) => (
-                  <div key={alert.id} className={`p-4 rounded-lg border ${
-                    alert.resolved 
-                      ? "bg-white/5 border-white/10"
-                      : alert.severity === "critical" 
-                        ? "bg-red-500/10 border-red-500/30"
-                        : "bg-yellow-500/10 border-yellow-500/30"
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className={getSeverityColor(alert.severity)}>
-                          {getSeverityIcon(alert.severity)}
-                          <span className="ml-1">{alert.type}</span>
-                        </Badge>
-                        <Badge 
-                          variant="outline" 
-                          className={alert.resolved ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}
-                        >
-                          {alert.resolved ? "Resolved" : "Active"}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-white/60">
-                        {new Date(alert.timestamp).toLocaleString()}
-                      </div>
-                    </div>
-                    <div className={`mt-2 ${alert.resolved ? "text-white/60" : "text-white/90"}`}>
-                      {alert.message}
-                    </div>
+                {complianceAlerts.length === 0 ? (
+                  <div className="text-sm text-white/60">
+                    No compliance alerts have been raised yet.
                   </div>
-                ))}
+                ) : (
+                  complianceAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`p-4 rounded-lg border ${
+                        alert.resolved
+                          ? "bg-white/5 border-white/10"
+                          : alert.severity === "critical"
+                          ? "bg-red-500/10 border-red-500/30"
+                          : "bg-yellow-500/10 border-yellow-500/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="outline" className={getSeverityColor(alert.severity)}>
+                            {getSeverityIcon(alert.severity)}
+                            <span className="ml-1">{alert.type}</span>
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={
+                              alert.resolved
+                                ? "border-emerald-500/30 text-emerald-400"
+                                : "border-red-500/30 text-red-400"
+                            }
+                          >
+                            {alert.resolved ? "Resolved" : "Active"}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-white/60">
+                          {new Date(alert.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className={`mt-2 ${alert.resolved ? "text-white/60" : "text-white/90"}`}>
+                        {alert.message}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

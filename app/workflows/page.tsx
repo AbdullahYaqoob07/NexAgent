@@ -31,7 +31,7 @@ export default function WorkflowsPage() {
     queryFn: async () => {
       const response = await workflowService.listWorkflows({ page: 1, pageSize: 50 });
       if (!response.success) {
-        throw new Error(response.message || 'Failed to load workflows');
+        throw new Error('Failed to load workflows');
       }
       return response;
     },
@@ -76,7 +76,7 @@ export default function WorkflowsPage() {
     try {
       setDeleting(workflowId);
       await workflowService.deleteWorkflow(workflowId);
-      setWorkflows(workflows.filter(w => w.id !== workflowId));
+      await refetch();
     } catch (err: any) {
       console.error('Failed to delete workflow:', err);
       alert('Failed to delete workflow');

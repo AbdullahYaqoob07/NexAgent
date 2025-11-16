@@ -81,4 +81,4 @@ export interface WorkflowListParams {
   status?: 'draft' | 'active' | 'archived';
 }
 
-export { ApiError };
+export type { ApiError };
