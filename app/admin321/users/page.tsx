@@ -77,24 +77,28 @@ interface User {
 
 interface UserActivity {
   userId: string;
-  email: string;
-  displayName?: string;
+  userName?: string;
+  totalSessions: number;
+  totalActions: number;
+  avgSessionDuration: number;
   lastActive: string;
-  loginCount: number;
-  sessionsActive: number;
-  workflowsCreated?: number;
-  executionsCount?: number;
-  apiCallsCount?: number;
+  workflowsCreated: number;
+  workflowsExecuted: number;
+  integrationsConnected: number;
+  apiCallsMade: number;
 }
 
 interface UserMetrics {
-  total_users: number;
-  active_users: number;
-  inactive_users: number;
-  suspended_users: number;
-  new_users_this_month: number;
-  avg_login_frequency: number;
-  engagement_rate: number;
+  totalUsers: number;
+  activeUsers: number;
+  dailyActiveUsers: number;
+  weeklyActiveUsers: number;
+  monthlyActiveUsers: number;
+  newUsers: number;
+  returningUsers: number;
+  avgSessionsPerUser: number;
+  avgActionsPerUser: number;
+  engagementRate: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -129,9 +133,14 @@ export default function AdminUsersPage() {
   const fetchUsersData = async () => {
     setLoading(true);
     try {
-      const [usersRes, activitiesRes] = await Promise.all([
+      const [usersRes, activitiesRes, engagementRes] = await Promise.all([
         apiClient.get("/api/billing/admin/users", { params: { limit: 500 } }),
-        apiClient.get("/api/analytics/users/activity", { params: { page: 1, pageSize: 100 } }),
+        apiClient.get("/api/v1/analytics/users/activity", {
+          params: { page: 1, pageSize: 100, timeRange: "30d" },
+        }),
+        apiClient.get("/api/v1/analytics/users/engagement", {
+          params: { timeRange: "30d" },
+        }),
       ]);
 
       const userData = usersRes.data?.users || [];
@@ -140,83 +149,16 @@ export default function AdminUsersPage() {
       const activityData = activitiesRes.data?.metrics || [];
       setUserActivities(Array.isArray(activityData) ? activityData : []);
 
-      // Calculate metrics
-      const activeCount = userData.filter((u: User) => u.subscription?.status === "active").length;
-      const inactiveCount = userData.filter((u: User) => u.subscription?.status === "inactive").length;
-      const suspendedCount = userData.filter((u: User) => u.subscription?.status === "suspended").length;
-
-      setMetrics({
-        total_users: userData.length,
-        active_users: activeCount,
-        inactive_users: inactiveCount,
-        suspended_users: suspendedCount,
-        new_users_this_month: Math.floor(userData.length * 0.15),
-        avg_login_frequency: 12.5,
-        engagement_rate: (activeCount / userData.length) * 100,
-      });
+      const engagement = engagementRes.data as UserMetrics | null;
+      setMetrics(engagement ?? null);
 
       setLastRefresh(new Date());
     } catch (error) {
       console.error("❌ Users API Error:", error);
-      // Fallback demo data
-      const demoUsers = [
-        {
-          user_id: "user_001",
-          email: "alice@example.com",
-          display_name: "Alice Johnson",
-          subscription: { plan_id: "plan_pro", status: "active", billing_cycle: "monthly", current_period_end: "2025-02-15" },
-          total_revenue: 29.99,
-          risk_score: 0.05,
-          created_at: "2024-01-15",
-          last_login: "2025-01-10T14:32:00Z",
-        },
-        {
-          user_id: "user_002",
-          email: "bob@example.com",
-          display_name: "Bob Smith",
-          subscription: { plan_id: "plan_free", status: "inactive", billing_cycle: "monthly", current_period_end: "2025-03-01" },
-          total_revenue: 0,
-          risk_score: 0.3,
-          created_at: "2024-06-20",
-          last_login: "2024-12-25T10:15:00Z",
-        },
-        {
-          user_id: "user_003",
-          email: "carol@example.com",
-          display_name: "Carol Davis",
-          subscription: { plan_id: "plan_pro", status: "active", billing_cycle: "yearly", current_period_end: "2026-01-10" },
-          total_revenue: 299.99,
-          risk_score: 0.02,
-          created_at: "2023-11-05",
-          last_login: "2025-01-11T09:20:00Z",
-        },
-        {
-          user_id: "user_004",
-          email: "david@example.com",
-          display_name: "David Wilson",
-          subscription: { plan_id: "plan_pro", status: "suspended", billing_cycle: "monthly", current_period_end: "2025-01-15" },
-          total_revenue: 59.98,
-          risk_score: 0.85,
-          created_at: "2024-03-10",
-          last_login: "2024-11-20T16:45:00Z",
-        },
-      ];
-
-      setUsers(demoUsers);
-      setUserActivities([
-        { userId: "user_001", email: "alice@example.com", displayName: "Alice Johnson", lastActive: "2025-01-11T14:00:00Z", loginCount: 245, sessionsActive: 2, workflowsCreated: 15, executionsCount: 1203, apiCallsCount: 45230 },
-        { userId: "user_002", email: "bob@example.com", displayName: "Bob Smith", lastActive: "2024-12-25T10:00:00Z", loginCount: 8, sessionsActive: 0, workflowsCreated: 1, executionsCount: 12, apiCallsCount: 450 },
-      ]);
-
-      setMetrics({
-        total_users: demoUsers.length,
-        active_users: 2,
-        inactive_users: 1,
-        suspended_users: 1,
-        new_users_this_month: 1,
-        avg_login_frequency: 14.2,
-        engagement_rate: 50,
-      });
+      // On error, show explicit empty state instead of demo data
+      setUsers([]);
+      setUserActivities([]);
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
@@ -243,23 +185,21 @@ export default function AdminUsersPage() {
   const chartData = useMemo(() => {
     if (!metrics) return [];
     return [
-      { name: "Active", value: metrics.active_users, fill: "#10b981" },
-      { name: "Inactive", value: metrics.inactive_users, fill: "#6b7280" },
-      { name: "Suspended", value: metrics.suspended_users, fill: "#ef4444" },
+      { name: "Active", value: metrics.activeUsers, fill: "#10b981" },
+      { name: "New", value: metrics.newUsers, fill: "#3b82f6" },
+      { name: "Returning", value: metrics.returningUsers, fill: "#f59e0b" },
     ];
   }, [metrics]);
 
   const activityChartData = useMemo(() => {
-    return [
-      { name: "Mon", users: 245, activity: 890 },
-      { name: "Tue", users: 312, activity: 1200 },
-      { name: "Wed", users: 289, activity: 1100 },
-      { name: "Thu", users: 401, activity: 1380 },
-      { name: "Fri", users: 523, activity: 1890 },
-      { name: "Sat", users: 189, activity: 890 },
-      { name: "Sun", users: 156, activity: 640 },
-    ];
-  }, []);
+    if (!userActivities.length) return [];
+
+    return userActivities.slice(0, 7).map((activity) => ({
+      name: activity.userName || activity.userId,
+      sessions: activity.totalSessions,
+      actions: activity.totalActions,
+    }));
+  }, [userActivities]);
 
   const KpiCard = ({ 
     title, 
@@ -322,43 +262,38 @@ export default function AdminUsersPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <KpiCard 
           title="Total Users" 
-          value={metrics?.total_users || 0} 
+          value={metrics?.totalUsers ?? 0} 
           icon={<Users size={20} className="text-white" />}
-          trend={{ value: 12, direction: "up" }}
           color="text-blue-400"
         />
         <KpiCard 
           title="Active Users" 
-          value={metrics?.active_users || 0} 
+          value={metrics?.activeUsers ?? 0} 
           icon={<UserCheck size={20} className="text-white" />}
-          trend={{ value: 8, direction: "up" }}
           color="text-emerald-400"
         />
         <KpiCard 
-          title="Inactive Users" 
-          value={metrics?.inactive_users || 0} 
+          title="Daily Active" 
+          value={metrics?.dailyActiveUsers ?? 0} 
           icon={<Clock size={20} className="text-white" />}
-          trend={{ value: 3, direction: "down" }}
           color="text-yellow-400"
         />
         <KpiCard 
-          title="Suspended Users" 
-          value={metrics?.suspended_users || 0} 
-          icon={<UserX size={20} className="text-white" />}
-          trend={{ value: 1, direction: "down" }}
+          title="Weekly Active" 
+          value={metrics?.weeklyActiveUsers ?? 0} 
+          icon={<Users size={20} className="text-white" />}
           color="text-red-400"
         />
         <KpiCard 
-          title="New This Month" 
-          value={metrics?.new_users_this_month || 0} 
+          title="New Users" 
+          value={metrics?.newUsers ?? 0} 
           icon={<TrendingUp size={20} className="text-white" />}
           color="text-purple-400"
         />
         <KpiCard 
           title="Engagement Rate" 
-          value={`${(metrics?.engagement_rate || 0).toFixed(1)}%`} 
+          value={`${(metrics?.engagementRate ?? 0).toFixed(1)}%`} 
           icon={<Activity size={20} className="text-white" />}
-          trend={{ value: 5, direction: "up" }}
           color="text-orange-400"
         />
       </div>
@@ -467,7 +402,7 @@ export default function AdminUsersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right text-white/90">
-                          ${user.total_revenue?.toFixed(2) || "0.00"}
+                          ${(user.total_revenue ?? 0).toFixed(2)}
                         </TableCell>
                         <TableCell className="text-white/60 text-sm">
                           {user.last_login 
@@ -526,45 +461,59 @@ export default function AdminUsersPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="bg-white/5 border-white/10">
               <CardHeader>
-                <CardTitle>Daily Active Users</CardTitle>
+                <CardTitle>User Sessions (top users)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={{ users: { label: "Active Users" } }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={activityChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                      <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
-                      <YAxis stroke="rgba(255,255,255,0.5)" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line
-                        type="monotone"
-                        dataKey="users"
-                        stroke="#FF6900"
-                        strokeWidth={2}
-                        dot={{ fill: "#FF6900", r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {activityChartData.length === 0 ? (
+                  <div className="h-72 flex flex-col items-center justify-center text-white/50">
+                    <Activity className="w-12 h-12 mb-3 opacity-30" />
+                    <p className="text-sm">No user activity data available</p>
+                  </div>
+                ) : (
+                  <ChartContainer config={{ sessions: { label: "Sessions" } }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={activityChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
+                        <YAxis stroke="rgba(255,255,255,0.5)" />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line
+                          type="monotone"
+                          dataKey="sessions"
+                          stroke="#FF6900"
+                          strokeWidth={2}
+                          dot={{ fill: "#FF6900", r: 4 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
 
             <Card className="bg-white/5 border-white/10">
               <CardHeader>
-                <CardTitle>User Activity Trends</CardTitle>
+                <CardTitle>User Activity (actions)</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={{ activity: { label: "Events" } }}>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={activityChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                      <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
-                      <YAxis stroke="rgba(255,255,255,0.5)" />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="activity" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {activityChartData.length === 0 ? (
+                  <div className="h-72 flex flex-col items-center justify-center text-white/50">
+                    <Activity className="w-12 h-12 mb-3 opacity-30" />
+                    <p className="text-sm">No user activity data available</p>
+                  </div>
+                ) : (
+                  <ChartContainer config={{ actions: { label: "Actions" } }}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={activityChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                        <XAxis dataKey="name" stroke="rgba(255,255,255,0.5)" />
+                        <YAxis stroke="rgba(255,255,255,0.5)" />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="actions" fill="#10b981" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -579,9 +528,9 @@ export default function AdminUsersPage() {
                   <div key={idx} className="flex items-center gap-4 pb-4 border-b border-white/5 last:border-0">
                     <div className="w-2 h-2 rounded-full bg-emerald-400" />
                     <div className="flex-1">
-                      <p className="text-white/90 font-medium">{activity.displayName || activity.email}</p>
+                      <p className="text-white/90 font-medium">{activity.userName || activity.userId}</p>
                       <p className="text-white/50 text-sm">
-                        {activity.loginCount} logins • {activity.apiCallsCount} API calls
+                        {activity.totalSessions} sessions • {activity.apiCallsMade} API calls
                       </p>
                     </div>
                     <p className="text-white/50 text-sm">
@@ -639,13 +588,17 @@ export default function AdminUsersPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-white/70">Avg Login Frequency</p>
-                  <p className="text-white/90 font-bold">{metrics?.avg_login_frequency.toFixed(1)} days</p>
+                  <p className="text-white/70">Avg Sessions / User</p>
+                  <p className="text-white/90 font-bold">
+                    {metrics ? metrics.avgSessionsPerUser.toFixed(1) : "N/A"}
+                  </p>
                 </div>
                 <div className="h-px bg-white/10" />
                 <div className="flex items-center justify-between">
                   <p className="text-white/70">Engagement Rate</p>
-                  <p className="text-emerald-400 font-bold">{metrics?.engagement_rate.toFixed(1)}%</p>
+                  <p className="text-emerald-400 font-bold">
+                    {metrics ? `${metrics.engagementRate.toFixed(1)}%` : "0.0%"}
+                  </p>
                 </div>
                 <div className="h-px bg-white/10" />
                 <div className="flex items-center justify-between">
@@ -686,7 +639,7 @@ export default function AdminUsersPage() {
                 </div>
                 <div>
                   <Label className="text-white/70">Total Revenue</Label>
-                  <p className="text-white/90 mt-1">${selectedUser.total_revenue?.toFixed(2) || "0.00"}</p>
+                  <p className="text-white/90 mt-1">${(selectedUser.total_revenue ?? 0).toFixed(2)}</p>
                 </div>
                 <div>
                   <Label className="text-white/70">Risk Score</Label>

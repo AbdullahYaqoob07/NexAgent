@@ -232,6 +232,10 @@ const activeDisputes = [
   },
 ];
 
+type PendingNexa = (typeof pendingNexasData)[number];
+type PendingSeller = (typeof pendingSellers)[number];
+type ActiveDispute = (typeof activeDisputes)[number];
+
 const recentTransactions = [
   {
     id: "tx-1",
@@ -275,16 +279,18 @@ const recentTransactions = [
   },
 ];
 
+type Transaction = (typeof recentTransactions)[number];
+
 export default function MarketplaceAdminPage() {
   const [selectedTab, setSelectedTab] = useState("overview");
-  const [selectedNexaModal, setSelectedNexaModal] = useState(null);
-  const [selectedSellerModal, setSelectedSellerModal] = useState(null);
-  const [selectedDisputeModal, setSelectedDisputeModal] = useState(null);
+  const [selectedNexaModal, setSelectedNexaModal] = useState<PendingNexa | null>(null);
+  const [selectedSellerModal, setSelectedSellerModal] = useState<PendingSeller | null>(null);
+  const [selectedDisputeModal, setSelectedDisputeModal] = useState<ActiveDispute | null>(null);
   const [moderationAction, setModerationAction] = useState("");
   const [moderationReason, setModerationReason] = useState("");
-  const [downloadingPDF, setDownloadingPDF] = useState(null);
+  const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
 
-  const downloadTransactionPDF = async (transaction) => {
+  const downloadTransactionPDF = async (transaction: Transaction) => {
     try {
       setDownloadingPDF(transaction.id);
       
@@ -293,7 +299,7 @@ export default function MarketplaceAdminPage() {
         buyer: transaction.buyer,
         seller: transaction.seller,
         nexa: transaction.nexa,
-        amount: transaction.amount,
+        amount: String(transaction.amount),
         status: transaction.status,
         date: transaction.date,
       });
@@ -329,7 +335,7 @@ export default function MarketplaceAdminPage() {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "pending_review":
       case "pending":

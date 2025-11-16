@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ import {
   Calendar,
 } from "lucide-react";
 
+// Backend-aligned types
 interface Plan {
   id: string;
   name: string;
@@ -90,126 +92,98 @@ interface AdminAnalytics {
 }
 
 interface UserBilling {
-  user_id: string;
+  id?: string;
+  user_id?: string;
   email: string;
   display_name?: string;
-  subscription: {
-    plan_id: string;
-    status: string;
-    billing_cycle: string;
-    current_period_end: string;
+  subscription?: {
+    plan?: string;
+    plan_id?: string;
+    status?: string;
+    billing_cycle?: string;
+    current_period_end?: string;
+    next_billing_date?: string;
   };
-  total_revenue: number;
-  invoices_count: number;
+  total_revenue?: number;
+  invoices_count?: number;
   last_payment_date?: string;
-  risk_score: number;
+  risk_score?: number;
+}
+
+interface AdminUserListResponse {
+  users: UserBilling[];
+  total_count: number;
+  criteria: Record<string, any>;
+  limit: number;
+}
+
+async function fetchAdminBilling(
+  periodDays: number,
+  planFilter: string,
+  statusFilter: string,
+): Promise<{
+  plans: Plan[];
+  analytics: AdminAnalytics | null;
+  users: UserBilling[];
+  fetchedAt: Date;
+}> {
+  try {
+    const planParam = planFilter === "all" ? undefined : `plan_${planFilter}`;
+    const statusParam = statusFilter === "all" ? undefined : statusFilter;
+
+    const [plansRes, analyticsRes, usersRes] = await Promise.all([
+      apiClient.get<Plan[]>("/api/billing/plans", { params: { active_only: false } }),
+      apiClient.get<AdminAnalytics>("/api/billing/admin/analytics", {
+        params: { period_days: periodDays },
+      }),
+      apiClient.get<AdminUserListResponse>("/api/billing/admin/users", {
+        params: {
+          limit: 100,
+          ...(planParam ? { plan: planParam } : {}),
+          ...(statusParam ? { status: statusParam } : {}),
+        },
+      }),
+    ]);
+
+    return {
+      plans: plansRes.data || [],
+      analytics: analyticsRes.data || null,
+      users: (usersRes.data.users || []) as UserBilling[],
+      fetchedAt: new Date(),
+    };
+  } catch (error) {
+    console.error("❌ Billing API Error:", error);
+    return {
+      plans: [],
+      analytics: null,
+      users: [],
+      fetchedAt: new Date(),
+    };
+  }
 }
 
 export default function AdminBillingPage() {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
-  const [users, setUsers] = useState<UserBilling[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [planFilter, setPlanFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [periodDays, setPeriodDays] = useState(30);
   const [isCreatePlanDialogOpen, setIsCreatePlanDialogOpen] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [selectedUser, setSelectedUser] = useState<UserBilling | null>(null);
 
-  const fetchBillingData = async () => {
-    try {
-      const [plansRes, analyticsRes, usersRes] = await Promise.all([
-        apiClient.get("/api/billing/plans", { params: { active_only: false } }),
-        apiClient.get("/api/billing/admin/analytics", { params: { period_days: periodDays } }),
-        apiClient.get("/api/billing/admin/users", { params: { limit: 100 } }),
-      ]);
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["adminBilling", periodDays, planFilter, statusFilter],
+    queryFn: () => fetchAdminBilling(periodDays, planFilter, statusFilter),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-      setPlans(Array.isArray(plansRes.data) ? plansRes.data : []);
-      setAnalytics(typeof analyticsRes.data === "string" ? null : analyticsRes.data);
-      setUsers(
-        typeof usersRes.data === "string" ? [] : (usersRes.data?.users || [])
-      );
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error("❌ Billing API Error:", error);
-      // Fallback data
-      setPlans([
-        {
-          id: "plan_free",
-          name: "Free",
-          plan_type: "free",
-          price_monthly: 0,
-          price_yearly: 0,
-          is_active: true,
-          is_popular: false,
-          limits: { nexas_max: 5, executions_per_month: 100, api_calls_per_month: 500 },
-          features: { api_access: true },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: "plan_pro",
-          name: "Pro",
-          plan_type: "pro",
-          price_monthly: 29.99,
-          price_yearly: 299.99,
-          is_active: true,
-          is_popular: true,
-          limits: { nexas_max: 100, executions_per_month: 10000, api_calls_per_month: 50000 },
-          features: { priority_support: true, advanced_analytics: true },
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-
-      setAnalytics({
-        mrr: 24500,
-        arr: 294000,
-        churn_rate: 0.05,
-        total_users: 1250,
-        paying_users: 450,
-        trial_users: 120,
-        canceled_users: 85,
-        users_by_plan: { free: 650, basic: 280, pro: 170 },
-        revenue_by_plan: { basic: 8400, pro: 16100 },
-        new_subscriptions_this_month: 45,
-        upgrades_this_month: 12,
-        downgrades_this_month: 5,
-        cancellations_this_month: 8,
-        failed_payments_this_month: 3,
-        dunning_users: 7,
-        recovery_rate: 0.714,
-      });
-
-      setUsers([
-        {
-          user_id: "user_123",
-          email: "john@example.com",
-          display_name: "John Doe",
-          subscription: {
-            plan_id: "plan_pro",
-            status: "active",
-            billing_cycle: "monthly",
-            current_period_end: "2025-02-01",
-          },
-          total_revenue: 29.99,
-          invoices_count: 3,
-          last_payment_date: "2025-01-01",
-          risk_score: 0.1,
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBillingData();
-  }, [periodDays]);
+  const plans = data?.plans ?? [];
+  const analytics = data?.analytics ?? null;
+  const users = data?.users ?? [];
+  const lastRefresh = data?.fetchedAt ?? new Date();
 
   const revenueByPlanData = useMemo(() => {
-    if (!analytics) return [];
+    if (!analytics || !analytics.revenue_by_plan || Object.keys(analytics.revenue_by_plan).length === 0) return [];
     return Object.entries(analytics.revenue_by_plan).map(([plan, revenue]) => ({
       name: plan.charAt(0).toUpperCase() + plan.slice(1),
       value: revenue,
@@ -218,7 +192,7 @@ export default function AdminBillingPage() {
   }, [analytics]);
 
   const usersByPlanData = useMemo(() => {
-    if (!analytics) return [];
+    if (!analytics || !analytics.users_by_plan || Object.keys(analytics.users_by_plan).length === 0) return [];
     return Object.entries(analytics.users_by_plan).map(([plan, count]) => ({
       name: plan.charAt(0).toUpperCase() + plan.slice(1),
       value: count,
@@ -230,14 +204,19 @@ export default function AdminBillingPage() {
     const matchesSearch =
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (user.display_name?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
-    const matchesPlan = planFilter === "all" || user.subscription.plan_id.includes(planFilter);
-    const matchesStatus = statusFilter === "all" || user.subscription.status === statusFilter;
+
+    const sub = user.subscription || {};
+    const planId = sub.plan_id || sub.plan || "";
+    const status = sub.status || "no-subscription";
+
+    const matchesPlan = planFilter === "all" || planId.includes(planFilter);
+    const matchesStatus = statusFilter === "all" || status === statusFilter;
     return matchesSearch && matchesPlan && matchesStatus;
   });
 
   const filteredPlans = plans.filter((plan) => plan.is_active);
 
-  if (loading) {
+  if (isLoading && !data) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-8 bg-white/5 rounded-md w-64" />
@@ -263,10 +242,10 @@ export default function AdminBillingPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchBillingData}
+            onClick={() => refetch()}
             className="bg-white/5 border-white/10"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
             Refresh
           </Button>
           <Button
@@ -281,7 +260,7 @@ export default function AdminBillingPage() {
       </div>
 
       {/* KPI Cards */}
-      {analytics && (
+      {analytics ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <KpiCard
             title="MRR"
@@ -320,6 +299,10 @@ export default function AdminBillingPage() {
             color="text-emerald-400"
           />
         </div>
+      ) : (
+        <div className="text-sm text-white/60">
+          No billing analytics available yet.
+        </div>
       )}
 
       {/* Charts */}
@@ -330,6 +313,12 @@ export default function AdminBillingPage() {
             <CardTitle className="text-white">Revenue by Plan</CardTitle>
           </CardHeader>
           <CardContent>
+            {revenueByPlanData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-sm text-white/60">
+                No revenue data available by plan.
+              </div>
+            ) : (
+              <>
             <ChartContainer
               config={{
                 revenue: { label: "Revenue", color: "#FF6900" },
@@ -362,6 +351,8 @@ export default function AdminBillingPage() {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </CardContent>
         </Card>
 
@@ -371,6 +362,12 @@ export default function AdminBillingPage() {
             <CardTitle className="text-white">Users by Plan</CardTitle>
           </CardHeader>
           <CardContent>
+            {usersByPlanData.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-sm text-white/60">
+                No user distribution data by plan.
+              </div>
+            ) : (
+              <>
             <ChartContainer
               config={{
                 users: { label: "Users", color: "#FF6900" },
@@ -403,6 +400,8 @@ export default function AdminBillingPage() {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </CardContent>
         </Card>
 
@@ -471,9 +470,15 @@ export default function AdminBillingPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredPlans.map((plan) => (
-                  <PlanCard key={plan.id} plan={plan} />
-                ))}
+                {filteredPlans.length === 0 ? (
+                  <div className="text-sm text-white/60">
+                    No active plans configured yet.
+                  </div>
+                ) : (
+                  filteredPlans.map((plan) => (
+                    <PlanCard key={plan.id} plan={plan} />
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -538,7 +543,7 @@ export default function AdminBillingPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-white/70">User</TableHead>
+                    <TableHead className="text-white/70">#</TableHead>
                     <TableHead className="text-white/70">Email</TableHead>
                     <TableHead className="text-white/70">Plan</TableHead>
                     <TableHead className="text-white/70">Status</TableHead>
@@ -549,54 +554,91 @@ export default function AdminBillingPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.slice(0, 20).map((user) => (
-                    <TableRow key={user.user_id}>
-                      <TableCell className="text-white/90">{user.display_name || "N/A"}</TableCell>
-                      <TableCell className="text-white/70 font-mono text-sm">{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="border-white/30 text-white/90">
-                          {user.subscription.plan_id.replace("plan_", "")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`border-current/30 ${
-                            user.subscription.status === "active"
-                              ? "text-emerald-400"
-                              : "text-yellow-400"
-                          }`}
-                        >
-                          {user.subscription.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-white/70 text-sm">
-                        {new Date(user.subscription.current_period_end).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-white font-semibold">
-                        ${user.total_revenue.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              user.risk_score > 0.7
-                                ? "bg-red-500"
-                                : user.risk_score > 0.4
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
-                            }`}
-                          />
-                          <span className="text-xs text-white/70">{(user.risk_score * 100).toFixed(0)}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 hover:bg-white/10">
-                          <Eye className="w-4 h-4" />
-                        </Button>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow className="hover:bg-white/5">
+                      <TableCell colSpan={8} className="h-32 text-center text-white/60">
+                        No users found for current filters.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    filteredUsers.slice(0, 20).map((user, index) => {
+                      const sub = user.subscription || {};
+                      const planId = sub.plan_id || sub.plan;
+                      const planLabel = planId ? planId.replace("plan_", "") : "No plan";
+                      const status = sub.status ?? "no-subscription";
+                      const nextBillingRaw = sub.current_period_end || sub.next_billing_date;
+                      const nextBilling = nextBillingRaw
+                        ? new Date(nextBillingRaw).toLocaleDateString()
+                        : "N/A";
+
+                      const userIndexDisplay = index + 1;
+
+                      return (
+                        <TableRow
+                          key={user.id || user.user_id || index}
+                          className="hover:bg-white/5 transition-colors"
+                        >
+                          <TableCell className="text-white/70 font-mono text-xs">{userIndexDisplay}</TableCell>
+                          <TableCell className="text-white/70 font-mono text-sm">{user.email}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="border-white/30 text-white/90">
+                              {planLabel}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={`border-current/30 ${
+                                status === "active"
+                                  ? "text-emerald-400"
+                                  : status === "no-subscription"
+                                  ? "text-white/60"
+                                  : "text-yellow-400"
+                              }`}
+                            >
+                              {status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-white/70 text-sm">
+                            {nextBilling}
+                          </TableCell>
+                          <TableCell className="text-white font-semibold">
+                            {(user.total_revenue ?? 0).toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  user.risk_score == null
+                                    ? "bg-gray-500"
+                                    : user.risk_score > 0.7
+                                    ? "bg-red-500"
+                                    : user.risk_score > 0.4
+                                    ? "bg-yellow-500"
+                                    : "bg-green-500"
+                                }`}
+                              />
+                              <span className="text-xs text-white/70">
+                                {user.risk_score != null
+                                  ? `${(user.risk_score * 100).toFixed(0)}%`
+                                  : "N/A"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 hover:bg-white/10"
+                              onClick={() => setSelectedUser(user)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -604,9 +646,80 @@ export default function AdminBillingPage() {
         </TabsContent>
       </Tabs>
 
+      {/* User Details Dialog */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+<DialogContent className="bg-black border-white/10 max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              User billing details
+            </DialogTitle>
+            <DialogDescription className="text-white/70">
+              Read-only view of this user's billing and subscription information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4 text-sm">
+              <div>
+                <div className="text-white/60">Email</div>
+                <div className="text-white font-mono text-xs break-all">{selectedUser.email}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-white/60">Plan</div>
+                  <div className="text-white">
+                    {(selectedUser.subscription?.plan_id || selectedUser.subscription?.plan || "No plan").replace("plan_", "")}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/60">Status</div>
+                  <div className="text-white capitalize">{selectedUser.subscription?.status || "no-subscription"}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-white/60">Next billing</div>
+                  <div className="text-white">
+                    {selectedUser.subscription?.current_period_end || selectedUser.subscription?.next_billing_date
+                      ? new Date(
+                          selectedUser.subscription?.current_period_end ||
+                            (selectedUser.subscription?.next_billing_date as string)
+                        ).toLocaleDateString()
+                      : "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-white/60">Total revenue</div>
+                  <div className="text-white">${(selectedUser.total_revenue ?? 0).toFixed(2)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-white/60">Invoices</div>
+                  <div className="text-white">{selectedUser.invoices_count ?? 0}</div>
+                </div>
+                <div>
+                  <div className="text-white/60">Risk score</div>
+                  <div className="text-white">
+                    {selectedUser.risk_score != null
+                      ? `${(selectedUser.risk_score * 100).toFixed(0)}%`
+                      : "N/A"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setSelectedUser(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create Plan Dialog */}
       <Dialog open={isCreatePlanDialogOpen} onOpenChange={setIsCreatePlanDialogOpen}>
-        <DialogContent className="bg-gray-900 border-white/10 max-w-2xl">
+<DialogContent className="bg-black border-white/10 max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-white">Create New Plan</DialogTitle>
             <DialogDescription className="text-white/70">

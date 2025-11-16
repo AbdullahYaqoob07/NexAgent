@@ -1,124 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import apiClient from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TrendingUp, Activity, Users, Coins } from "lucide-react";
-import Image from "next/image";
-
-interface BillingAnalytics {
-  mrr: number;
-  arr: number;
-  churnRate: number;
-  totalUsers: number;
-  payingUsers: number;
-  trialUsers: number;
-  canceledUsers: number;
-  usersByPlan: Record<string, number>;
-  revenueByPlan: Record<string, number>;
-  newSubscriptionsThisMonth: number;
-  failedPaymentsThisMonth: number;
-}
-
-interface SystemHealth {
-  status: string;
-  uptimePercentage: number;
-  errorRate: number;
-  totalRequests: number;
-}
+import { useAdminAnalytics } from "@/lib/useAdminAnalytics";
 
 export default function AdminOverviewPage() {
-  const [revenue, setRevenue] = useState<string | number>("Loading...");
-  const [activeUsers, setActiveUsers] = useState<string | number>("Loading...");
-  const [churn, setChurn] = useState<string | number>("Loading...");
-  const [resources, setResources] = useState<string | number>("Loading...");
-  const [billingAnalytics, setBillingAnalytics] = useState<BillingAnalytics | null>(null);
-  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const {
+    billing,
+    systemHealth,
+    resources: resourcesDisplay,
+    revenue,
+    activeUsers,
+    churn,
+  } = useAdminAnalytics();
 
-  useEffect(() => {
-    // Billing admin analytics: revenue + user metrics + plan distribution
-    apiClient
-      .get("/api/billing/admin/analytics")
-      .then((res) => {
-        const data = res.data;
-        if (!data) {
-          setRevenue("API not Available for this");
-          setActiveUsers("API not Available for this");
-          setChurn("API not Available for this");
-          return;
-        }
-
-        const mrr = Number(data.mrr ?? 0);
-        const arr = Number(data.arr ?? 0);
-        setRevenue(`$${(mrr || arr).toLocaleString()}`);
-
-        setActiveUsers(
-          data.paying_users !== undefined && data.total_users !== undefined
-            ? `${data.paying_users}/${data.total_users} paying`
-            : "API not Available for this"
-        );
-
-        if (data.churn_rate !== undefined) {
-          setChurn(`${(Number(data.churn_rate) * 100).toFixed(1)}%`);
-        } else {
-          setChurn("API not Available for this");
-        }
-
-        setBillingAnalytics({
-          mrr,
-          arr,
-          churnRate: Number(data.churn_rate ?? 0),
-          totalUsers: Number(data.total_users ?? 0),
-          payingUsers: Number(data.paying_users ?? 0),
-          trialUsers: Number(data.trial_users ?? 0),
-          canceledUsers: Number(data.canceled_users ?? 0),
-          usersByPlan: data.users_by_plan || {},
-          revenueByPlan: data.revenue_by_plan || {},
-          newSubscriptionsThisMonth: Number(data.new_subscriptions_this_month ?? 0),
-          failedPaymentsThisMonth: Number(data.failed_payments_this_month ?? 0),
-        });
-      })
-      .catch(() => {
-        setRevenue("API not Available for this");
-        setActiveUsers("API not Available for this");
-        setChurn("API not Available for this");
-      });
-
-    // Resources: system resource usage
-    apiClient
-      .get("/api/v1/analytics/system/resource-usage")
-      .then((res) => {
-        // API returns ResourceUsageMetrics directly: { cpuUsage, memoryUsage, ... }
-        const m = res.data;
-        if (m && (m.cpuUsage !== undefined || m.memoryUsage !== undefined)) {
-          const cpu = Math.round(m.cpuUsage ?? 0);
-          const mem = Math.round(m.memoryUsage ?? 0);
-          setResources(`${cpu}% CPU • ${mem}% MEM`);
-        } else {
-          setResources("API not Available for this");
-        }
-      })
-      .catch(() => setResources("API not Available for this"));
-
-    // System health: uptime, error rate, total requests
-    apiClient
-      .get("/api/v1/analytics/system/health")
-      .then((res) => {
-        const d = res.data;
-        if (!d) return;
-        setSystemHealth({
-          status: d.status,
-          uptimePercentage: Number(d.uptimePercentage ?? 0),
-          errorRate: Number(d.errorRate ?? 0),
-          totalRequests: Number(d.totalRequests ?? 0),
-        });
-      })
-      .catch(() => {
-        setSystemHealth(null);
-      });
-  }, []);
+  const billingAnalytics = billing;
 
   return (
     <div className="relative space-y-6">
@@ -193,7 +91,7 @@ export default function AdminOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{resources}</span>
+              <span className="text-2xl font-bold text-white whitespace-normal leading-tight">{resourcesDisplay}</span>
               <Coins className="w-5 h-5 text-yellow-400" />
             </div>
             <p className="text-xs text-white/50 mt-2">Data source check</p>

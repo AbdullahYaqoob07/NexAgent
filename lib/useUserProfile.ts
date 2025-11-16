@@ -104,7 +104,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating profile:', err);
-      setError('Failed to update profile');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -119,7 +118,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating preferences:', err);
-      setError('Failed to update preferences');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -134,7 +132,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating social links:', err);
-      setError('Failed to update social links');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -149,7 +146,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating onboarding:', err);
-      setError('Failed to update onboarding');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -177,7 +173,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating workspace:', err);
-      setError('Failed to update workspace');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -192,7 +187,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating API key:', err);
-      setError('Failed to update API key');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -206,7 +200,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error removing API key:', err);
-      setError('Failed to remove API key');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -221,7 +214,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating integration:', err);
-      setError('Failed to update integration');
       return false;
     }
   }, [authUser, loadUserProfile]);
@@ -236,7 +228,6 @@ export function useUserProfile() {
       return true;
     } catch (err) {
       console.error('Error updating security:', err);
-      setError('Failed to update security');
       return false;
     }
   }, [authUser, loadUserProfile]);

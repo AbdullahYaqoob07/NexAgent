@@ -44,6 +44,10 @@ class MarketplaceDB:
         self.analytics_col = self.db.collection('analytics')
         self.stats_doc = self.db.collection('marketplace_stats').document('global')
 
+        # Admin configuration collections
+        self.config_col = self.db.collection('marketplace_config')
+        self.categories_col = self.db.collection('marketplace_categories')
+
     # =============================================================================
     # NEXA MANAGEMENT
     # =============================================================================
@@ -560,6 +564,114 @@ class MarketplaceDB:
         except Exception as e:
             logger.error(f"Error getting starred Nexas: {str(e)}")
             raise
+
+    # =============================================================================
+    # ADMIN CONFIGURATION (FEES, CATEGORIES)
+    # =============================================================================
+
+    async def get_fee_config(self) -> Dict[str, Any]:
+        """Return current marketplace fee configuration.
+
+        Configuration is stored in document `marketplace_config/fees`. If the
+        document does not exist yet, a sensible default is created and returned
+        so that the admin UI always has something real to show.
+        """
+        try:
+            doc_ref = self.config_col.document('fees')
+            doc = doc_ref.get()
+
+            if doc.exists:
+                data = doc.to_dict()
+            else:
+                now = datetime.utcnow()
+                data = {
+                    'seller_commission_percentage': 20.0,
+                    'platform_fee_percentage': 5.0,
+                    'payment_processor_fee_percentage': 2.9,
+                    'minimum_payout_amount': 50.0,
+                    'maximum_transaction_amount': 100000.0,
+                    'refund_processing_fee_percentage': 0.0,
+                    'last_updated': now,
+                    'updated_by': 'system',
+                }
+                doc_ref.set(data)
+
+            # Ensure required numeric fields are present and normalized to float
+            defaults = {
+                'seller_commission_percentage': 0.0,
+                'platform_fee_percentage': 0.0,
+                'payment_processor_fee_percentage': 0.0,
+                'minimum_payout_amount': 0.0,
+                'maximum_transaction_amount': 0.0,
+                'refund_processing_fee_percentage': 0.0,
+            }
+            for key, default in defaults.items():
+                val = data.get(key, default)
+                try:
+                    data[key] = float(val)
+                except (TypeError, ValueError):
+                    data[key] = default
+
+            return data
+        except Exception as e:
+            logger.error(f"Error getting fee config: {str(e)}")
+            return {}
+
+    async def update_fee_config(self, fee_config: Dict[str, Any], updated_by: str) -> bool:
+        """Update fee configuration document.
+
+        The caller is responsible for validation and authorization.
+        """
+        try:
+            doc_ref = self.config_col.document('fees')
+            update_data = dict(fee_config)
+            update_data['last_updated'] = datetime.utcnow()
+            update_data['updated_by'] = updated_by
+            doc_ref.set(update_data, merge=True)
+            return True
+        except Exception as e:
+            logger.error(f"Error updating fee config: {str(e)}")
+            return False
+
+    async def get_categories(self) -> List[Dict[str, Any]]:
+        """Get all marketplace categories for admin configuration UI."""
+        try:
+            query = self.categories_col.order_by('name')
+            docs = list(query.stream())
+            return [doc.to_dict() for doc in docs]
+        except Exception as e:
+            logger.error(f"Error getting categories: {str(e)}")
+            return []
+
+    async def add_category(self, category_data: Dict[str, Any], created_by: str) -> Optional[str]:
+        """Create a new marketplace category.
+
+        A UUID is generated for the category ID. Timestamps are stored as
+        Firestore datetimes; the frontend receives them as ISO strings.
+        """
+        try:
+            category_id = str(uuid.uuid4())
+            now = datetime.utcnow()
+            doc_data = {
+                'id': category_id,
+                'name': category_data.get('name', '').strip(),
+                'description': category_data.get('description', '').strip(),
+                'icon': category_data.get('icon'),
+                'is_active': bool(category_data.get('is_active', True)),
+                'created_at': now,
+                'updated_at': now,
+                'created_by': created_by,
+            }
+
+            # Basic validation: require non-empty name
+            if not doc_data['name']:
+                raise ValueError("Category name is required")
+
+            self.categories_col.document(category_id).set(doc_data)
+            return category_id
+        except Exception as e:
+            logger.error(f"Error adding category: {str(e)}")
+            return None
 
     # =============================================================================
     # ANALYTICS & STATISTICS
