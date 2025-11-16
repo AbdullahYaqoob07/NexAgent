@@ -174,7 +174,7 @@ export default function Page() {
   console.log('📊 KPI Data:', { kpi, overview, system });
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <KpiCard title="Executions" value={kpi.executions.toLocaleString()} icon={<Activity className="w-4 h-4" />} />
@@ -187,7 +187,7 @@ export default function Page() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Timeline */}
-        <Card className="bg-white/5 border-white/10 xl:col-span-2">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl xl:col-span-2">
           <CardHeader>
             <CardTitle className="text-white">Events timeline (24h)</CardTitle>
           </CardHeader>
@@ -215,7 +215,7 @@ export default function Page() {
         </Card>
 
         {/* Errors by type */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Errors by type (24h)</CardTitle>
           </CardHeader>
@@ -245,7 +245,7 @@ export default function Page() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* API latency bars */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">API latency p95 (top endpoints)</CardTitle>
           </CardHeader>
@@ -270,7 +270,7 @@ export default function Page() {
         </Card>
 
         {/* API metrics table */}
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">API metrics (24h)</CardTitle>
           </CardHeader>
@@ -315,7 +315,7 @@ export default function Page() {
 function KpiCard({ title, value, icon, accent }: { title: string; value: string | number; icon?: React.ReactNode; accent?: "emerald" | "red" | "blue" }) {
   const color = accent === "emerald" ? "text-emerald-400" : accent === "red" ? "text-red-400" : "text-white";
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardHeader>
         <CardTitle className="text-white text-sm flex items-center gap-2">
           {icon}
@@ -328,3 +328,4 @@ function KpiCard({ title, value, icon, accent }: { title: string; value: string 
     </Card>
   );
 }
+

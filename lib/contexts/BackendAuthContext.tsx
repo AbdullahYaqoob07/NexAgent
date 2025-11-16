@@ -62,7 +62,11 @@ export function BackendAuthProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (err) {
-          console.error('Failed to verify with backend:', err);
+          // Backend verification failed - this is non-critical as Firebase auth is primary
+          // Only log in development
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Backend verification skipped (backend may not be running):', err);
+          }
         }
       }
       

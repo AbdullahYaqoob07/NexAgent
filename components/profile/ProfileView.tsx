@@ -230,9 +230,13 @@ export default function ProfileView({ user }: ProfileViewProps) {
       totalExecutions: profileData?.usage.totalExecutions || 0,
       successRate: profileData?.usage.successRate || 0,
       avgResponseTime: profileData?.usage.avgResponseTime || 0,
-      joinedDays: Math.floor((Date.now() - (profileData?.memberSince.getTime() || Date.now())) / (1000 * 60 * 60 * 24))
+      joinedDays: profileData?.memberSince 
+        ? Math.floor((new Date().getTime() - profileData.memberSince.getTime()) / (1000 * 60 * 60 * 24))
+        : Math.floor((new Date().getTime() - user.createdAt) / (1000 * 60 * 60 * 24))
     },
-    joinedDays: Math.floor((Date.now() - (profileData?.memberSince.getTime() || Date.now())) / (1000 * 60 * 60 * 24))
+    joinedDays: profileData?.memberSince 
+      ? Math.floor((new Date().getTime() - profileData.memberSince.getTime()) / (1000 * 60 * 60 * 24))
+      : Math.floor((new Date().getTime() - user.createdAt) / (1000 * 60 * 60 * 24))
   };
 
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'billing' | 'preferences'>('profile');
@@ -362,7 +366,7 @@ export default function ProfileView({ user }: ProfileViewProps) {
                   <MapPin className="w-4 h-4" />
                   {profile.location}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" suppressHydrationWarning>
                   <Calendar className="w-4 h-4" />
                   Joined {profile.joinedDays} days ago
                 </div>

@@ -410,7 +410,7 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -427,7 +427,7 @@ export default function IntegrationsPage() {
             variant="outline"
             size="sm"
             onClick={fetchIntegrationsData}
-            className="bg-white/5 border-white/10"
+            className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -473,7 +473,7 @@ export default function IntegrationsPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Integrations by Category</CardTitle>
           </CardHeader>
@@ -518,7 +518,7 @@ export default function IntegrationsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Connection Status</CardTitle>
           </CardHeader>
@@ -563,7 +563,7 @@ export default function IntegrationsPage() {
       </div>
 
       <Tabs defaultValue="integrations" className="w-full">
-        <TabsList className="bg-white/5 border-white/10">
+        <TabsList className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <TabsTrigger 
             value="integrations" 
             className="text-white/70 data-[state=active]:bg-[#FF6900] data-[state=active]:text-white hover:text-white transition-colors"
@@ -589,7 +589,7 @@ export default function IntegrationsPage() {
 
         <TabsContent value="integrations" className="space-y-6">
           {/* Filters */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[200px]">
@@ -631,7 +631,7 @@ export default function IntegrationsPage() {
           {/* Integrations Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredIntegrations.map((integration) => (
-              <Card key={integration.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
+              <Card key={integration.id} className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl hover:bg-white/10 transition-colors">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -703,7 +703,7 @@ export default function IntegrationsPage() {
 
         <TabsContent value="connections" className="space-y-6">
           {/* Filters */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[200px]">
@@ -741,7 +741,7 @@ export default function IntegrationsPage() {
           </Card>
 
           {/* Connections Table */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white">Active Connections ({filteredConnections.length})</CardTitle>
             </CardHeader>
@@ -832,7 +832,7 @@ export default function IntegrationsPage() {
         <TabsContent value="categories" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {categories.map((category) => (
-              <Card key={category.id} className="bg-white/5 border-white/10">
+              <Card key={category.id} className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-3">
                     {getCategoryIcon(category.id)}
@@ -868,16 +868,16 @@ export default function IntegrationsPage() {
           <div className="space-y-4">
             <div>
               <Label className="text-white/90">Integration Name</Label>
-              <Input className="bg-white/5 border-white/10 text-white" placeholder="e.g., Custom API" />
+              <Input className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="e.g., Custom API" />
             </div>
             <div>
               <Label className="text-white/90">Description</Label>
-              <Textarea className="bg-white/5 border-white/10 text-white" placeholder="Describe the integration..." />
+              <Textarea className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="Describe the integration..." />
             </div>
             <div>
               <Label className="text-white/90">Category</Label>
               <Select>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -912,7 +912,7 @@ export default function IntegrationsPage() {
             <div>
               <Label className="text-white/90">Connection Name</Label>
               <Input 
-                className="bg-white/5 border-white/10 text-white" 
+                className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" 
                 placeholder={`My ${selectedIntegration?.name} Connection`} 
               />
             </div>
@@ -921,7 +921,7 @@ export default function IntegrationsPage() {
                 <Label className="text-white/90">API Key</Label>
                 <Input 
                   type="password"
-                  className="bg-white/5 border-white/10 text-white" 
+                  className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" 
                   placeholder="Enter your API key" 
                 />
               </div>
@@ -964,7 +964,7 @@ function KPICard({
   color: string;
 }) {
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -979,3 +979,4 @@ function KPICard({
     </Card>
   );
 }
+

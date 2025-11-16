@@ -340,7 +340,7 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -357,7 +357,7 @@ export default function AuditPage() {
             variant="outline"
             size="sm"
             onClick={fetchAuditData}
-            className="bg-white/5 border-white/10"
+            className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -365,7 +365,7 @@ export default function AuditPage() {
           <Button
             variant="outline"
             size="sm"
-            className="bg-white/5 border-white/10"
+            className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl"
           >
             <Download className="w-4 h-4 mr-2" />
             Export
@@ -433,7 +433,7 @@ export default function AuditPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Events by Severity</CardTitle>
           </CardHeader>
@@ -496,7 +496,7 @@ export default function AuditPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Top Event Types</CardTitle>
           </CardHeader>
@@ -534,7 +534,7 @@ export default function AuditPage() {
       </div>
 
       <Tabs defaultValue="audit" className="w-full">
-        <TabsList className="bg-white/5 border-white/10">
+        <TabsList className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <TabsTrigger 
             value="audit" 
             className="text-white/70 data-[state=active]:bg-[#FF6900] data-[state=active]:text-white hover:text-white transition-colors"
@@ -560,7 +560,7 @@ export default function AuditPage() {
 
         <TabsContent value="audit" className="space-y-6">
           {/* Filters */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[200px]">
@@ -632,7 +632,7 @@ export default function AuditPage() {
           </Card>
 
           {/* Audit Logs Table */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white">Audit Events ({auditLogs.length})</CardTitle>
             </CardHeader>
@@ -731,7 +731,7 @@ export default function AuditPage() {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Shield className="w-5 h-5" />
@@ -827,6 +827,7 @@ export default function AuditPage() {
         <TabsContent value="compliance" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white">Compliance Status</CardTitle>
               </CardHeader>
@@ -867,7 +868,7 @@ export default function AuditPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white">Recent Reports</CardTitle>
               </CardHeader>
@@ -892,7 +893,7 @@ export default function AuditPage() {
             </Card>
           </div>
 
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white">All Compliance Alerts</CardTitle>
             </CardHeader>
@@ -962,7 +963,7 @@ function KPICard({
   color: string;
 }) {
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -1030,3 +1031,4 @@ function ReportItem({
     </div>
   );
 }
+

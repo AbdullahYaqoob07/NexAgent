@@ -205,7 +205,7 @@ export default function SystemPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -231,7 +231,7 @@ export default function SystemPage() {
             variant="outline"
             size="sm"
             onClick={fetchSystemData}
-            className="bg-white/5 border-white/10"
+            className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -320,7 +320,7 @@ export default function SystemPage() {
       )}
 
       <Tabs defaultValue="performance" className="w-full">
-        <TabsList className="bg-white/5 border-white/10">
+        <TabsList className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <TabsTrigger 
             value="performance" 
             className="text-white/70 data-[state=active]:bg-[#FF6900] data-[state=active]:text-white hover:text-white transition-colors"
@@ -344,7 +344,7 @@ export default function SystemPage() {
         <TabsContent value="performance" className="space-y-6">
           {/* Request Performance */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white">Request Volume (24h)</CardTitle>
               </CardHeader>
@@ -382,7 +382,7 @@ export default function SystemPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white">System Resources</CardTitle>
               </CardHeader>
@@ -413,7 +413,7 @@ export default function SystemPage() {
         </TabsContent>
 
         <TabsContent value="apis" className="space-y-6">
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white">API Performance Metrics</CardTitle>
             </CardHeader>
@@ -502,7 +502,7 @@ export default function SystemPage() {
 
         <TabsContent value="health" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Shield className="w-5 h-5" />
@@ -547,7 +547,7 @@ export default function SystemPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/5 border-white/10">
+            <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Globe className="w-5 h-5" />
@@ -613,7 +613,7 @@ function StatusCard({
   bg: string; 
 }) {
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -650,7 +650,7 @@ function ResourceCard({
   };
 
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardHeader>
         <CardTitle className={`text-white flex items-center gap-2 ${color}`}>
           {icon}
@@ -675,3 +675,4 @@ function ResourceCard({
     </Card>
   );
 }
+
