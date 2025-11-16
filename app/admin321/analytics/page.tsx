@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import apiClient from "@/lib/api/client";
+import analyticsAdminService from "@/lib/api/analytics-admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -109,27 +110,19 @@ export default function Page() {
     (async () => {
       try {
         const [timelineRes, systemRes, apiRes, errorRes, wfOverview] = await Promise.all([
-          apiClient.get<EventTimelineResponse>("/api/v1/analytics/events/timeline", {
-            params: { timeRange: "24h", interval: "hour" },
-          }),
-          apiClient.get<SystemHealthResponseDTO>("/api/v1/analytics/system/health"),
-          apiClient.get<ApiMetricsResponse>("/api/v1/analytics/system/api-metrics", {
-            params: { timeRange: "24h" },
-          }),
-          apiClient.get<ErrorRateResponse>("/api/v1/analytics/system/error-rate", {
-            params: { timeRange: "24h" },
-          }),
-          apiClient.get<WorkflowOverviewResponse>("/api/v1/analytics/workflows/overview", {
-            params: { timeRange: "30d" },
-          }),
+          analyticsAdminService.getEventsTimeline("24h", "hour"),
+          analyticsAdminService.getSystemHealth(),
+          analyticsAdminService.getAPIMetrics("24h"),
+          analyticsAdminService.getErrorRateMetrics("24h"),
+          analyticsAdminService.getWorkflowOverview("30d"),
         ]);
         if (!mounted) return;
 
-        setTimeline(timelineRes.data.timeline || []);
-        setSystem(systemRes.data);
-        setApiMetrics(apiRes.data.metrics || []);
-        setErrors(errorRes.data);
-        setOverview(wfOverview.data.overview);
+        setTimeline(timelineRes?.timeline || []);
+        setSystem(systemRes || null);
+        setApiMetrics(apiRes?.metrics || []);
+        setErrors(errorRes || null);
+        setOverview(wfOverview?.overview || null);
       } catch (error) {
         console.error("❌ Analytics API Error:", error);
       } finally {
@@ -144,6 +137,7 @@ export default function Page() {
 
   const timelineData = useMemo(
     () =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (timeline || []).map((t: any) => ({
         name: new Date(t.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         count: t.count ?? t.value ?? 0,

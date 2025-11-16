@@ -6,7 +6,8 @@ const publicRoutes = [
   '/sign-in',
   '/sign-up',
   '/reset-password',
-  '/api/auth'
+  '/api/auth',
+  '/docs'
 ]
 
 // Define protected routes that require authentication

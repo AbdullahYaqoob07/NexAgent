@@ -19,7 +19,8 @@ import {
   X,
   Check,
   AlertCircle,
-  Info
+  Info,
+  Users
 } from "lucide-react";
 import DashboardLayout from "./DashboardLayout";
 import Link from "next/link";
@@ -27,22 +28,56 @@ import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
 import { useUserProfile } from '@/lib/useUserProfile';
+import dashboardApiService, { DashboardOverview, RealTimeMetrics, Alert } from '@/lib/api/dashboard-api';
 
 interface DashboardHomeProps {
   // No longer need user prop since we'll get it from the hook
 }
 
 export default function DashboardHome({}: DashboardHomeProps) {
-  const { profileData, loading, displayName, trackFeature } = useUserProfile();
+  const { profileData, loading: profileLoading, displayName, trackFeature } = useUserProfile();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   
+  // Backend dashboard data
+  const [dashboardData, setDashboardData] = useState<DashboardOverview | null>(null);
+  const [realTimeMetrics, setRealTimeMetrics] = useState<RealTimeMetrics | null>(null);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  
   // Track dashboard view
   React.useEffect(() => {
     trackFeature('dashboard_viewed');
   }, [trackFeature]);
+  
+  // Fetch dashboard data from backend
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setDataLoading(true);
+        const [overview, realTime, alertsResponse] = await Promise.all([
+          dashboardApiService.getDashboardOverview('24h'),
+          dashboardApiService.getRealTimeMetrics(),
+          dashboardApiService.getAlerts({ acknowledged: false, limit: 10 }),
+        ]);
+        setDashboardData(overview);
+        setRealTimeMetrics(realTime);
+        setAlerts(alertsResponse.alerts);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   // Close notifications when clicking outside
   useEffect(() => {
@@ -67,43 +102,19 @@ export default function DashboardHome({}: DashboardHomeProps) {
     }
   };
   
-  // Mock notifications data
-  const notifications = [
-    {
-      id: '1',
-      type: 'success',
-      title: 'Workflow Completed',
-      message: 'Your "Email Automation" workflow finished successfully',
-      time: '5 minutes ago',
-      read: false
-    },
-    {
-      id: '2',
-      type: 'info',
-      title: 'New Feature Available',
-      message: 'Check out our new AI model integrations in the marketplace',
-      time: '1 hour ago',
-      read: false
-    },
-    {
-      id: '3',
-      type: 'warning',
-      title: 'Token Usage Alert',
-      message: 'You have used 80% of your monthly token limit',
-      time: '3 hours ago',
-      read: true
-    },
-    {
-      id: '4',
-      type: 'success',
-      title: 'Credential Added',
-      message: 'OpenAI API credentials successfully configured',
-      time: '1 day ago',
-      read: true
-    }
-  ];
+  // Convert alerts to notification format
+  const notifications = alerts.map(alert => ({
+    id: alert.id,
+    type: alert.severity === 'critical' ? 'warning' : alert.severity === 'warning' ? 'warning' : alert.severity === 'info' ? 'info' : 'success',
+    title: alert.title,
+    message: alert.message,
+    time: new Date(alert.timestamp).toLocaleString(),
+    read: alert.acknowledged,
+  }));
   
   const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const loading = profileLoading || dataLoading;
   
   if (loading) {
     return (
@@ -115,40 +126,40 @@ export default function DashboardHome({}: DashboardHomeProps) {
     );
   }
   
-  // Create dynamic stats from user data
+  // Create dynamic stats from backend data
   const statsCards = [
     {
-      title: "Workflows Created",
-      value: profileData?.usage.totalWorkflows.toString() || "0",
-      change: `${profileData?.usage.workflowsCreated || 0} this month`,
+      title: "Workflows",
+      value: dashboardData?.workflows.total.toString() || "0",
+      change: `${dashboardData?.workflows.active || 0} active`,
       icon: Workflow,
       color: "from-[#FF6900] to-[#FF8555]",
       bgColor: "bg-[#FF6900]/10",
       borderColor: "border-[#FF6900]/20"
     },
     {
-      title: "API Calls",
-      value: profileData?.usage.totalApiCalls.toLocaleString() || "0",
-      change: `${profileData?.usage.apiCallsThisMonth || 0} this month`,
+      title: "Executions",
+      value: dashboardData?.executions.total.toLocaleString() || "0",
+      change: `${dashboardData?.executions.running || 0} running`,
       icon: Activity,
       color: "from-blue-500 to-blue-600",
       bgColor: "bg-blue-500/10",
       borderColor: "border-blue-500/20"
     },
     {
-      title: "Tokens Used",
-      value: profileData?.usage.tokensUsed.toLocaleString() || "0",
-      change: `of ${profileData?.usage.limits.tokensPerMonth.toLocaleString() || 0} limit`,
-      icon: Coins,
+      title: "Success Rate",
+      value: `${dashboardData?.workflows.success_rate.toFixed(1) || 0}%`,
+      change: `${dashboardData?.executions.successful || 0} successful`,
+      icon: TrendingUp,
       color: "from-green-500 to-green-600",
       bgColor: "bg-green-500/10",
       borderColor: "border-green-500/20"
     },
     {
-      title: "Success Rate",
-      value: `${profileData?.usage.successRate || 0}%`,
-      change: `Avg ${profileData?.usage.avgResponseTime || 0}ms response`,
-      icon: TrendingUp,
+      title: "Active Users",
+      value: realTimeMetrics?.activeUsers.toString() || "0",
+      change: `${realTimeMetrics?.requestsPerSecond.toFixed(1) || 0} req/s`,
+      icon: Users,
       color: "from-purple-500 to-purple-600",
       bgColor: "bg-purple-500/10",
       borderColor: "border-purple-500/20"
@@ -452,7 +463,7 @@ export default function DashboardHome({}: DashboardHomeProps) {
           </motion.div>
         </div>
 
-        {/* Performance Chart Placeholder */}
+        {/* Real-Time Metrics & System Health */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -460,18 +471,59 @@ export default function DashboardHome({}: DashboardHomeProps) {
           className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white">Performance Overview</h2>
+            <h2 className="text-2xl font-bold text-white">System Performance</h2>
             <div className="flex items-center gap-2 text-sm text-white/70">
-              <Clock className="w-4 h-4" />
-              Last 7 days
+              <Activity className="w-4 h-4" />
+              Real-time
             </div>
           </div>
-          <div className="h-64 flex items-center justify-center border-2 border-dashed border-white/20 rounded-lg">
-            <div className="text-center">
-              <BarChart3 className="w-12 h-12 text-white/30 mx-auto mb-4" />
-              <p className="text-white/50">Performance chart will be displayed here</p>
+          
+          {realTimeMetrics && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/5 rounded-xl p-4">
+                <div className="text-white/60 text-xs mb-1">Active Executions</div>
+                <div className="text-2xl font-bold text-white">{realTimeMetrics.activeExecutions}</div>
+                <div className="text-white/40 text-xs mt-1">{realTimeMetrics.executionsPerMinute.toFixed(1)}/min</div>
+              </div>
+              
+              <div className="bg-white/5 rounded-xl p-4">
+                <div className="text-white/60 text-xs mb-1">Avg Response</div>
+                <div className="text-2xl font-bold text-white">{realTimeMetrics.avgExecutionTime.toFixed(0)}ms</div>
+                <div className="text-white/40 text-xs mt-1">execution time</div>
+              </div>
+              
+              <div className="bg-white/5 rounded-xl p-4">
+                <div className="text-white/60 text-xs mb-1">Error Rate</div>
+                <div className="text-2xl font-bold text-white">{realTimeMetrics.currentErrorRate.toFixed(2)}%</div>
+                <div className="text-white/40 text-xs mt-1">current rate</div>
+              </div>
+              
+              <div className="bg-white/5 rounded-xl p-4">
+                <div className="text-white/60 text-xs mb-1">System Load</div>
+                <div className="text-2xl font-bold text-white">{realTimeMetrics.systemLoad.toFixed(0)}%</div>
+                <div className="text-white/40 text-xs mt-1">{realTimeMetrics.queuedJobs} queued</div>
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* System Health Status */}
+          {dashboardData && (
+            <div className="mt-6 p-4 bg-white/5 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    dashboardData.system.health === 'healthy' ? 'bg-green-400' :
+                    dashboardData.system.health === 'degraded' ? 'bg-yellow-400' :
+                    'bg-red-400'
+                  } animate-pulse`} />
+                  <div>
+                    <div className="text-white font-medium">System Status: {dashboardData.system.health}</div>
+                    <div className="text-white/60 text-sm">Uptime: {dashboardData.system.uptime.toFixed(2)}% | Error Rate: {dashboardData.system.error_rate.toFixed(2)}%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
     </DashboardLayout>

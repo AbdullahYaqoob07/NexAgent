@@ -22,7 +22,6 @@ import {
   CreditCard,
   Users,
 } from "lucide-react";
-import Image from "next/image";
 
 // Custom icon component for SVG icons
 const SvgIcon = ({ src, className }: { src: string; className?: string }) => (

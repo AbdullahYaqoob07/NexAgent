@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import marketplaceAdminService from "@/lib/api/marketplace-admin";
+import type { PendingNexa as PendingNexaType, PendingSeller as PendingSellerType, Dispute as DisputeType, MarketplaceAnalytics } from "@/lib/api/marketplace-admin";
 import {
   Tabs,
   TabsContent,
@@ -63,37 +65,10 @@ import {
   X,
   MessageSquare,
   Download,
+  Loader2,
 } from "lucide-react";
 
-// Dummy data
-const overviewData = {
-  totalNexas: 1243,
-  totalSellers: 247,
-  totalPurchases: 5821,
-  totalRevenue: 125430.50,
-  pendingNexas: 34,
-  pendingSellers: 12,
-  pendingDisputes: 8,
-  activeNexas: 987,
-};
 
-const revenueData = [
-  { date: "Jan 1", revenue: 4000, sales: 240 },
-  { date: "Jan 8", revenue: 3000, sales: 221 },
-  { date: "Jan 15", revenue: 2000, sales: 229 },
-  { date: "Jan 22", revenue: 2780, sales: 200 },
-  { date: "Jan 29", revenue: 1890, sales: 229 },
-  { date: "Feb 5", revenue: 2390, sales: 200 },
-  { date: "Feb 12", revenue: 3490, sales: 210 },
-];
-
-const categoryData = [
-  { name: "Automation", value: 320, color: "#FF6900" },
-  { name: "API Integration", value: 280, color: "#FF8C3B" },
-  { name: "Data Processing", value: 240, color: "#FFB266" },
-  { name: "Analytics", value: 180, color: "#FFD699" },
-  { name: "Others", value: 223, color: "#8B7355" },
-];
 
 const topSellers = [
   {
@@ -134,107 +109,9 @@ const topSellers = [
   },
 ];
 
-const pendingNexasData = [
-  {
-    id: "nexa-1",
-    title: "Email Campaign Automator",
-    seller: "Marketing Automation Co",
-    category: "Marketing",
-    created: "2024-10-30",
-    status: "pending_review",
-  },
-  {
-    id: "nexa-2",
-    title: "Database Sync Tool",
-    seller: "Data Integration Pro",
-    category: "Data Processing",
-    created: "2024-10-29",
-    status: "pending_review",
-  },
-  {
-    id: "nexa-3",
-    title: "Social Media Scheduler",
-    seller: "Social Media Tools Inc",
-    category: "Social Media",
-    created: "2024-10-28",
-    status: "pending_review",
-  },
-  {
-    id: "nexa-4",
-    title: "Invoice Generator",
-    seller: "Finance Systems LLC",
-    category: "Finance",
-    created: "2024-10-27",
-    status: "pending_review",
-  },
-];
 
-const pendingSellers = [
-  {
-    id: "seller-1",
-    businessName: "CloudSync Solutions",
-    email: "contact@cloudsync.com",
-    country: "US",
-    applied: "2024-10-29",
-    status: "pending",
-  },
-  {
-    id: "seller-2",
-    businessName: "Data Flow Systems",
-    email: "info@dataflow.com",
-    country: "UK",
-    applied: "2024-10-28",
-    status: "pending",
-  },
-  {
-    id: "seller-3",
-    businessName: "Workflow Innovations",
-    email: "hello@workflowinn.com",
-    country: "Canada",
-    applied: "2024-10-27",
-    status: "pending",
-  },
-];
 
-const activeDisputes = [
-  {
-    id: "dispute-1",
-    purchaseId: "purchase-101",
-    buyer: "John Doe",
-    seller: "Automation Labs Inc",
-    nexa: "Email Automation Pro",
-    amount: 29.99,
-    reason: "Not working as described",
-    status: "open",
-    created: "2024-10-28",
-  },
-  {
-    id: "dispute-2",
-    purchaseId: "purchase-102",
-    buyer: "Jane Smith",
-    seller: "Data Integration Pro",
-    nexa: "Database Sync",
-    amount: 49.99,
-    reason: "Quality issues",
-    status: "open",
-    created: "2024-10-27",
-  },
-  {
-    id: "dispute-3",
-    purchaseId: "purchase-103",
-    buyer: "Mike Johnson",
-    seller: "API Solutions Co",
-    nexa: "API Gateway",
-    amount: 79.99,
-    reason: "Refund requested",
-    status: "pending_resolution",
-    created: "2024-10-26",
-  },
-];
 
-type PendingNexa = (typeof pendingNexasData)[number];
-type PendingSeller = (typeof pendingSellers)[number];
-type ActiveDispute = (typeof activeDisputes)[number];
 
 const recentTransactions = [
   {
@@ -283,12 +160,144 @@ type Transaction = (typeof recentTransactions)[number];
 
 export default function MarketplaceAdminPage() {
   const [selectedTab, setSelectedTab] = useState("overview");
-  const [selectedNexaModal, setSelectedNexaModal] = useState<PendingNexa | null>(null);
-  const [selectedSellerModal, setSelectedSellerModal] = useState<PendingSeller | null>(null);
-  const [selectedDisputeModal, setSelectedDisputeModal] = useState<ActiveDispute | null>(null);
+  const [selectedNexaModal, setSelectedNexaModal] = useState<PendingNexaType | null>(null);
+  const [selectedSellerModal, setSelectedSellerModal] = useState<PendingSellerType | null>(null);
+  const [selectedDisputeModal, setSelectedDisputeModal] = useState<DisputeType | null>(null);
   const [moderationAction, setModerationAction] = useState("");
   const [moderationReason, setModerationReason] = useState("");
   const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
+
+  // Backend state
+  const [overview, setOverview] = useState<MarketplaceAnalytics | null>(null);
+  const [revenueData, setRevenueData] = useState<Array<{ date: string; revenue: number; sales: number }>>([]);
+  const [categoryData, setCategoryData] = useState<Array<{ name: string; value: number; color: string }>>([]);
+  const [pendingNexas, setPendingNexas] = useState<PendingNexaType[]>([]);
+  const [pendingSellersState, setPendingSellersState] = useState<PendingSellerType[]>([]);
+  const [activeDisputesState, setActiveDisputesState] = useState<DisputeType[]>([]);
+  const [loading, setLoading] = useState({ overview: true, nexas: true, sellers: true, disputes: true });
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        setLoading({ overview: true, nexas: true, sellers: true, disputes: true });
+        const [ov, nexas, sellers, disputes] = await Promise.all([
+          marketplaceAdminService.getMarketplaceAnalytics('30d'),
+          marketplaceAdminService.getPendingNexas(),
+          marketplaceAdminService.getPendingSellers(),
+          marketplaceAdminService.getActiveDisputes()
+        ]);
+        if (ov) {
+          setOverview(ov);
+          const combined = [] as Array<{ date: string; revenue: number; sales: number }>;
+          const revenueChart = ov.revenue_chart || [];
+          const salesChart = ov.sales_chart || [];
+          const byDate: Record<string, { revenue?: number; sales?: number }> = {};
+          revenueChart.forEach(p => { byDate[p.date] = { ...(byDate[p.date]||{}), revenue: p.revenue }; });
+          salesChart.forEach(p => { byDate[p.date] = { ...(byDate[p.date]||{}), sales: p.sales }; });
+          Object.entries(byDate).sort(([a],[b]) => (a > b ? 1 : -1)).forEach(([date, vals]) => {
+            combined.push({ date, revenue: vals.revenue || 0, sales: vals.sales || 0 });
+          });
+          setRevenueData(combined);
+          const cats = (ov.top_categories || []).map((c, idx) => ({ name: c.name, value: c.count, color: ["#FF6900","#FF8C3B","#FFB266","#FFD699","#8B7355"][idx % 5] }));
+          setCategoryData(cats);
+        }
+        setPendingNexas(nexas || []);
+        setPendingSellersState(sellers || []);
+        setActiveDisputesState(disputes || []);
+      } finally {
+        setLoading({ overview: false, nexas: false, sellers: false, disputes: false });
+      }
+    };
+    fetchAll();
+  }, []);
+
+  const refreshLists = async () => {
+    const [nexas, sellers, disputes, ov] = await Promise.all([
+      marketplaceAdminService.getPendingNexas(),
+      marketplaceAdminService.getPendingSellers(),
+      marketplaceAdminService.getActiveDisputes(),
+      marketplaceAdminService.getMarketplaceAnalytics('30d')
+    ]);
+    setPendingNexas(nexas || []);
+    setPendingSellersState(sellers || []);
+    setActiveDisputesState(disputes || []);
+    if (ov) setOverview(ov);
+  };
+
+  const handleSubmitNexaAction = async () => {
+    if (!selectedNexaModal || !moderationAction) {
+      alert('Select an action');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const id = selectedNexaModal.id;
+      let res;
+      if (moderationAction === 'approve') {
+        res = await marketplaceAdminService.approveNexa(id, moderationReason);
+      } else if (moderationAction === 'reject') {
+        res = await marketplaceAdminService.rejectNexa(id, moderationReason || '');
+      } else if (moderationAction === 'suspend') {
+        res = await marketplaceAdminService.suspendNexa(id, moderationReason || '');
+      }
+      if (res && res.success) {
+        alert(res.message || 'Action successful');
+        setSelectedNexaModal(null);
+        setModerationAction('');
+        setModerationReason('');
+        await refreshLists();
+      } else {
+        alert(res?.error || 'Action failed');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifySeller = async () => {
+    if (!selectedSellerModal) return;
+    setSubmitting(true);
+    try {
+      const res = await marketplaceAdminService.verifySeller(selectedSellerModal.id, moderationReason || undefined);
+      if (res.success) {
+        alert(res.message || 'Seller verified');
+        setSelectedSellerModal(null);
+        setModerationReason('');
+        await refreshLists();
+      } else {
+        alert(res.error || 'Failed to verify seller');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResolveDispute = async () => {
+    if (!selectedDisputeModal || !moderationAction) {
+      alert('Choose a resolution');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await marketplaceAdminService.resolveDispute(
+        selectedDisputeModal.id,
+        moderationAction as any,
+        moderationReason || undefined
+      );
+      if (res.success) {
+        alert(res.message || 'Dispute resolved');
+        setSelectedDisputeModal(null);
+        setModerationAction('');
+        setModerationReason('');
+        await refreshLists();
+      } else {
+        alert(res.error || 'Failed to resolve dispute');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const downloadTransactionPDF = async (transaction: Transaction) => {
     try {
@@ -386,11 +395,11 @@ export default function MarketplaceAdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-white">
-                  {overviewData.totalNexas}
+<p className="text-3xl font-bold text-white">
+                  {overview ? overview.total_nexas : "—"}
                 </p>
                 <p className="text-white/60 text-sm mt-1">
-                  {overviewData.activeNexas} active
+                  {overview ? `${overview.active_nexas} active` : ""}
                 </p>
               </CardContent>
             </Card>
@@ -403,11 +412,11 @@ export default function MarketplaceAdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-white">
-                  {overviewData.totalSellers}
+<p className="text-3xl font-bold text-white">
+                  {overview ? overview.total_sellers : "—"}
                 </p>
                 <p className="text-white/60 text-sm mt-1">
-                  {overviewData.pendingSellers} pending
+                  {pendingSellersState.length} pending
                 </p>
               </CardContent>
             </Card>
@@ -420,11 +429,11 @@ export default function MarketplaceAdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-white">
-                  {overviewData.totalPurchases.toLocaleString()}
+<p className="text-3xl font-bold text-white">
+                  {overview ? overview.total_purchases.toLocaleString() : "—"}
                 </p>
                 <p className="text-white/60 text-sm mt-1">
-                  {overviewData.pendingDisputes} disputes
+                  {activeDisputesState.length} disputes
                 </p>
               </CardContent>
             </Card>
@@ -437,13 +446,11 @@ export default function MarketplaceAdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-white">
-                  ${overviewData.totalRevenue.toLocaleString("en-US", {
-                    maximumFractionDigits: 0,
-                  })}
+<p className="text-3xl font-bold text-white">
+                  {overview ? `$${overview.total_revenue.toLocaleString("en-US", { maximumFractionDigits: 0 })}` : "—"}
                 </p>
                 <p className="text-white/60 text-sm mt-1">
-                  {overviewData.pendingNexas} pending review
+                  {pendingNexas.length} pending review
                 </p>
               </CardContent>
             </Card>
@@ -579,8 +586,8 @@ export default function MarketplaceAdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white">Pending Nexas Review</CardTitle>
-                  <CardDescription className="text-white/60">
-                    {pendingNexasData.length} awaiting moderation
+<CardDescription className="text-white/60">
+                    {pendingNexas.length} awaiting moderation
                   </CardDescription>
                 </div>
                 <Select defaultValue="all">
@@ -598,7 +605,7 @@ export default function MarketplaceAdminPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {pendingNexasData.map((nexa) => (
+{pendingNexas.map((nexa) => (
                   <div
                     key={nexa.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition"
@@ -606,10 +613,10 @@ export default function MarketplaceAdminPage() {
                     <div className="flex-1">
                       <p className="text-white font-semibold">{nexa.title}</p>
                       <p className="text-white/60 text-sm">
-                        by {nexa.seller} • {nexa.category}
+by {nexa.seller} • {nexa.category}
                       </p>
                       <p className="text-white/50 text-xs mt-1">
-                        Submitted {nexa.created}
+                        Submitted {nexa.created_at}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -637,8 +644,8 @@ export default function MarketplaceAdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white">Pending Seller Verification</CardTitle>
-                  <CardDescription className="text-white/60">
-                    {pendingSellers.length} awaiting approval
+<CardDescription className="text-white/60">
+                    {pendingSellersState.length} awaiting approval
                   </CardDescription>
                 </div>
                 <Input
@@ -649,18 +656,18 @@ export default function MarketplaceAdminPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {pendingSellers.map((seller) => (
+{pendingSellersState.map((seller) => (
                   <div
                     key={seller.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition"
                   >
                     <div className="flex-1">
                       <p className="text-white font-semibold">
-                        {seller.businessName}
+{seller.business_name}
                       </p>
                       <p className="text-white/60 text-sm">{seller.email}</p>
                       <p className="text-white/50 text-xs mt-1">
-                        Applied {seller.applied} • {seller.country}
+                        Applied {seller.applied_at} • {seller.country}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -687,8 +694,8 @@ export default function MarketplaceAdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white">Active Disputes</CardTitle>
-                  <CardDescription className="text-white/60">
-                    {activeDisputes.length} disputes pending resolution
+<CardDescription className="text-white/60">
+                    {activeDisputesState.length} disputes pending resolution
                   </CardDescription>
                 </div>
                 <Select defaultValue="all">
@@ -705,7 +712,7 @@ export default function MarketplaceAdminPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {activeDisputes.map((dispute) => (
+{activeDisputesState.map((dispute) => (
                   <div
                     key={dispute.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition"
@@ -917,7 +924,8 @@ export default function MarketplaceAdminPage() {
             >
               Cancel
             </Button>
-            <Button className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30">
+<Button onClick={handleSubmitNexaAction} disabled={submitting} className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30">
+              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {moderationAction === "approve" ? <Check className="w-4 h-4 mr-1" /> : null}
               {moderationAction === "reject" ? <X className="w-4 h-4 mr-1" /> : null}
               {moderationAction === "suspend" ? <Ban className="w-4 h-4 mr-1" /> : null}
@@ -943,7 +951,7 @@ export default function MarketplaceAdminPage() {
                     Business Name
                   </Label>
                   <p className="text-white font-semibold mt-2">
-                    {selectedSellerModal.businessName}
+{selectedSellerModal.business_name}
                   </p>
                 </div>
                 <div className="bg-white/5 p-4 rounded-lg border border-white/10">
@@ -983,8 +991,8 @@ export default function MarketplaceAdminPage() {
             >
               Cancel
             </Button>
-            <Button className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30">
-              <Check className="w-4 h-4 mr-1" />
+<Button onClick={handleVerifySeller} disabled={submitting} className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30">
+              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
               Verify Seller
             </Button>
           </DialogFooter>
@@ -1085,8 +1093,8 @@ export default function MarketplaceAdminPage() {
             >
               Cancel
             </Button>
-            <Button className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30">
-              <Check className="w-4 h-4 mr-1" />
+<Button onClick={handleResolveDispute} disabled={submitting} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30">
+              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
               Resolve Dispute
             </Button>
           </DialogFooter>

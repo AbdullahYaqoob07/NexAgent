@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-empty-object-type */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import apiClient from "@/lib/api/client";
+import auditAdminService, { AuditLog, SecurityEvent } from "@/lib/api/audit-admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -116,37 +118,6 @@ interface ComplianceReportsApiResponse {
   total: number;
 }
 
-interface AuditLog {
-  id: string;
-  eventType: string;
-  severity: "info" | "warning" | "error" | "critical";
-  userId?: string;
-  userName?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  resourceType?: string;
-  resourceId?: string;
-  resourceName?: string;
-  action: string;
-  description: string;
-  metadata: Record<string, any>;
-  changes: Record<string, any>;
-  status: string;
-  timestamp: string;
-}
-
-interface SecurityEvent {
-  id: string;
-  eventType: string;
-  severity: "info" | "warning" | "error" | "critical";
-  userId?: string;
-  ipAddress: string;
-  description: string;
-  threatLevel: number;
-  mitigationAction?: string;
-  resolved: boolean;
-  timestamp: string;
-}
 
 interface AuditStatistics {
   success: boolean;
@@ -187,57 +158,41 @@ export default function AuditPage() {
 
   const fetchAuditData = async () => {
     try {
-      const [logsRes, securityRes, statsRes, alertsRes, compStatsRes, reportsRes] =
-        await Promise.all([
-          apiClient.get<AuditLogApiResponse>("/api/v1/audit/logs", {
-            params: {
-              page: currentPage,
-              pageSize,
-              searchQuery: searchQuery || undefined,
-              severity: severityFilter !== "all" ? severityFilter : undefined,
-              eventType: eventTypeFilter !== "all" ? eventTypeFilter : undefined,
-            },
-          }),
-          apiClient.get<SecurityLogsApiResponse>("/api/v1/audit/security/events", {
-            params: {
-              page: 1,
-              pageSize: 20,
-              resolved: false,
-            },
-          }),
-          apiClient.get<AuditStatisticsApiResponse>(
-            "/api/v1/audit/logs/statistics/summary",
-          ),
-          apiClient.get<ComplianceAlertsApiResponse>(
-            "/api/v1/audit/compliance/alerts",
-            { params: { limit: 50 } },
-          ),
-          apiClient.get<ComplianceStatisticsApiResponse>(
-            "/api/v1/audit/compliance/statistics",
-          ),
-          apiClient.get<ComplianceReportsApiResponse>(
-            "/api/v1/audit/compliance/reports",
-            { params: { limit: 4 } },
-          ),
-        ]);
+      const [logsRes, securityRes, statsRes] = await Promise.all([
+        auditAdminService.getAuditLogs({
+          page: currentPage,
+          pageSize,
+          ...(searchQuery && {}),
+          ...(severityFilter !== "all" && { severity: severityFilter }),
+        }),
+        auditAdminService.getSecurityEvents({
+          page: 1,
+          pageSize: 20,
+          resolved: false,
+        }),
+        auditAdminService.getAuditLogSummary("30d"),
+      ]);
 
-      setAuditLogs(logsRes.data.logs || []);
-      setSecurityEvents(securityRes.data.logs || []);
-      setStatistics(statsRes.data || null);
+      setAuditLogs(logsRes?.logs || []);
+      setSecurityEvents(securityRes?.events || []);
+      const summaryData = statsRes?.summary || null;
+      if (summaryData) {
+        setStatistics({
+          success: true,
+          totalEvents: summaryData.totalLogs || 0,
+          eventsByType: {},
+          eventsBySeverity: {},
+          eventsByUser: [],
+          successRate: summaryData.totalLogs > 0 ? ((summaryData.totalLogs - summaryData.failedActions) / summaryData.totalLogs) * 100 : 0,
+          failureRate: summaryData.totalLogs > 0 ? (summaryData.failedActions / summaryData.totalLogs) * 100 : 0,
+          topActions: summaryData.topActions || [],
+          period: "30d",
+        });
+      }
 
-      setComplianceAlerts(
-        (alertsRes.data.alerts || []).map((a) => ({
-          id: a.id,
-          type: `${a.standard.toUpperCase()} • ${a.alertType}`,
-          severity: a.severity,
-          message: a.description || a.title,
-          timestamp: a.createdAt,
-          resolved: a.acknowledged,
-        })),
-      );
-
-      setComplianceStats(compStatsRes.data || null);
-      setComplianceReports(reportsRes.data.reports || []);
+      setComplianceAlerts([]);
+      setComplianceStats(null);
+      setComplianceReports([]);
       setLastRefresh(new Date());
     } catch (error) {
       console.error("❌ Audit API Error:", error);
@@ -286,12 +241,12 @@ export default function AuditPage() {
     }
   };
 
-  const getEventTypeIcon = (eventType: string) => {
-    if (eventType.includes("login")) return <User className="w-4 h-4 text-white/90" />;
-    if (eventType.includes("workflow")) return <Activity className="w-4 h-4 text-white/90" />;
-    if (eventType.includes("data")) return <Database className="w-4 h-4 text-white/90" />;
-    if (eventType.includes("security")) return <Shield className="w-4 h-4 text-white/90" />;
-    if (eventType.includes("access")) return <Lock className="w-4 h-4 text-white/90" />;
+  const getEventTypeIcon = (action: string) => {
+    if (action.includes("login")) return <User className="w-4 h-4 text-white/90" />;
+    if (action.includes("workflow")) return <Activity className="w-4 h-4 text-white/90" />;
+    if (action.includes("data")) return <Database className="w-4 h-4 text-white/90" />;
+    if (action.includes("security")) return <Shield className="w-4 h-4 text-white/90" />;
+    if (action.includes("access")) return <Lock className="w-4 h-4 text-white/90" />;
     return <FileText className="w-4 h-4 text-white/90" />;
   };
 
@@ -661,14 +616,14 @@ export default function AuditPage() {
                     <TableRow key={log.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {getEventTypeIcon(log.eventType)}
+                          {getEventTypeIcon(log.action)}
                           <div>
                             <div className="font-medium text-white/90">
-                              {log.eventType
+                              {log.action
                                 .replace("_", " ")
                                 .replace(/\b\w/g, (l) => l.toUpperCase())}
                             </div>
-                            <div className="text-sm text-white/60">{log.description}</div>
+                            <div className="text-sm text-white/60">{log.resourceType}</div>
                           </div>
                         </div>
                       </TableCell>
@@ -682,7 +637,7 @@ export default function AuditPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="text-white/90">{log.resourceName || log.resourceType || "N/A"}</div>
+                          <div className="text-white/90">{log.resourceType || "N/A"}</div>
                           {log.resourceId && (
                             <div className="text-xs text-white/50 font-mono">{log.resourceId}</div>
                           )}
@@ -702,12 +657,12 @@ export default function AuditPage() {
                           <Badge
                             variant="outline"
                             className={
-                              log.status === "success"
+                              log.success
                                 ? "border-emerald-500/30 text-emerald-400"
                                 : "border-red-500/30 text-red-400"
                             }
                           >
-                            {log.status}
+                            {log.success ? "success" : "failed"}
                           </Badge>
                         </div>
                       </TableCell>
@@ -765,7 +720,7 @@ export default function AuditPage() {
                           <div className="flex items-center gap-2">
                             <Shield className="w-4 h-4 text-red-400" />
                             <span className="text-white/90">
-                              {event.eventType
+                              {event.type
                                 .replace("_", " ")
                                 .replace(/\b\w/g, (l) => l.toUpperCase())}
                             </span>
@@ -775,16 +730,16 @@ export default function AuditPage() {
                           <div className="flex items-center gap-2">
                             <div
                               className={`w-3 h-3 rounded-full ${
-                                event.threatLevel >= 8
+                                event.severity === 'critical'
                                   ? "bg-red-500"
-                                  : event.threatLevel >= 6
+                                  : event.severity === 'high'
                                   ? "bg-orange-500"
-                                  : event.threatLevel >= 4
+                                  : event.severity === 'medium'
                                   ? "bg-yellow-500"
                                   : "bg-green-500"
                               }`}
                             />
-                            <span className="text-white/90">{event.threatLevel}/10</span>
+                            <span className="text-white/90">{event.severity}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -795,7 +750,7 @@ export default function AuditPage() {
                         </TableCell>
                         <TableCell>
                           <div className="text-white/70 text-sm">
-                            {event.mitigationAction || "No action taken"}
+                            N/A
                           </div>
                         </TableCell>
                         <TableCell>
@@ -826,7 +781,6 @@ export default function AuditPage() {
 
         <TabsContent value="compliance" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-white/5 border-white/10">
             <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
               <CardHeader>
                 <CardTitle className="text-white">Compliance Status</CardTitle>

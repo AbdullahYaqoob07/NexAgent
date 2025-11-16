@@ -125,9 +125,9 @@ const DocsSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
       
       {/* Sidebar */}
       <motion.aside
-        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 bg-black/95 backdrop-blur-xl border-r border-white/10 z-50 overflow-y-auto lg:sticky lg:block ${
+        className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-80 bg-black/95 backdrop-blur-xl border-r border-white/10 z-50 overflow-y-auto ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        } transition-transform duration-300`}
+        } transition-transform duration-300 lg:sticky lg:top-16`}
         initial={{ x: -320 }}
         animate={{ x: isOpen ? 0 : -320 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
@@ -208,13 +208,13 @@ const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-black text-white">
       <DocsNavbar />
       
-      <div className="flex">
+      <div className="flex relative">
         <DocsSidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)} 
         />
         
-        <main className="flex-1 lg:ml-80">
+        <main className="flex-1 w-full min-w-0">
           {/* Mobile sidebar toggle */}
           <div className="lg:hidden">
             <Button
@@ -228,7 +228,7 @@ const DocsLayout: React.FC<DocsLayoutProps> = ({ children }) => {
           </div>
           
           {/* Content */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
             {children}
           </div>
         </main>

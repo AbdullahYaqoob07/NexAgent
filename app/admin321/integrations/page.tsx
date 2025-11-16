@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import apiClient from "@/lib/api/client";
+import integrationsAdminService, { Integration, IntegrationConnection, IntegrationCategory, IntegrationStats } from "@/lib/api/integrations-admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,62 +55,12 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-interface Integration {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  logo?: string;
-  authType: string;
-  scopes: string[];
-  isActive: boolean;
-  popularity: number;
-  requiredFields: string[];
-  tags: string[];
-  webhookSupport: boolean;
-}
-
-interface Connection {
-  id: string;
-  userId: string;
-  integrationId: string;
-  integrationName: string;
-  name: string;
-  authType: string;
-  status: "active" | "expired" | "error" | "testing";
-  metadata: Record<string, any>;
-  lastTested?: string;
-  createdAt: string;
-  updatedAt: string;
-  hasCredentials: boolean;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  icon?: string;
-  integrationCount: number;
-}
-
-interface ConnectionStats {
-  success: boolean;
-  totalConnections: number;
-  activeConnections: number;
-  expiredConnections: number;
-  errorConnections: number;
-  byIntegration: Array<{
-    integrationName: string;
-    count: number;
-    status: string;
-  }>;
-}
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [connectionStats, setConnectionStats] = useState<ConnectionStats | null>(null);
+  const [connections, setConnections] = useState<IntegrationConnection[]>([]);
+  const [categories, setCategories] = useState<IntegrationCategory[]>([]);
+  const [connectionStats, setConnectionStats] = useState<IntegrationStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -123,159 +73,20 @@ export default function IntegrationsPage() {
   const fetchIntegrationsData = async () => {
     try {
       const [integrationsRes, connectionsRes, categoriesRes, statsRes] = await Promise.all([
-        apiClient.get("/api/v1/integrations", { params: { pageSize: 100 } }),
-        apiClient.get("/api/v1/integrations/connections"),
-        apiClient.get("/api/v1/integrations/categories/all"),
-        apiClient.get("/api/v1/integrations/connections/stats/summary"),
+        integrationsAdminService.getIntegrations(undefined, undefined, 1, 100),
+        integrationsAdminService.getConnections(),
+        integrationsAdminService.getCategories(),
+        integrationsAdminService.getConnectionStats("30d"),
       ]);
 
-      setIntegrations(typeof integrationsRes.data === 'string' ? [] : (integrationsRes.data?.integrations || []));
-      setConnections(typeof connectionsRes.data === 'string' ? [] : (connectionsRes.data?.connections || []));
-      setCategories(typeof categoriesRes.data === 'string' ? [] : (categoriesRes.data?.categories || []));
-      setConnectionStats(typeof statsRes.data === 'string' ? null : statsRes.data);
+      setIntegrations(integrationsRes?.integrations || []);
+      setConnections(connectionsRes?.connections || []);
+      setCategories(categoriesRes?.categories || []);
+      setConnectionStats(statsRes?.stats || null);
       
       setLastRefresh(new Date());
     } catch (error) {
       console.error("❌ Integrations API Error:", error);
-      // Set fallback data for demonstration
-      setIntegrations([
-        {
-          id: "slack",
-          name: "Slack",
-          description: "Team communication and collaboration platform",
-          category: "communication",
-          logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/slack/slack-original.svg",
-          authType: "oauth2",
-          scopes: ["chat:write", "channels:read"],
-          isActive: true,
-          popularity: 95,
-          requiredFields: [],
-          tags: ["messaging", "teams"],
-          webhookSupport: true,
-        },
-        {
-          id: "github",
-          name: "GitHub",
-          description: "Code repository and version control platform",
-          category: "productivity",
-          logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg",
-          authType: "oauth2",
-          scopes: ["repo", "user"],
-          isActive: true,
-          popularity: 90,
-          requiredFields: [],
-          tags: ["git", "development"],
-          webhookSupport: true,
-        },
-        {
-          id: "google-sheets",
-          name: "Google Sheets",
-          description: "Cloud-based spreadsheet application",
-          category: "productivity",
-          logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg",
-          authType: "oauth2",
-          scopes: ["spreadsheets", "drive"],
-          isActive: true,
-          popularity: 85,
-          requiredFields: [],
-          tags: ["spreadsheets", "data"],
-          webhookSupport: false,
-        },
-        {
-          id: "stripe",
-          name: "Stripe",
-          description: "Payment processing platform",
-          category: "payments",
-          logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/stripe/stripe-original.svg",
-          authType: "api_key",
-          scopes: [],
-          isActive: true,
-          popularity: 88,
-          requiredFields: ["api_key", "webhook_secret"],
-          tags: ["payments", "billing"],
-          webhookSupport: true,
-        },
-        {
-          id: "salesforce",
-          name: "Salesforce",
-          description: "Customer relationship management platform",
-          category: "crm",
-          logo: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/salesforce/salesforce-original.svg",
-          authType: "oauth2",
-          scopes: ["api", "refresh_token"],
-          isActive: true,
-          popularity: 80,
-          requiredFields: [],
-          tags: ["crm", "sales"],
-          webhookSupport: true,
-        },
-      ]);
-
-      setConnections([
-        {
-          id: "conn_1",
-          userId: "user_123",
-          integrationId: "slack",
-          integrationName: "Slack",
-          name: "Main Slack Workspace",
-          authType: "oauth2",
-          status: "active",
-          metadata: { workspace: "acme-corp" },
-          lastTested: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          hasCredentials: true,
-        },
-        {
-          id: "conn_2",
-          userId: "user_456",
-          integrationId: "github",
-          integrationName: "GitHub",
-          name: "Development Repository",
-          authType: "oauth2",
-          status: "active",
-          metadata: { organization: "acme-dev" },
-          lastTested: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-          hasCredentials: true,
-        },
-        {
-          id: "conn_3",
-          userId: "user_789",
-          integrationId: "stripe",
-          integrationName: "Stripe",
-          name: "Payment Processing",
-          authType: "api_key",
-          status: "expired",
-          metadata: { account: "acct_test" },
-          lastTested: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          hasCredentials: true,
-        },
-      ]);
-
-      setCategories([
-        { id: "communication", name: "Communication", description: "Team chat and messaging", integrationCount: 5 },
-        { id: "productivity", name: "Productivity", description: "Tools to enhance workflow", integrationCount: 12 },
-        { id: "payments", name: "Payments", description: "Payment processing services", integrationCount: 4 },
-        { id: "crm", name: "CRM", description: "Customer relationship management", integrationCount: 3 },
-        { id: "analytics", name: "Analytics", description: "Data analysis and reporting", integrationCount: 6 },
-      ]);
-
-      setConnectionStats({
-        success: true,
-        totalConnections: 3,
-        activeConnections: 2,
-        expiredConnections: 1,
-        errorConnections: 0,
-        byIntegration: [
-          { integrationName: "Slack", count: 1, status: "active" },
-          { integrationName: "GitHub", count: 1, status: "active" },
-          { integrationName: "Stripe", count: 1, status: "expired" },
-        ],
-      });
     } finally {
       setLoading(false);
     }
@@ -287,8 +98,12 @@ export default function IntegrationsPage() {
 
   const handleTestConnection = async (connectionId: string) => {
     try {
-      const response = await apiClient.post(`/api/v1/integrations/connections/${connectionId}/test`);
-      // Update connection status based on test result
+      const result = await integrationsAdminService.testConnection(connectionId);
+      if (result?.success) {
+        alert(result.message || "Connection test successful");
+      } else {
+        alert(result?.message || "Connection test failed");
+      }
       fetchIntegrationsData();
     } catch (error) {
       console.error("Test connection error:", error);
@@ -298,7 +113,10 @@ export default function IntegrationsPage() {
   const handleDeleteConnection = async (connectionId: string) => {
     if (!confirm("Are you sure you want to delete this connection?")) return;
     try {
-      await apiClient.delete(`/api/v1/integrations/connections/${connectionId}`);
+      const result = await integrationsAdminService.deleteConnection(connectionId);
+      if (result?.success) {
+        alert(result.message || "Connection deleted");
+      }
       fetchIntegrationsData();
     } catch (error) {
       console.error("Delete connection error:", error);
@@ -360,8 +178,8 @@ export default function IntegrationsPage() {
   });
 
   const filteredConnections = connections.filter(connection => {
-    const matchesSearch = connection.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         connection.integrationName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = connection.integrationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (connection.userName && connection.userName.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === "all" || connection.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -635,8 +453,8 @@ export default function IntegrationsPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      {integration.logo ? (
-                        <img src={integration.logo} alt={integration.name} className="w-8 h-8" />
+                      {integration.icon ? (
+                        <img src={integration.icon} alt={integration.name} className="w-8 h-8" />
                       ) : (
                         getCategoryIcon(integration.category)
                       )}
@@ -651,8 +469,8 @@ export default function IntegrationsPage() {
                       {integration.webhookSupport && (
                         <Shield className="w-4 h-4 text-emerald-400" />
                       )}
-                      <Badge variant={integration.isActive ? "default" : "secondary"} className="text-xs">
-                        {integration.isActive ? "Active" : "Inactive"}
+                      <Badge variant={integration.status === 'active' ? "default" : "secondary"} className="text-xs">
+                        {integration.status === 'active' ? "Active" : "Inactive"}
                       </Badge>
                     </div>
                   </div>
@@ -669,11 +487,11 @@ export default function IntegrationsPage() {
                       <span className="text-sm text-white/70">Popularity: {integration.popularity}%</span>
                     </div>
                   </div>
-                  {integration.tags.length > 0 && (
+                  {integration.capabilities.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-4">
-                      {integration.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs border-white/20 text-white/60">
-                          {tag}
+                      {integration.capabilities.map((cap) => (
+                        <Badge key={cap} variant="outline" className="text-xs border-white/20 text-white/60">
+                          {cap}
                         </Badge>
                       ))}
                     </div>
@@ -933,7 +751,7 @@ export default function IntegrationsPage() {
                   <span className="text-blue-400 font-medium">OAuth2 Authorization</span>
                 </div>
                 <p className="text-white/70 text-sm">
-                  You'll be redirected to {selectedIntegration?.name} to authorize this connection.
+                  You&apos;ll be redirected to {selectedIntegration?.name} to authorize this connection.
                 </p>
               </div>
             )}
