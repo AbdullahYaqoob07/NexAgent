@@ -485,7 +485,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="space-y-6 w-full overflow-x-hidden">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between w-full px-0 md:px-0">
         <div>
@@ -502,7 +502,7 @@ export default function NotificationsPage() {
             variant="outline"
             size="sm"
             onClick={fetchNotificationsData}
-            className="bg-white/5 border-white/10"
+            className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
@@ -555,8 +555,8 @@ export default function NotificationsPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-max w-full">
-        <Card className="bg-white/5 border-white/10">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Notification Status</CardTitle>
           </CardHeader>
@@ -602,7 +602,7 @@ export default function NotificationsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Priority Distribution</CardTitle>
           </CardHeader>
@@ -648,7 +648,7 @@ export default function NotificationsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white/5 border-white/10">
+        <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-white">Recent Activity</CardTitle>
           </CardHeader>
@@ -671,8 +671,8 @@ export default function NotificationsPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="notifications" className="w-full space-y-6">
-        <TabsList className="bg-white/5 border-white/10 w-full inline-flex">
+      <Tabs defaultValue="notifications" className="w-full">
+        <TabsList className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
           <TabsTrigger 
             value="notifications" 
             className="text-white/70 data-[state=active]:bg-[#FF6900] data-[state=active]:text-white hover:text-white transition-colors"
@@ -698,7 +698,7 @@ export default function NotificationsPage() {
 
         <TabsContent value="notifications" className="space-y-6 w-full overflow-x-hidden">
           {/* Filters */}
-          <Card className="bg-white/5 border-white/10">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardContent className="p-6">
               <div className="flex flex-wrap gap-4 items-end w-full">
                 <div className="flex-1 min-w-[200px]">
@@ -788,7 +788,7 @@ export default function NotificationsPage() {
           </Card>
 
           {/* Notifications Table */}
-          <Card className="bg-white/5 border-white/10 overflow-hidden">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white">Notifications ({filteredNotifications.length})</CardTitle>
             </CardHeader>
@@ -896,8 +896,8 @@ export default function NotificationsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="types" className="space-y-6 w-full overflow-x-hidden">
-          <Card className="bg-white/5 border-white/10">
+        <TabsContent value="types" className="space-y-6">
+          <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
             <CardHeader>
               <CardTitle className="text-white">Notification Types Analytics</CardTitle>
             </CardHeader>
@@ -925,7 +925,7 @@ export default function NotificationsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(stats?.by_type || {}).map(([type, count]) => (
-              <Card key={type} className="bg-white/5 border-white/10">
+              <Card key={type} className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-3 text-lg">
                     {getTypeIcon(type)}
@@ -1004,12 +1004,12 @@ export default function NotificationsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-white/90">User ID</Label>
-                <Input className="bg-white/5 border-white/10 text-white" placeholder="user_123" />
+                <Input className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="user_123" />
               </div>
               <div>
                 <Label className="text-white/90">Priority</Label>
                 <Select>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1023,16 +1023,16 @@ export default function NotificationsPage() {
             </div>
             <div>
               <Label className="text-white/90">Title</Label>
-              <Input className="bg-white/5 border-white/10 text-white" placeholder="Notification title" />
+              <Input className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="Notification title" />
             </div>
             <div>
               <Label className="text-white/90">Message</Label>
-              <Textarea className="bg-white/5 border-white/10 text-white" placeholder="Notification message..." rows={4} />
+              <Textarea className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="Notification message..." rows={4} />
             </div>
             <div>
               <Label className="text-white/90">Notification Type</Label>
               <Select>
-                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                <SelectTrigger className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1187,13 +1187,13 @@ export default function NotificationsPage() {
           <div className="space-y-4">
             <div>
               <Label className="text-white/90">User IDs (comma-separated)</Label>
-              <Textarea className="bg-white/5 border-white/10 text-white" placeholder="user_1, user_2, user_3..." rows={3} />
+              <Textarea className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="user_1, user_2, user_3..." rows={3} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-white/90">Priority</Label>
                 <Select>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1207,7 +1207,7 @@ export default function NotificationsPage() {
               <div>
                 <Label className="text-white/90">Type</Label>
                 <Select>
-                  <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectTrigger className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1220,11 +1220,11 @@ export default function NotificationsPage() {
             </div>
             <div>
               <Label className="text-white/90">Title</Label>
-              <Input className="bg-white/5 border-white/10 text-white" placeholder="Bulk notification title" />
+              <Input className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="Bulk notification title" />
             </div>
             <div>
               <Label className="text-white/90">Message</Label>
-              <Textarea className="bg-white/5 border-white/10 text-white" placeholder="Bulk notification message..." rows={4} />
+              <Textarea className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl text-white" placeholder="Bulk notification message..." rows={4} />
             </div>
           </div>
           <DialogFooter>
@@ -1253,7 +1253,7 @@ function KPICard({
   color: string;
 }) {
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -1283,7 +1283,7 @@ function ChannelCard({
   deliveryRate: number;
 }) {
   return (
-    <Card className="bg-white/5 border-white/10">
+    <Card className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1307,3 +1307,4 @@ function ChannelCard({
     </Card>
   );
 }
+

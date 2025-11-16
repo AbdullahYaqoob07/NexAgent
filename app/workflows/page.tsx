@@ -116,17 +116,17 @@ export default function WorkflowsPage() {
           </Link>
         </div>
 
-        {errorMessage && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
-            <p className="text-red-400 text-sm">{errorMessage}</p>
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6">
+            <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
         {hasWorkflows ? (
           /* Show workflow cards */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {workflows.map((workflow) => (
-              <Card key={workflow.id} className="bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
+              <Card key={workflow.id} className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all rounded-2xl overflow-hidden">
                 <div className="p-6 space-y-4">
                   {/* Header */}
                   <div className="flex items-start justify-between">
@@ -169,25 +169,25 @@ export default function WorkflowsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2 pt-2 border-t border-white/5 mt-2">
                     <Link href={`/workflows/editor?id=${workflow.id}`} className="flex-1">
                       <Button 
                         variant="outline" 
-                        className="w-full bg-white/5 border-white/20 text-white hover:bg-white/10"
+                        className="w-full bg-white/5 border-white/10 text-white hover:bg-white/10"
                         size="sm"
                       >
-                        <Edit className="w-3 h-3 mr-1" />
+                        <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
                     </Link>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                      className="bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20 px-3"
                       onClick={() => handleDelete(workflow.id)}
                       disabled={deleting === workflow.id}
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -196,16 +196,16 @@ export default function WorkflowsPage() {
           </div>
         ) : (
           /* Empty state when no workflows */
-          <div className="text-center py-16">
-            <div className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Workflow className="w-10 h-10 text-white/40" />
+          <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-16 text-center">
+            <div className="w-20 h-20 bg-[#FF6900]/10 border border-[#FF6900]/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Workflow className="w-10 h-10 text-[#FF6900]" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-4">No NEXA's Created Yet</h2>
             <p className="text-white/60 text-lg mb-8 max-w-md mx-auto">
               Create your first intelligent workflow to automate tasks and streamline your business processes.
             </p>
             <Link href="/workflows/new">
-              <Button className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-8 py-3">
+              <Button className="bg-[#FF6900] hover:bg-[#FF6900]/90 text-white px-8 py-3">
                 <Plus className="w-5 h-5 mr-2" />
                 Get Started Now
               </Button>

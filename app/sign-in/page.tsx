@@ -52,20 +52,16 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const signedInUser = await signIn(email, password);
-
-      const isAdminEmail = signedInUser.email === 'admin@gmail.com';
-
-      // Ensure admin flags are set for the hard-coded admin account
-      if (isAdminEmail) {
-        try {
-          localStorage.setItem('user_is_admin', 'true');
-          localStorage.setItem('admin_redirect_url', '/admin321');
-        } catch {}
+      await signIn(email, password);
+      
+      // Check if user is admin and redirect accordingly
+      if (email === 'admin@gmail.com') {
+        console.log('🔐 Admin user detected, redirecting to admin panel');
+        router.push('/admin321');
+      } else {
+        router.push('/dashboard');
       }
-
-      const target = isAdminEmail ? '/admin321' : '/dashboard';
-      router.replace(target);
+      
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -78,18 +74,20 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const authUser = await signInWithGoogle();
-
-      const isAdminEmail = authUser.email === 'admin@gmail.com';
-      if (isAdminEmail) {
-        try {
-          localStorage.setItem('user_is_admin', 'true');
-          localStorage.setItem('admin_redirect_url', '/admin321');
-        } catch {}
-      }
-
-      const target = isAdminEmail ? '/admin321' : '/dashboard';
-      router.replace(target);
+      const result = await signInWithGoogle();
+      
+      // Check if user is admin and redirect accordingly  
+      setTimeout(() => {
+        // Get user email from Firebase after sign in
+        const userEmail = result?.user?.email;
+        if (userEmail === 'admin@gmail.com') {
+          console.log('🔐 Admin user detected, redirecting to admin panel');
+          router.push('/admin321');
+        } else {
+          router.push('/dashboard');
+        }
+      }, 200);
+      
     } catch (error: any) {
       setError(error.message);
     } finally {

@@ -102,14 +102,6 @@ export default function MarketplacePage() {
   return (
     <DashboardLayout>
       <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
-        {/* Prominent Dummy Data Warning */}
-        <div className="bg-yellow-500/10 border-2 border-yellow-500/30 rounded-xl p-6 text-center">
-          <h2 className="text-3xl font-bold text-yellow-400 mb-2">⚠️ DUMMY DATA ⚠️</h2>
-          <p className="text-yellow-300 text-lg">
-            This marketplace is showing sample data for demonstration purposes only.
-          </p>
-        </div>
-        
         {/* Marketplace Component */}
         <MarketplaceView nexas={dummyNexas} />
       </div>

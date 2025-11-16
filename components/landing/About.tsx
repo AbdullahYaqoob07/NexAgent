@@ -73,8 +73,7 @@ const AboutUs = () => {
               {/* Bottom thumbnails */}
               <div className={`${i % 2 === 0 ? 'mt-' : 'mt-6'}`}>
                 {m.thumbs.map((src, idx) => (
-                  
-                    <Image src={src} alt={`thumb-${idx}`} width={280} height={180} className="rounded-lg object-cover" />
+                    <Image key={idx} src={src} alt={`thumb-${idx}`} width={280} height={180} className="rounded-lg object-cover" />
                 ))}
               </div>
             </div>

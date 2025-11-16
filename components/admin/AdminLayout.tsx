@@ -6,32 +6,34 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LogOut, User as UserIcon, Settings as SettingsIcon } from "lucide-react";
 import {
+  Menu,
+  X,
+  ChevronRight,
   LayoutDashboard,
   BarChart3,
   LineChart,
   ShieldCheck,
   Boxes,
-  Store,
   Bell,
   FileText,
   CreditCard,
-  Workflow,
   Users,
-  Settings,
-  Menu,
-  Search,
-  ChevronRight,
-  LogOut,
 } from "lucide-react";
+import Image from "next/image";
+
+// Custom icon component for SVG icons
+const SvgIcon = ({ src, className }: { src: string; className?: string }) => (
+  <Image src={src} alt="" width={24} height={24} className={className} />
+);
 
 export type AdminNavItem = {
   name: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconSrc?: string;
 };
 
 const navItems: AdminNavItem[] = [
@@ -40,77 +42,87 @@ const navItems: AdminNavItem[] = [
   { name: "System", href: "/admin321/system", icon: LineChart },
   { name: "Audit Logs", href: "/admin321/audit", icon: ShieldCheck },
   { name: "Integrations", href: "/admin321/integrations", icon: Boxes },
-  { name: "Marketplace", href: "/admin321/marketplace", icon: Store },
+  { name: "Marketplace", href: "/admin321/marketplace", iconSrc: "/assets/dashboard/marketPlace.svg" },
   { name: "Templates", href: "/admin321/templates", icon: FileText },
   { name: "Notifications", href: "/admin321/notifications", icon: Bell },
   { name: "Billing", href: "/admin321/billing", icon: CreditCard },
-  { name: "Workflows", href: "/admin321/workflows", icon: Workflow },
+  { name: "Workflows", href: "/admin321/workflows", iconSrc: "/assets/dashboard/workflow.svg" },
   { name: "Users", href: "/admin321/users", icon: Users },
-  { name: "Settings", href: "/admin321/settings", icon: Settings },
+  { name: "Settings", href: "/admin321/settings", iconSrc: "/assets/dashboard/setting.svg" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const initials = user?.displayName
-    ? user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase()
-    : (user?.email?.[0] || "U").toUpperCase();
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      window.location.href = '/sign-in';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const getUserInitials = () => {
+    if (!user) return 'A';
+    if (user.displayName) {
+      return user.displayName.split(' ').map(n => n[0]).join('').toUpperCase();
+    }
+    return user.email?.charAt(0).toUpperCase() || 'A';
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-30 h-full w-72 bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col transform transition-transform duration-300 overflow-y-auto admin-scroll ${
-          open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
+        className={`fixed lg:fixed left-0 top-0 z-30 h-full w-64 bg-black/40 backdrop-blur-xl border-r border-white/10 flex flex-col transform transition-transform duration-300 overflow-y-auto
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        {/* Brand */}
-        <div className="p-6 flex items-center gap-3">
-          <Image
-            src="/favicon.ico"
-            alt="NexAgent logo"
-            width={40}
-            height={40}
-            className="rounded-lg"
-            priority
-          />
-          <div>
-            <h1 className="text-xl font-bold">Nex<span className="text-[#FF6900]">Agent</span></h1>
-            <p className="text-xs text-white/50">Admin Console</p>
-          </div>
+        {/* Logo */}
+        <div className="p-6">
+          <Link href="/admin321" className="flex items-center gap-3 group">
+            <Image 
+              src="/assets/logo/Logo.svg" 
+              alt="NexAgent Logo" 
+              width={122} 
+              height={26}
+              className="transition-transform duration-300 group-hover:scale-105"
+            />
+          </Link>
+          <p className="text-xs text-white/50 mt-2 font-montserrat">Admin Console</p>
         </div>
 
-        {/* Search */}
-        <div className="px-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
-            <Input placeholder="Search..." className="pl-9 bg-white/5 border-white/10 text-white placeholder:text-white/40" />
-          </div>
-        </div>
-
-        <Separator className="my-4 bg-white/10" />
-
-        {/* Nav */}
-        <nav className="px-3 pb-4">
-          <ul className="space-y-1">
+        {/* Navigation */}
+        <nav className="flex-1 px-4 py-4">
+          <ul className="space-y-2">
             {navItems.map((item) => {
+              const isActive = pathname === item.href;
               const Icon = item.icon;
-              const active = pathname === item.href;
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                      active
-                        ? "bg-gradient-to-r from-[#FF6900]/20 to-[#FF8555]/20 border border-[#FF6900]/30 text-[#FF6900]"
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
+                      isActive
+                        ? "bg-gradient-to-r from-[#FF6900] to-[#C22C00] text-white"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     }`}
                   >
-                    <Icon className={`w-5 h-5 ${active ? "text-[#FF6900]" : ""}`} />
-                    <span className="font-medium">{item.name}</span>
-                    {active && <ChevronRight className="w-4 h-4 ml-auto text-[#FF6900]" />}
+                    {item.iconSrc ? (
+                      <SvgIcon
+                        src={item.iconSrc}
+                        className={`w-5 h-5 transition-all ${isActive ? '' : 'opacity-80 group-hover:opacity-100'}`}
+                      />
+                    ) : Icon ? (
+                      <Icon className={`w-5 h-5 transition-all ${isActive ? '' : 'opacity-80 group-hover:opacity-100'}`} />
+                    ) : null}
+                    <span className="font-montserrat font-medium">{item.name}</span>
+                    {isActive && (
+                      <ChevronRight className="w-4 h-4 ml-auto text-white" />
+                    )}
                   </Link>
                 </li>
               );
@@ -118,50 +130,87 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </ul>
         </nav>
 
-        <div className="mt-auto p-4 border-t border-white/10">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-9 h-9">
-              <AvatarImage src={user?.photoURL || ""} />
-              <AvatarFallback className="bg-gradient-to-br from-[#FF6900] to-[#FF8555] text-white">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.displayName || user?.email}</p>
-              <p className="text-xs text-white/50 truncate">Admin</p>
-            </div>
-            <Button
-              variant="ghost"
-              className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={async () => { try { await signOut(); window.location.href = "/sign-in" } catch {} }}
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+        {/* User Section */}
+        <div className="p-4 border-t border-white/10">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="w-full">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.photoURL || ''} />
+                  <AvatarFallback className="bg-gradient-to-br from-[#FF6900] to-[#FF8555] text-white text-xs">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-montserrat font-medium text-white">{user?.displayName || user?.email}</p>
+                  <p className="text-xs font-montserrat text-white/50">Admin Account</p>
+                </div>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-black/90 backdrop-blur-xl border-white/10" align="end">
+              <DropdownMenuLabel className="text-white">{user?.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem asChild className="text-white hover:bg-white/10">
+                <Link href="/admin321/settings" className="flex items-center gap-2">
+                  <SettingsIcon className="w-4 h-4" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem onClick={handleSignOut} className="text-red-400 hover:bg-red-400/10">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </aside>
 
-      {/* Topbar + Content */}
-      <div className="flex-1 min-h-screen md:ml-72 flex flex-col">
-        <header className="sticky top-0 z-20 bg-black/40 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center justify-between px-4 md:px-8 py-4">
-            <Button
-              variant="ghost"
-              className="md:hidden text-white hover:text-[#FF6900]"
-              onClick={() => setOpen((v) => !v)}
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-64">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-black/40 backdrop-blur-xl border-b border-white/10">
+          <div className="flex items-center justify-between px-4 lg:px-8 py-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="lg:hidden text-white hover:text-[#FF6900] transition-colors duration-300"
             >
-              <Menu className="w-6 h-6" />
-            </Button>
-            <div className="hidden md:block text-sm text-white/60">Admin Console</div>
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 text-xs text-white/50">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                Live
-              </div>
+              {isSidebarOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+
+            {/* Logo for Mobile */}
+            <Link href="/admin321" className="lg:hidden flex items-center">
+              <Image 
+                src="/assets/logo/Logo.svg" 
+                alt="NexAgent Logo" 
+                width={100} 
+                height={22}
+              />
+            </Link>
+
+            {/* Admin indicator for desktop */}
+            <div className="hidden lg:flex items-center gap-2 text-xs text-white/50">
+              <div className="w-2 h-2 rounded-full bg-[#FF6900]" />
+              Admin Mode
             </div>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+
+        {/* Page Content */}
+        <main className="flex-1 relative z-10 p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
