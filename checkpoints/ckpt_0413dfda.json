@@ -1,0 +1,71 @@
+{
+  "checkpoint_id": "ckpt_0413dfda",
+  "workflow_id": "test-simple-workflow",
+  "execution_id": "2192a9d8-e352-42be-940c-c37a18f63138",
+  "checkpoint_type": "node",
+  "current_node_id": "http_request",
+  "current_data": {
+    "delayed": true,
+    "duration_ms": 500,
+    "input": {
+      "test": "data",
+      "user_id": "123"
+    }
+  },
+  "node_logs": [
+    {
+      "node_id": "start",
+      "node_name": "Start Node",
+      "node_type": "Start",
+      "status": "success",
+      "output": {
+        "test": "data",
+        "user_id": "123"
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-13T16:38:14.288078",
+      "completed_at": "2025-12-13T16:38:14.289496",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    },
+    {
+      "node_id": "delay1",
+      "node_name": "First Delay",
+      "node_type": "Delay",
+      "status": "success",
+      "output": {
+        "delayed": true,
+        "duration_ms": 500,
+        "input": {
+          "test": "data",
+          "user_id": "123"
+        }
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-13T16:38:14.288078",
+      "completed_at": "2025-12-13T16:38:14.791893",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "start",
+    "delay1",
+    "http_request"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-13T16:38:14.792665",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "delay1",
+  "last_error": null
+}

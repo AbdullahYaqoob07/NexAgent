@@ -1,0 +1,37 @@
+{
+  "checkpoint_id": "ckpt_2047a138",
+  "workflow_id": "test-id",
+  "execution_id": "f0636fd8-a49a-4600-8946-a63302c0fbf0",
+  "checkpoint_type": "node",
+  "current_node_id": "delay",
+  "current_data": {},
+  "node_logs": [
+    {
+      "node_id": "start",
+      "node_name": "Start Node",
+      "node_type": "Start",
+      "status": "success",
+      "output": {},
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-14T07:35:37.675291",
+      "completed_at": "2025-12-14T07:35:37.681013",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "start",
+    "delay"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-14T07:35:37.681951",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "start",
+  "last_error": null
+}

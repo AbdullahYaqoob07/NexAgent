@@ -1,0 +1,202 @@
+<mxfile host="app.diagrams.net" modified="2025-11-16T18:00:00.000Z" agent="draw.io" version="24.0.0" etag="UC-12" type="device">
+  <diagram name="UC-12 Role Assignment" id="uc12">
+    <mxGraphModel dx="1434" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="760" y="40" width="40" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin Action -->
+        <mxCell id="userAction" value="User Action" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="720" y="620" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- AdminAuthentication State -->
+        <mxCell id="adminAuth" value="AdminAuthentication" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="120" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="verifyAdmin" value="Verify Admin Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="adminAuth">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkPerms" value="Check Admin Permissions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="adminAuth">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- LoadingUsers State -->
+        <mxCell id="loadingUsers" value="LoadingUsers" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="300" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="queryUsers" value="Query All Users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingUsers">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sortRecent" value="Sort by Recent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingUsers">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="paginateResults" value="Paginate Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingUsers">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- DisplayingUsers State -->
+        <mxCell id="displayingUsers" value="DisplayingUsers" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="520" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="renderList" value="Render User List" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displayingUsers">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="showCards" value="Show User Cards" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displayingUsers">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="displayRoles" value="Display Current Roles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displayingUsers">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- SearchingUser State -->
+        <mxCell id="searchingUser" value="SearchingUser" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="720" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="acceptSearch" value="Accept Search Input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="searchingUser">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="queryDB" value="Query Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="searchingUser">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="returnResults" value="Return Results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="searchingUser">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- SelectingUser State -->
+        <mxCell id="selectingUser" value="SelectingUser" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="760" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="getUserID" value="Get User ID" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="selectingUser">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="fetchDetails" value="Fetch User Details" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="selectingUser">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- RoleSelectionDialog State -->
+        <mxCell id="roleDialog" value="RoleSelectionDialog" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="960" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="openDialog" value="Open Role Dialog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="roleDialog">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="displayRoles2" value="Display Available Roles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="roleDialog">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="showCurrent" value="Show Current Role" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="roleDialog">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="displayPerms" value="Display Permissions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="roleDialog">
+          <mxGeometry x="10" y="190" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ValidatingRoleChange State -->
+        <mxCell id="validatingRole" value="ValidatingRoleChange" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1240" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="checkExists" value="Check User Exists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingRole">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkSelf" value="Check Not Self-Role" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingRole">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkValid" value="Check Role Valid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingRole">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="validatePerms" value="Validate Permissions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingRole">
+          <mxGeometry x="10" y="190" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- UpdatingDatabase State -->
+        <mxCell id="updatingDB" value="UpdatingDatabase" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1500" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="updateUser" value="Update User Document" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="updatingDB">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="setRole" value="Set New Role" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="updatingDB">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="updatePerms" value="Update Permissions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="updatingDB">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="storeDB" value="Store in Firestore" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="updatingDB">
+          <mxGeometry x="10" y="190" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- DisplaySuccess State -->
+        <mxCell id="displaySuccess" value="DisplaySuccess" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1760" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="showSuccess" value="Show Success Message" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displaySuccess">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="updateUI" value="Update UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displaySuccess">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="refreshList" value="Refresh User List" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displaySuccess">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- End Node -->
+        <mxCell id="end" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="760" y="1980" width="40" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Transitions -->
+        <mxCell id="t1" value="Admin selects user" edge="1" parent="1" source="start" target="adminAuth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Admin authenticated" edge="1" parent="1" source="adminAuth" target="loadingUsers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="Users loaded" edge="1" parent="1" source="loadingUsers" target="displayingUsers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" value="Users displayed" edge="1" parent="1" source="displayingUsers" target="userAction">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" value="Admin searches" edge="1" parent="1" source="userAction" target="searchingUser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" value="Admin selects user" edge="1" parent="1" source="userAction" target="selectingUser">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t7" value="User selected" edge="1" parent="1" source="selectingUser" target="roleDialog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t8" value="Role clicked" edge="1" parent="1" source="roleDialog" target="validatingRole">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t9" value="Database updated" edge="1" parent="1" source="validatingRole" target="updatingDB">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="1500" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="440" y="1500" />
+              <mxPoint x="640" y="1500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t10" value="Success" edge="1" parent="1" source="updatingDB" target="displaySuccess">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t11" value="Role assignment complete" edge="1" parent="1" source="displaySuccess" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t12" value="Results displayed" edge="1" parent="1" source="searchingUser" target="displayingUsers">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1160" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

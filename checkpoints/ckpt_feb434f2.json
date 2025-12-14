@@ -1,0 +1,19 @@
+{
+  "checkpoint_id": "ckpt_feb434f2",
+  "workflow_id": "test-id",
+  "execution_id": "f0636fd8-a49a-4600-8946-a63302c0fbf0",
+  "checkpoint_type": "node",
+  "current_node_id": "start",
+  "current_data": {},
+  "node_logs": [],
+  "variables": {},
+  "visited_nodes": [
+    "start"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-14T07:35:37.677319",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": null,
+  "last_error": null
+}

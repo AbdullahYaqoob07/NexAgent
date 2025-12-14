@@ -235,6 +235,31 @@ class WorkflowService:
             logger.error(f"❌ Failed to delete workflow: {str(e)}")
             return {'success': False, 'error': str(e)}
     
+    async def increment_execution_count(
+        self,
+        workflow_id: str
+    ) -> Dict[str, Any]:
+        """
+        Increment the execution count for a workflow
+        """
+        try:
+            workflow_ref = self.db.collection(self.workflows_collection).document(workflow_id)
+            
+            # Update workflow execution count and last executed time
+            workflow_ref.update({
+                'executionCount': firestore.Increment(1),
+                'lastExecutedAt': firestore.SERVER_TIMESTAMP,
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            })
+            
+            logger.info(f"✅ Execution count incremented for workflow: {workflow_id}")
+            
+            return {'success': True}
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to increment execution count: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
     async def get_public_workflows(
         self,
         page: int = 1,

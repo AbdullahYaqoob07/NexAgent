@@ -1,0 +1,244 @@
+<mxfile host="app.diagrams.net" modified="2025-11-16T18:40:00.000Z" agent="draw.io" version="24.0.0" etag="System-Class" type="device">
+  <diagram name="NexAgent Complete System Class Diagram" id="system-class">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- SERVICE LAYER PACKAGE -->
+        <mxCell id="serviceLayer" value="SERVICE LAYER - 9 Core Modules" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=32;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;swimlaneFillColor=#BBDEFB;fillColor=#BBDEFB;strokeColor=#1B5E20;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="460" height="720" as="geometry" />
+        </mxCell>
+
+        <mxCell id="FirebaseService" value="&lt;b&gt;FirebaseService&lt;/b&gt;\n- app: firebase_admin.App\n- db: firestore.Client" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="40" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="WorkflowService" value="&lt;b&gt;WorkflowService&lt;/b&gt;\n- db: firestore.Client\n- workflows_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="120" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ExecutionService" value="&lt;b&gt;ExecutionService&lt;/b&gt;\n- execution_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="200" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="AnalyticsService" value="&lt;b&gt;AnalyticsService&lt;/b&gt;\n- analytics_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="280" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="IntegrationService" value="&lt;b&gt;IntegrationService&lt;/b&gt;\n- integrations_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="360" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="BillingService" value="&lt;b&gt;BillingService&lt;/b&gt;\n- billing_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="440" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="MarketplaceService" value="&lt;b&gt;MarketplaceService&lt;/b&gt;\n- marketplace_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="520" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="AuditService" value="&lt;b&gt;AuditService&lt;/b&gt;\n- audit_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="600" width="440" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="NotificationService" value="&lt;b&gt;NotificationService&lt;/b&gt;\n- notifications_collection: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="serviceLayer">
+          <mxGeometry x="10" y="680" width="440" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- DATA MODELS PACKAGE -->
+        <mxCell id="dataModels" value="DATA MODELS - Pydantic Classes" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=32;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;swimlaneFillColor=#FCE4EC;fillColor=#FCE4EC;strokeColor=#AD1457;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="540" y="80" width="620" height="1040" as="geometry" />
+        </mxCell>
+
+        <mxCell id="User" value="&lt;b&gt;User&lt;/b&gt;\n- uid: str\n- email: str" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="40" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="Profile" value="&lt;b&gt;Profile&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="120" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Subscription" value="&lt;b&gt;Subscription&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="190" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Usage" value="&lt;b&gt;Usage&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="260" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Security" value="&lt;b&gt;Security&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="330" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Preferences" value="&lt;b&gt;Preferences&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="400" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Workspace" value="&lt;b&gt;Workspace&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="470" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="Workflow" value="&lt;b&gt;Workflow&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="40" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="Node" value="&lt;b&gt;Node&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="120" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Edge" value="&lt;b&gt;Edge&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="190" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="WorkflowExecution" value="&lt;b&gt;WorkflowExecution&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="260" width="280" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ExecutionLog" value="&lt;b&gt;ExecutionLog&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="340" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ErrorRecord" value="&lt;b&gt;ErrorRecord&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="410" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="Integration" value="&lt;b&gt;Integration&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="550" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Credential" value="&lt;b&gt;Credential&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="620" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Connection" value="&lt;b&gt;Connection&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="690" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="AnalyticsEvent" value="&lt;b&gt;AnalyticsEvent&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="480" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="WorkflowMetrics" value="&lt;b&gt;WorkflowMetrics&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="550" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="BillingRecord" value="&lt;b&gt;BillingRecord&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="760" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Invoice" value="&lt;b&gt;Invoice&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="830" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="InvoiceItem" value="&lt;b&gt;InvoiceItem&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="10" y="900" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="MarketplaceItem" value="&lt;b&gt;MarketplaceItem&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="620" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ItemMetrics" value="&lt;b&gt;ItemMetrics&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="690" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Purchase" value="&lt;b&gt;Purchase&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="760" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="AuditLog" value="&lt;b&gt;AuditLog&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="830" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Notification" value="&lt;b&gt;Notification&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C2185B;" vertex="1" parent="dataModels">
+          <mxGeometry x="320" y="900" width="280" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- UTILITIES PACKAGE -->
+        <mxCell id="utilityLayer" value="UTILITIES &amp; HELPERS" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=32;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;swimlaneFillColor=#FFF9C4;fillColor=#FFF9C4;strokeColor=#F9A825;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="840" width="460" height="280" as="geometry" />
+        </mxCell>
+
+        <mxCell id="EncryptionService" value="&lt;b&gt;EncryptionService&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F9A825;" vertex="1" parent="utilityLayer">
+          <mxGeometry x="10" y="40" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ValidationService" value="&lt;b&gt;ValidationService&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F9A825;" vertex="1" parent="utilityLayer">
+          <mxGeometry x="10" y="110" width="440" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ErrorHandler" value="&lt;b&gt;ErrorHandler&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#F9A825;" vertex="1" parent="utilityLayer">
+          <mxGeometry x="10" y="180" width="440" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- EXTERNAL SERVICES PACKAGE -->
+        <mxCell id="externalLayer" value="EXTERNAL SERVICES" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=32;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;swimlaneFillColor=#E8F5E9;fillColor=#E8F5E9;strokeColor=#1B5E20;rounded=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="80" width="360" height="320" as="geometry" />
+        </mxCell>
+
+        <mxCell id="FirebaseAdmin" value="&lt;b&gt;FirebaseAdmin&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;" vertex="1" parent="externalLayer">
+          <mxGeometry x="10" y="40" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="StripeAPI" value="&lt;b&gt;StripeAPI&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;" vertex="1" parent="externalLayer">
+          <mxGeometry x="10" y="110" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="EmailService" value="&lt;b&gt;EmailService&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E7D32;" vertex="1" parent="externalLayer">
+          <mxGeometry x="10" y="180" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- RELATIONSHIPS (subset of key ones) -->
+        <mxCell id="r1" value="creates/manages" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="FirebaseService" target="User">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" value="manages" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="WorkflowService" target="Workflow">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" value="creates" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="ExecutionService" target="WorkflowExecution">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r4" value="tracks" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="AnalyticsService" target="AnalyticsEvent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r5" value="manages" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="IntegrationService" target="Integration">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r6" value="stores encrypted" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="IntegrationService" target="Credential">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r7" value="manages" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="BillingService" target="Subscription">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r8" value="creates" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="BillingService" target="BillingRecord">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r9" value="manages" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="MarketplaceService" target="MarketplaceItem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r10" value="creates" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="MarketplaceService" target="Purchase">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r11" value="creates" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="AuditService" target="AuditLog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r12" value="manages" style="endArrow=block;html=1;strokeColor=#0277BD;" edge="1" parent="1" source="NotificationService" target="Notification">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Service to External -->
+        <mxCell id="r13" value="uses" style="endArrow=block;html=1;strokeColor=#388E3C;dashed=1;" edge="1" parent="1" source="FirebaseService" target="FirebaseAdmin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r14" value="integrates" style="endArrow=block;html=1;strokeColor=#388E3C;dashed=1;" edge="1" parent="1" source="BillingService" target="StripeAPI">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r15" value="depends on" style="endArrow=block;html=1;strokeColor=#388E3C;dashed=1;" edge="1" parent="1" source="NotificationService" target="EmailService">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Model to Utility -->
+        <mxCell id="r16" value="uses" style="endArrow=open;html=1;strokeColor=#F9A825;dashed=1;" edge="1" parent="1" source="Credential" target="EncryptionService">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r17" value="uses" style="endArrow=open;html=1;strokeColor=#F9A825;dashed=1;" edge="1" parent="1" source="User" target="ValidationService">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r18" value="uses" style="endArrow=open;html=1;strokeColor=#F9A825;dashed=1;" edge="1" parent="1" source="Workflow" target="ValidationService">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Compositions (simplified) -->
+        <mxCell id="r19" value="contains" style="endArrow=diamondThin;html=1;strokeColor=#C2185B;" edge="1" parent="1" source="User" target="Profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r20" value="contains" style="endArrow=diamondThin;html=1;strokeColor=#C2185B;" edge="1" parent="1" source="User" target="Subscription">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r21" value="contains *" style="endArrow=diamondThin;html=1;strokeColor=#C2185B;" edge="1" parent="1" source="Workflow" target="Node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r22" value="contains *" style="endArrow=diamondThin;html=1;strokeColor=#C2185B;" edge="1" parent="1" source="Workflow" target="Edge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r23" value="contains *" style="endArrow=diamondThin;html=1;strokeColor=#C2185B;" edge="1" parent="1" source="Invoice" target="InvoiceItem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r24" value="contains" style="endArrow=diamondThin;html=1;strokeColor=#C2185B;" edge="1" parent="1" source="MarketplaceItem" target="ItemMetrics">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,198 @@
+<mxfile host="app.diagrams.net" modified="2025-11-16T18:00:00.000Z" agent="draw.io" version="24.0.0" etag="UC-13" type="device">
+  <diagram name="UC-13 Marketplace Management" id="uc13">
+    <mxGraphModel dx="1434" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="860" y="40" width="40" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- AdminAuthentication State -->
+        <mxCell id="adminAuth" value="AdminAuthentication" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="120" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="verifyAdmin" value="Verify Admin Token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="adminAuth">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkMarket" value="Check Marketplace Permissions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="adminAuth">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- LoadingDashboard State -->
+        <mxCell id="loadingDash" value="LoadingDashboard" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="300" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="fetchData" value="Fetch Dashboard Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingDash">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="getPending" value="Get Pending Items" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingDash">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="getDisputes" value="Get Disputes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingDash">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="calcMetrics" value="Calculate Metrics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="loadingDash">
+          <mxGeometry x="10" y="190" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- DisplayingDashboard State -->
+        <mxCell id="displayDash" value="DisplayingDashboard" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="560" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="renderDash" value="Render Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displayDash">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="showQueue" value="Show Submissions Queue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displayDash">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="displayMetrics" value="Display Metrics" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="displayDash">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Admin Action Choice -->
+        <mxCell id="adminAction" value="Admin Action" style="ellipse;whiteSpace=wrap;html=1;fillColor=#87CEEB;strokeColor=#000000;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="820" y="780" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- ReviewingContent State -->
+        <mxCell id="reviewContent" value="ReviewingContent" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="900" width="280" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="checkComp" value="Check Compliance" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="reviewContent">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="scanMalware" value="Scan for Malware" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="reviewContent">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="verifyDesc" value="Verify Description" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="reviewContent">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkPrice" value="Check Pricing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="reviewContent">
+          <mxGeometry x="10" y="190" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ApprovingItem State -->
+        <mxCell id="approveItem" value="ApprovingItem" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="1180" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="markApproved" value="Mark as Approved" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="approveItem">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="publish" value="Publish to Marketplace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="approveItem">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="setActive" value="Set Active Status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="approveItem">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- MonitoringTransactions State -->
+        <mxCell id="monitorTrans" value="MonitoringTransactions" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="900" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="viewSales" value="View Sales Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="monitorTrans">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- FraudDetection State -->
+        <mxCell id="fraudDetect" value="FraudDetection" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="740" y="1040" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="checkRefund" value="Check Refund Patterns" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="fraudDetect">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkChargebacks" value="Check Chargebacks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="fraudDetect">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="identifySuspicious" value="Identify Suspicious" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="fraudDetect">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ManagingSellers State -->
+        <mxCell id="manageSellers" value="ManagingSellers" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="900" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="viewSellers" value="View Seller List" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="manageSellers">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- VerifyingSellers State -->
+        <mxCell id="verifySellers" value="VerifyingSellers" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="1040" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="selectSeller" value="Select Seller" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="verifySellers">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="loadKYC" value="Load KYC Docs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="verifySellers">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="reviewDocs" value="Review Documents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="verifySellers">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- End Node -->
+        <mxCell id="end" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1400" width="40" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Transitions -->
+        <mxCell id="t1" value="" edge="1" parent="1" source="start" target="adminAuth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Authenticated" edge="1" parent="1" source="adminAuth" target="loadingDash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="Dashboard loaded" edge="1" parent="1" source="loadingDash" target="displayDash">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" value="Dashboard displayed" edge="1" parent="1" source="displayDash" target="adminAction">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" value="Admin reviews item" edge="1" parent="1" source="adminAction" target="reviewContent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" value="Admin monitors sales" edge="1" parent="1" source="adminAction" target="monitorTrans">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t7" value="Admin manages sellers" edge="1" parent="1" source="adminAction" target="manageSellers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t8" value="Compliance passed" edge="1" parent="1" source="reviewContent" target="approveItem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t9" value="Sales data displayed" edge="1" parent="1" source="monitorTrans" target="fraudDetect">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t10" value="Sellers displayed" edge="1" parent="1" source="manageSellers" target="verifySellers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t11" value="Approved" edge="1" parent="1" source="approveItem" target="displayDash">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="1270" />
+              <mxPoint x="100" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t12" value="No issues" edge="1" parent="1" source="fraudDetect" target="displayDash">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="1130" />
+              <mxPoint x="1100" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t13" value="Seller approved" edge="1" parent="1" source="verifySellers" target="displayDash">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1600" y="1130" />
+              <mxPoint x="1600" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

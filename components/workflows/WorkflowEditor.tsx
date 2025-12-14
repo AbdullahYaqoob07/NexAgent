@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { WorkflowToolbar } from "./WorkflowToolbar";
 import { WorkflowSidebar } from "./WorkflowSidebar";
@@ -11,7 +11,7 @@ import ExecutionModal from "./ExecutionModal";
 import { Workflow } from "@/lib/workflow/types";
 import { workflowManager } from "@/lib/workflow/WorkflowManager";
 import { getNodeMapping, convertCanvasNodeToWorkflowNode } from "@/lib/workflow/utils/NodeMapping";
-
+import { Terminal, X } from "lucide-react";
 interface WorkflowEditorProps {
   workflowId?: string;
 }
@@ -36,6 +36,48 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<string[]>([]);
   const [toasts, setToasts] = useState<{ id: string; message: string; type?: 'info' | 'error' }[]>([]);
+  const [showOutputTerminal, setShowOutputTerminal] = useState(false);
+  const [executionOutput, setExecutionOutput] = useState<string[]>([]);
+  const [terminalHeight, setTerminalHeight] = useState(256); // Default height: 256px
+  const [isDragging, setIsDragging] = useState(false);
+  const terminalRef = useRef<HTMLDivElement>(null);
+  
+  // Draggable terminal handlers
+  const startDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDrag = useCallback((e: MouseEvent) => {
+    if (!isDragging || !terminalRef.current) return;
+    
+    // Calculate new height based on mouse position
+    const containerRect = terminalRef.current.getBoundingClientRect();
+    const newHeight = containerRect.bottom - e.clientY;
+    
+    // Limit height between 100px and 500px
+    if (newHeight >= 100 && newHeight <= 500) {
+      setTerminalHeight(newHeight);
+    }
+  }, [isDragging]);
+
+  const stopDrag = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Add event listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', onDrag);
+      window.addEventListener('mouseup', stopDrag);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', stopDrag);
+    };
+  }, [isDragging, onDrag, stopDrag]);
+
   const addToast = (message: string, type: 'info' | 'error' = 'error') => {
     const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     setToasts(prev => [...prev, { id, message, type }]);
@@ -129,6 +171,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
     setIsExecuting(true);
     setExecutionError(null);
+    setExecutionOutput([]); // Clear previous output
+    setShowOutputTerminal(true); // Show terminal on execute
 
     try {
       // Get workflow data from canvas
@@ -241,7 +285,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
       // Clear any previous errors
       setErrorNodeIds([]);
-      
+
       if (!workflowData || workflowData.nodes.length === 0) {
         setExecutionError('No workflow nodes found. Please add some nodes to execute.');
         return;
@@ -308,6 +352,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       // Execute workflow using the engine directly
       console.log('Executing workflow with engine:', workflow);
       
+      // Add execution start message to output
+      setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Starting workflow execution...`]);
+      
       // Pre-activate first node to ensure visible feedback immediately
       try { setActiveNodeId(workflow.nodes[0]?.id || null); } catch {}
       
@@ -321,19 +368,34 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           onStepStart: (log) => {
             setActiveNodeId(log.nodeId || null);
             try { canvasRef.current?.setExecutingNode(log.nodeId || null); } catch {}
+            // Add step start message to output
+            if (log.nodeId) {
+              const node = workflowNodes.find(n => n.id === log.nodeId);
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Executing node: ${node?.name || log.nodeId}`]);
+            }
           },
-          onStepComplete: () => {
+          onStepComplete: (log) => {
             setActiveNodeId(null);
             try { canvasRef.current?.setExecutingNode(null); } catch {}
+            // Add step complete message to output
+            if (log?.nodeId) {
+              const node = workflowNodes.find(n => n.id === log.nodeId);
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Completed node: ${node?.name || log.nodeId}`]);
+            }
           },
-          onStepFail: () => {
+          onStepFail: (log) => {
             setActiveNodeId(null);
             try { canvasRef.current?.setExecutingNode(null); } catch {}
+            // Add error message to output
+            setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ERROR: ${log?.error || 'Unknown error'}`]);
           }
         }
       );
 
       console.log('Workflow execution completed:', execution);
+      
+      // Add completion message to output
+      setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow execution completed successfully.`]);
       
       // Save the workflow
       await workflowManager.saveWorkflow(workflow);
@@ -346,6 +408,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     } catch (error) {
       console.error('Workflow execution error:', error);
       setExecutionError(error instanceof Error ? error.message : 'Unknown error occurred');
+      // Add error message to output
+      setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] FATAL ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`]);
     } finally {
       setIsExecuting(false);
     }
@@ -376,7 +440,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         />
         
         {/* Canvas */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative flex flex-col">
           {/* Tabs bar on top-left over canvas */}
           <div className="absolute top-3 left-4 z-30 bg-black/60 backdrop-blur-sm border border-zinc-800 rounded-xl overflow-hidden flex">
             <button
@@ -401,18 +465,88 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             <LayoutChooser onChoose={(layout) => canvasRef.current?.applyLayout(layout)} />
           </div>
 
-          {/* Main canvas always visible */}
-          <WorkflowCanvas
-            ref={canvasRef}
-            selectedNode={selectedNode}
-            onNodeSelect={setSelectedNode}
-            onOpenTriggers={() => sidebarRef.current?.openTriggersWithBlink()}
-            onNodeCountChange={setCanvasNodeCount}
-            executingNodeId={activeNodeId}
-            errorNodeIds={errorNodeIds}
-          />
-        </div>
-      </div>
+          {/* Main canvas area */}
+          <div className="flex-1 relative">
+            <WorkflowCanvas
+              ref={canvasRef}
+              selectedNode={selectedNode}
+              onNodeSelect={setSelectedNode}
+              onOpenTriggers={() => sidebarRef.current?.openTriggersWithBlink()}
+              onNodeCountChange={setCanvasNodeCount}
+              executingNodeId={activeNodeId}
+              errorNodeIds={errorNodeIds}
+            />
+          </div>
+
+          {/* Output Terminal Button - fixed at bottom center */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30">
+            <button
+              onClick={() => setShowOutputTerminal(!showOutputTerminal)}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 backdrop-blur-sm border border-zinc-700 rounded-xl hover:bg-zinc-800/80 transition-all duration-200 text-white/90 hover:text-white shadow-lg"
+            >
+              <Terminal className="w-4 h-4" />
+              <span className="text-sm font-medium">Output</span>
+              {executionOutput.length > 0 && (
+                <span className="bg-[#FF6900] text-white text-xs rounded-full px-2 py-0.5">
+                  {executionOutput.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Output Terminal Panel - slides up from bottom */}
+          {showOutputTerminal && (
+            <div 
+              ref={terminalRef}
+              className="absolute bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-700 transition-all duration-300 ease-in-out"
+              style={{ maxHeight: `${terminalHeight}px` }}
+            >
+              <div 
+                className="flex items-center justify-between p-3 border-b border-zinc-700 cursor-row-resize"
+                onMouseDown={startDrag}
+              >
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-[#FF6900]" />
+                  <span className="text-sm font-medium text-white">Execution Output</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  {/* Draggable handle indicator */}
+                  <div className="flex flex-col items-center justify-center w-6 h-6 text-zinc-500 hover:text-zinc-300">
+                    <div className="w-4 h-0.5 bg-current rounded mb-0.5"></div>
+                    <div className="w-4 h-0.5 bg-current rounded"></div>
+                  </div>
+                  <button
+                    onClick={() => setExecutionOutput([])}
+                    className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => setShowOutputTerminal(false)}
+                    className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-3 overflow-y-auto font-mono text-xs bg-zinc-900" style={{ height: `${terminalHeight - 48}px` }}>
+                {executionOutput.length > 0 ? (
+                  <div className="space-y-1">
+                    {executionOutput.map((line, index) => (
+                      <div key={index} className="text-zinc-300">
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-zinc-500 italic">
+                    No output yet. Click "Execute" to run the workflow.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>      </div>
 
       {/* Right Sidebar - AI Assistant */}
       {showAssistant && (

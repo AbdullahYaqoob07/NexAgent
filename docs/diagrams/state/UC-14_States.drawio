@@ -1,0 +1,213 @@
+<mxfile host="app.diagrams.net" modified="2025-11-16T18:00:00.000Z" agent="draw.io" version="24.0.0" etag="UC-14" type="device">
+  <diagram name="UC-14 OAuth Integration" id="uc14">
+    <mxGraphModel dx="1434" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="2500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="960" y="40" width="40" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- WorkflowExecution State -->
+        <mxCell id="workflowExec" value="WorkflowExecution" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="120" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="execWf" value="Execute Workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="workflowExec">
+          <mxGeometry x="10" y="40" width="220" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- IntegrationDetected -->
+        <mxCell id="integrationDetected" value="IntegrationDetected" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="260" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="identifyNode" value="Identify Node Type" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="integrationDetected">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="getService" value="Get Service Name" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="integrationDetected">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="loadConfig" value="Load Service Config" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="integrationDetected">
+          <mxGeometry x="10" y="140" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- RetrievingCredentials -->
+        <mxCell id="retrievingCreds" value="RetrievingCredentials" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="480" width="320" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="queryCreds" value="Query Credentials DB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="retrievingCreds">
+          <mxGeometry x="10" y="40" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="filterCreds" value="Filter by User + Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="retrievingCreds">
+          <mxGeometry x="10" y="90" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkExists" value="Check Exists" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="retrievingCreds">
+          <mxGeometry x="10" y="140" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="decryptCred" value="Decrypt Credential" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="retrievingCreds">
+          <mxGeometry x="10" y="190" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- BuildingRequest -->
+        <mxCell id="buildingReq" value="BuildingRequest" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="760" width="320" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="getEndpoint" value="Get API Endpoint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="buildingReq">
+          <mxGeometry x="10" y="40" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="loadTemplate" value="Load Request Template" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="buildingReq">
+          <mxGeometry x="10" y="90" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mapParams" value="Map Parameters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="buildingReq">
+          <mxGeometry x="10" y="140" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="formatHeaders" value="Format Headers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="buildingReq">
+          <mxGeometry x="10" y="190" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="addAuth" value="Add Auth Header" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="buildingReq">
+          <mxGeometry x="10" y="240" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ValidatingRequest -->
+        <mxCell id="validatingReq" value="ValidatingRequest" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1060" width="320" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="checkRequired" value="Check Required Fields" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingReq">
+          <mxGeometry x="10" y="40" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="validateTypes" value="Validate Data Types" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingReq">
+          <mxGeometry x="10" y="90" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="applySchema" value="Apply Schema" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingReq">
+          <mxGeometry x="10" y="140" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sanitizeInput" value="Sanitize Input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="validatingReq">
+          <mxGeometry x="10" y="190" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- SendingRequest -->
+        <mxCell id="sendingReq" value="SendingRequest" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1360" width="320" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="prepRequest" value="Prepare HTTP Request" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="sendingReq">
+          <mxGeometry x="10" y="40" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="setTimeout" value="Set Timeout (30s)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="sendingReq">
+          <mxGeometry x="10" y="90" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sendAPI" value="Send to API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="sendingReq">
+          <mxGeometry x="10" y="140" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="waitResponse" value="Wait for Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="sendingReq">
+          <mxGeometry x="10" y="190" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ReceivingResponse -->
+        <mxCell id="receivingResp" value="ReceivingResponse" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="460" y="1620" width="320" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="captureResp" value="Capture Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="receivingResp">
+          <mxGeometry x="10" y="40" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkStatus" value="Check Status Code" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="receivingResp">
+          <mxGeometry x="10" y="90" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="checkHeaders" value="Check Headers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="receivingResp">
+          <mxGeometry x="10" y="140" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="parseBody" value="Parse Body" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="receivingResp">
+          <mxGeometry x="10" y="190" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- NormalResponse -->
+        <mxCell id="normalResp" value="NormalResponse" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1620" width="280" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="checkSuccess" value="Check Success (200-299)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="normalResp">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- SuccessResponse -->
+        <mxCell id="successResp" value="SuccessResponse" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1840" width="320" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="parseSuccess" value="Parse Success Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="successResp">
+          <mxGeometry x="10" y="40" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="transformResp" value="Transform Response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="successResp">
+          <mxGeometry x="10" y="90" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="mapVars" value="Map to Variables" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="successResp">
+          <mxGeometry x="10" y="140" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="validateSchema" value="Validate Schema" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="successResp">
+          <mxGeometry x="10" y="190" width="300" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- StoringResponse -->
+        <mxCell id="storingResp" value="StoringResponse" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="1840" width="280" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="storeContext" value="Store in Context" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="storingResp">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="updateVars" value="Update Workflow Variables" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="storingResp">
+          <mxGeometry x="10" y="90" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- ContinueExecution -->
+        <mxCell id="continueExec" value="ContinueExecution" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;swimlaneFillColor=#B0E0E6;fillColor=#B0E0E6;strokeColor=#000000;rounded=1;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="2060" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="moveNext" value="Move to Next Node" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="continueExec">
+          <mxGeometry x="10" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- End Node -->
+        <mxCell id="end" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="2200" width="40" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Transitions (main success path only for clarity) -->
+        <mxCell id="t1" value="Node encountered" edge="1" parent="1" source="workflowExec" target="integrationDetected">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Service loaded" edge="1" parent="1" source="integrationDetected" target="retrievingCreds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="Credentials valid" edge="1" parent="1" source="retrievingCreds" target="buildingReq">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="t4" value="Request built" edge="1" parent="1" source="buildingReq" target="validatingReq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" value="Request valid" edge="1" parent="1" source="validatingReq" target="sendingReq">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" value="Request sent" edge="1" parent="1" source="sendingReq" target="receivingResp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t7" value="Status received" edge="1" parent="1" source="receivingResp" target="normalResp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t8" value="Success" edge="1" parent="1" source="normalResp" target="successResp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t9" value="Response processed" edge="1" parent="1" source="successResp" target="storingResp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t10" value="Data stored" edge="1" parent="1" source="storingResp" target="continueExec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t11" value="Workflow continues" edge="1" parent="1" source="continueExec" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

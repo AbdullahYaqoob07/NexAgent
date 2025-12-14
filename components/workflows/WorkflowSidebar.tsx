@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getBrandLogo } from "@/lib/workflow/utils/BrandLogoMapping";
 import { NodeDefinition } from "@/lib/schemas/node";
+import UnifiedNodeIcon from "./../icons/UnifiedNodeIcon";
 
 interface NodeCategory {
   name: string;
@@ -313,7 +314,6 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
           target.style.opacity = '1';
         }
       }, 100);
-    }
   };
 
   return (

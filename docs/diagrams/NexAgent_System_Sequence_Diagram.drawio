@@ -1,0 +1,843 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2025-01-16T22:00:00.000Z" agent="5.0" etag="NexAgent-SSD-v1" version="24.0.0" type="device">
+  <diagram name="NexAgent System Sequence Diagram" id="nexagent-system-sequence">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3300" pageHeight="2339" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title and Description -->
+        <mxCell id="title-1" value="NexAgent System Sequence Diagram" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="subtitle-1" value="Enterprise No-Code AI Workflow Automation Platform - Complete System Interactions" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=2;fontColor=#666666;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="60" width="700" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Actor: End User -->
+        <mxCell id="actor-user" value=":EndUser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="30" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Actor: Admin User -->
+        <mxCell id="actor-admin" value=":AdminUser" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="200" y="120" width="30" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- System Boundaries and Lifelines -->
+        
+        <!-- Frontend Layer -->
+        <mxCell id="boundary-frontend" value="Frontend Layer" style="shape=umlBoundary;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-webapp" value=":WebApp&#xa;(Next.js)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="360" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- API Gateway -->
+        <mxCell id="boundary-api" value="API Gateway" style="shape=umlBoundary;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-backend" value=":BackendAPI&#xa;(FastAPI)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="530" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Auth Services -->
+        <mxCell id="control-auth" value="Authentication&#xa;Control" style="shape=ellipse;perimeter=ellipsePerimeter;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="680" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-auth" value=":AuthService" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="690" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-firebase" value=":FirebaseAuth" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="790" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-usersync" value=":UserSync&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Workflow Services -->
+        <mxCell id="control-workflow" value="Workflow&#xa;Control" style="shape=ellipse;perimeter=ellipsePerimeter;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-workflow" value=":Workflow&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-execution" value=":Execution&#xa;Engine" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Business Services -->
+        <mxCell id="control-business" value="Business&#xa;Services" style="shape=ellipse;perimeter=ellipsePerimeter;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-marketplace" value=":Marketplace&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-billing" value=":Billing&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-analytics" value=":Analytics&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1490" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-notification" value=":Notification&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1590" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Integration Services -->
+        <mxCell id="control-integration" value="Integration&#xa;Layer" style="shape=ellipse;perimeter=ellipsePerimeter;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1730" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-integration" value=":Integration&#xa;Service" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1740" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Stores -->
+        <mxCell id="entity-datastores" value="Data Stores" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1900" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-userstore" value=":UserStore&#xa;(Firestore)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1860" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-workflowstore" value=":Workflow&#xa;Store" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1960" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-execstore" value=":Execution&#xa;Store" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2060" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- External Systems -->
+        <mxCell id="boundary-external" value="External Systems" style="shape=umlBoundary;whiteSpace=wrap;html=1;fillColor=#e6e6e6;strokeColor=#333333;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2200" y="120" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-clerk" value=":Clerk" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6e6e6;strokeColor=#333333;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2160" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-meta" value=":Meta&#xa;Platforms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6e6e6;strokeColor=#333333;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2260" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="lifeline-payment" value=":Payment&#xa;Gateway" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e6e6e6;strokeColor=#333333;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2360" y="200" width="80" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Lifelines (vertical dashed lines) -->
+        <mxCell id="ll-user" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="240" as="sourcePoint" />
+            <mxPoint x="95" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-admin" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="215" y="240" as="sourcePoint" />
+            <mxPoint x="215" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-webapp" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="240" as="sourcePoint" />
+            <mxPoint x="400" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-backend" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="240" as="sourcePoint" />
+            <mxPoint x="570" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-auth" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="730" y="240" as="sourcePoint" />
+            <mxPoint x="730" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-firebase" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="830" y="240" as="sourcePoint" />
+            <mxPoint x="830" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-usersync" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="930" y="240" as="sourcePoint" />
+            <mxPoint x="930" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-workflow" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1080" y="240" as="sourcePoint" />
+            <mxPoint x="1080" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-execution" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1180" y="240" as="sourcePoint" />
+            <mxPoint x="1180" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-marketplace" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1330" y="240" as="sourcePoint" />
+            <mxPoint x="1330" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-billing" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1430" y="240" as="sourcePoint" />
+            <mxPoint x="1430" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-analytics" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1530" y="240" as="sourcePoint" />
+            <mxPoint x="1530" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-notification" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1630" y="240" as="sourcePoint" />
+            <mxPoint x="1630" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-integration" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1780" y="240" as="sourcePoint" />
+            <mxPoint x="1780" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-userstore" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1900" y="240" as="sourcePoint" />
+            <mxPoint x="1900" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-workflowstore" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2000" y="240" as="sourcePoint" />
+            <mxPoint x="2000" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-execstore" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2100" y="240" as="sourcePoint" />
+            <mxPoint x="2100" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-clerk" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2200" y="240" as="sourcePoint" />
+            <mxPoint x="2200" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-meta" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2300" y="240" as="sourcePoint" />
+            <mxPoint x="2300" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="ll-payment" value="" style="endArrow=none;dashed=1;html=1;dashPattern=5 5;strokeWidth=1;strokeColor=#999999;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2400" y="240" as="sourcePoint" />
+            <mxPoint x="2400" y="2200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- SECTION 1: Authentication & Session Flow -->
+        <mxCell id="section-auth" value="Authentication &amp; Session Management" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="240" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.1 -->
+        <mxCell id="msg-1-1" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="340" as="sourcePoint" />
+            <mxPoint x="400" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-1" value="1: signIn(email, password)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="180" y="320" width="150" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.2 -->
+        <mxCell id="msg-1-2" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="380" as="sourcePoint" />
+            <mxPoint x="830" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-2" value="2: signInWithEmailAndPassword()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="530" y="360" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.3 -->
+        <mxCell id="msg-1-3" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="830" y="420" as="sourcePoint" />
+            <mxPoint x="400" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-3" value="3: return idToken" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="400" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.4 -->
+        <mxCell id="msg-1-4" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="460" as="sourcePoint" />
+            <mxPoint x="570" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-4" value="4: POST /auth/signin {idToken}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="440" width="150" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.5 -->
+        <mxCell id="msg-1-5" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="500" as="sourcePoint" />
+            <mxPoint x="730" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-5" value="5: verifyToken(idToken)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="480" width="120" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.6 -->
+        <mxCell id="msg-1-6" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="730" y="540" as="sourcePoint" />
+            <mxPoint x="1900" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-6" value="6: getUserDocument(userId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="520" width="150" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Activation Box for Auth -->
+        <mxCell id="activation-auth-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="725" y="490" width="10" height="90" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.7 -->
+        <mxCell id="msg-1-7" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="730" y="580" as="sourcePoint" />
+            <mxPoint x="570" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-7" value="7: sessionToken + userInfo" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="590" y="560" width="140" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.8 -->
+        <mxCell id="msg-1-8" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="620" as="sourcePoint" />
+            <mxPoint x="400" y="620" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-8" value="8: {sessionToken, user}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="430" y="600" width="130" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 1.9 -->
+        <mxCell id="msg-1-9" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="660" as="sourcePoint" />
+            <mxPoint x="95" y="660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-1-9" value="9: authenticated" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="200" y="640" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- SECTION 2: User Sync from Clerk -->
+        <mxCell id="section-sync" value="User Synchronization (Clerk → Firebase)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="260" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 2.1 -->
+        <mxCell id="msg-2-1" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2200" y="760" as="sourcePoint" />
+            <mxPoint x="570" y="760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-2-1" value="10: POST /api/webhooks/clerk {user.created event}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="740" width="280" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 2.2 -->
+        <mxCell id="msg-2-2" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="800" as="sourcePoint" />
+            <mxPoint x="930" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-2-2" value="11: validateWebhook(signature, payload)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="640" y="780" width="220" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 2.3 -->
+        <mxCell id="msg-2-3" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="930" y="840" as="sourcePoint" />
+            <mxPoint x="1900" y="840" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-2-3" value="12: upsertUserDocument(userData)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="820" width="200" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Activation Box for UserSync -->
+        <mxCell id="activation-sync-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="925" y="790" width="10" height="90" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 2.4 -->
+        <mxCell id="msg-2-4" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="930" y="880" as="sourcePoint" />
+            <mxPoint x="570" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-2-4" value="13: 200 OK" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="860" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 2.5 -->
+        <mxCell id="msg-2-5" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="920" as="sourcePoint" />
+            <mxPoint x="2200" y="920" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-2-5" value="14: 200 OK" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="900" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- SECTION 3: Create Workflow -->
+        <mxCell id="section-workflow" value="Workflow Creation &amp; Management" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="960" width="240" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.1 -->
+        <mxCell id="msg-3-1" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="1020" as="sourcePoint" />
+            <mxPoint x="400" y="1020" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-1" value="15: createWorkflow(definition)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="180" y="1000" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.2 -->
+        <mxCell id="msg-3-2" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="1060" as="sourcePoint" />
+            <mxPoint x="570" y="1060" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-2" value="16: POST /api/v1/workflows {json}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="415" y="1040" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.3 -->
+        <mxCell id="msg-3-3" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1100" as="sourcePoint" />
+            <mxPoint x="730" y="1100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-3" value="17: validateAuth(token, session)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="580" y="1080" width="170" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.4 -->
+        <mxCell id="msg-3-4" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1140" as="sourcePoint" />
+            <mxPoint x="1080" y="1140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-4" value="18: createWorkflow(userId, json)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="1120" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Activation Box for WorkflowService -->
+        <mxCell id="activation-workflow-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="1130" width="10" height="130" as="geometry" />
+        </mxCell>
+        
+        <!-- Internal Call -->
+        <mxCell id="msg-3-5" value="" style="endArrow=block;html=1;strokeWidth=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1085" y="1160" as="sourcePoint" />
+            <mxPoint x="1085" y="1190" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1120" y="1160" />
+              <mxPoint x="1120" y="1190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-5" value="19: validateJSON()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="1165" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.6 -->
+        <mxCell id="msg-3-6" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1080" y="1220" as="sourcePoint" />
+            <mxPoint x="2000" y="1220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-6" value="20: saveWorkflow(workflow)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="1200" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.7 -->
+        <mxCell id="msg-3-7" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1080" y="1260" as="sourcePoint" />
+            <mxPoint x="570" y="1260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-7" value="21: workflowId" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1240" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 3.8 -->
+        <mxCell id="msg-3-8" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1300" as="sourcePoint" />
+            <mxPoint x="400" y="1300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-3-8" value="22: {workflowId, status}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="430" y="1280" width="130" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- SECTION 4: Execute Workflow -->
+        <mxCell id="section-execute" value="Workflow Execution Engine" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1340" width="200" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.1 -->
+        <mxCell id="msg-4-1" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="1400" as="sourcePoint" />
+            <mxPoint x="400" y="1400" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-1" value="23: executeWorkflow(workflowId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="170" y="1380" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.2 -->
+        <mxCell id="msg-4-2" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="1440" as="sourcePoint" />
+            <mxPoint x="570" y="1440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-2" value="24: POST /workflows/{id}/execute" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="410" y="1420" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.3 -->
+        <mxCell id="msg-4-3" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1480" as="sourcePoint" />
+            <mxPoint x="730" y="1480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-3" value="25: checkSubscription(userId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="575" y="1460" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.4 -->
+        <mxCell id="msg-4-4" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1520" as="sourcePoint" />
+            <mxPoint x="1080" y="1520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-4" value="26: getWorkflow(workflowId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="760" y="1500" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.5 -->
+        <mxCell id="msg-4-5" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1560" as="sourcePoint" />
+            <mxPoint x="1180" y="1560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-5" value="27: execute(workflow, input)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1540" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Activation Box for ExecutionEngine -->
+        <mxCell id="activation-exec-1" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1175" y="1550" width="10" height="180" as="geometry" />
+        </mxCell>
+        
+        <!-- Internal Calls for Execution -->
+        <mxCell id="msg-4-6" value="" style="endArrow=block;html=1;strokeWidth=1;curved=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1185" y="1580" as="sourcePoint" />
+            <mxPoint x="1185" y="1610" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1220" y="1580" />
+              <mxPoint x="1220" y="1610" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-6" value="28: topologicalSort()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="1585" width="110" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Loop for Node Execution -->
+        <mxCell id="loop-exec" value="loop" style="shape=umlFrame;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=1;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="1620" width="650" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="loop-exec-label" value="[for each node in executionPlan]" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="1620" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.7 -->
+        <mxCell id="msg-4-7" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1180" y="1660" as="sourcePoint" />
+            <mxPoint x="1780" y="1660" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-7" value="29: executeNode(node, context)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="1640" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.8 -->
+        <mxCell id="msg-4-8" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1180" y="1720" as="sourcePoint" />
+            <mxPoint x="2100" y="1720" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-8" value="30: saveExecutionLog(nodeResult)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1700" width="200" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.9 -->
+        <mxCell id="msg-4-9" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1180" y="1760" as="sourcePoint" />
+            <mxPoint x="1530" y="1760" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-9" value="31: recordMetrics(execution)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1280" y="1740" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.10 -->
+        <mxCell id="msg-4-10" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1180" y="1800" as="sourcePoint" />
+            <mxPoint x="570" y="1800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-10" value="32: executionResult" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1780" width="120" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 4.11 -->
+        <mxCell id="msg-4-11" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="1840" as="sourcePoint" />
+            <mxPoint x="400" y="1840" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-4-11" value="33: {executionId, status, output}" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1820" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- SECTION 5: Marketplace & Billing -->
+        <mxCell id="section-marketplace" value="Marketplace &amp; Template Purchase" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=left;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1880" width="220" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.1 -->
+        <mxCell id="msg-5-1" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="1940" as="sourcePoint" />
+            <mxPoint x="400" y="1940" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-1" value="34: browseMarketplace()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="190" y="1920" width="140" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.2 -->
+        <mxCell id="msg-5-2" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="1980" as="sourcePoint" />
+            <mxPoint x="570" y="1980" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-2" value="35: GET /marketplace/public" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="420" y="1960" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.3 -->
+        <mxCell id="msg-5-3" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="2020" as="sourcePoint" />
+            <mxPoint x="1330" y="2020" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-3" value="36: getPublicTemplates()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="2000" width="140" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Alt Frame for Purchase -->
+        <mxCell id="alt-purchase" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=1;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="2060" width="2100" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="alt-purchase-label" value="[user decides to purchase]" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="110" y="2060" width="150" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.4 -->
+        <mxCell id="msg-5-4" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="95" y="2100" as="sourcePoint" />
+            <mxPoint x="400" y="2100" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-4" value="37: purchaseTemplate(templateId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="170" y="2080" width="180" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.5 -->
+        <mxCell id="msg-5-5" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="2140" as="sourcePoint" />
+            <mxPoint x="1430" y="2140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-5" value="38: createPayment(templateId, userId)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="880" y="2120" width="200" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.6 -->
+        <mxCell id="msg-5-6" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1430" y="2180" as="sourcePoint" />
+            <mxPoint x="2400" y="2180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-6" value="39: processPayment(amount)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="2160" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Message 5.7 -->
+        <mxCell id="msg-5-7" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2400" y="2220" as="sourcePoint" />
+            <mxPoint x="1430" y="2220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="label-5-7" value="40: paymentSuccess" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1820" y="2200" width="120" height="20" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="2500" y="120" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-sync" value="" style="endArrow=block;html=1;strokeWidth=2;endFill=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2500" y="170" as="sourcePoint" />
+            <mxPoint x="2560" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-sync-label" value="Synchronous Call" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2570" y="160" width="120" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-async" value="" style="endArrow=open;html=1;strokeWidth=1;endFill=0;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2500" y="200" as="sourcePoint" />
+            <mxPoint x="2560" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-async-label" value="Return/Response" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2570" y="190" width="120" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-activation" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="2520" y="220" width="10" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-activation-label" value="Activation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2570" y="225" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-loop" value="loop" style="shape=umlFrame;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2500" y="260" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-loop-label" value="Loop/Iteration" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2570" y="265" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-alt" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=1;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="2500" y="300" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-alt-label" value="Alternative Flow" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="2570" y="305" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

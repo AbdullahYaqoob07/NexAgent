@@ -1,0 +1,424 @@
+<mxfile host="app.diagrams.net" modified="2025-11-16T18:52:30.000Z" agent="draw.io" version="24.0.0" etag="System-Class-Clean" type="device">
+  <diagram name="NexAgent System Class Diagram (Clean)" id="system-class-clean">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3200" pageHeight="2000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- SERVICE LAYER -->
+        <mxCell id="pkgService" value="SERVICE LAYER" style="shape=folder;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;recursiveResize=0;fillColor=#BBDEFB;strokeColor=#0277BD;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1120" height="520" as="geometry" />
+        </mxCell>
+
+        <!-- Service classes: 3-compartment using swimlane + text sections -->
+        <!-- FirebaseService -->
+        <mxCell id="clsFirebaseService" value="FirebaseService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="20" y="60" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsFirebaseService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="clsFirebaseService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsFirebaseService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsFirebaseService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsFirebaseService_ops" value="+ verify_token()&#xa;+ create_user()&#xa;+ get_user_by_uid()&#xa;+ update_user()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="clsFirebaseService">
+          <mxGeometry y="64" width="220" height="86" as="geometry" />
+        </mxCell>
+
+        <!-- WorkflowService -->
+        <mxCell id="clsWorkflowService" value="WorkflowService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="260" y="60" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflowService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsWorkflowService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflowService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsWorkflowService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflowService_ops" value="+ create_workflow()&#xa;+ get_user_workflows()&#xa;+ get_workflow_by_id()&#xa;+ update_workflow()&#xa;+ delete_workflow()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsWorkflowService">
+          <mxGeometry y="64" width="220" height="106" as="geometry" />
+        </mxCell>
+
+        <!-- ExecutionService -->
+        <mxCell id="clsExecutionService" value="ExecutionService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="500" y="60" width="220" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="clsExecutionService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsExecutionService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsExecutionService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsExecutionService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsExecutionService_ops" value="+ start_execution()&#xa;+ execute_workflow()&#xa;+ execute_step()&#xa;+ handle_error()&#xa;+ retry_step()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsExecutionService">
+          <mxGeometry y="64" width="220" height="126" as="geometry" />
+        </mxCell>
+
+        <!-- AnalyticsService -->
+        <mxCell id="clsAnalyticsService" value="AnalyticsService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="740" y="60" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAnalyticsService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsAnalyticsService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAnalyticsService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsAnalyticsService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAnalyticsService_ops" value="+ track_event()&#xa;+ get_workflow_metrics()&#xa;+ get_dashboard_overview()&#xa;+ generate_report()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsAnalyticsService">
+          <mxGeometry y="64" width="220" height="106" as="geometry" />
+        </mxCell>
+
+        <!-- IntegrationService -->
+        <mxCell id="clsIntegrationService" value="IntegrationService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="980" y="60" width="220" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="clsIntegrationService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsIntegrationService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsIntegrationService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsIntegrationService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsIntegrationService_ops" value="+ get_integrations()&#xa;+ create_connection()&#xa;+ test_connection()&#xa;+ store_credential()&#xa;+ retrieve_credential()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsIntegrationService">
+          <mxGeometry y="64" width="220" height="126" as="geometry" />
+        </mxCell>
+
+        <!-- BillingService row 2 -->
+        <mxCell id="clsBillingService" value="BillingService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="20" y="260" width="220" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="clsBillingService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsBillingService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsBillingService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsBillingService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsBillingService_ops" value="+ create_subscription()&#xa;+ get_subscription()&#xa;+ upgrade_plan()&#xa;+ process_payment()&#xa;+ generate_invoice()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsBillingService">
+          <mxGeometry y="64" width="220" height="126" as="geometry" />
+        </mxCell>
+
+        <!-- MarketplaceService -->
+        <mxCell id="clsMarketplaceService" value="MarketplaceService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="260" y="260" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="clsMarketplaceService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsMarketplaceService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsMarketplaceService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsMarketplaceService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsMarketplaceService_ops" value="+ list_marketplace_items()&#xa;+ search_marketplace()&#xa;+ purchase_template()&#xa;+ publish_item()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsMarketplaceService">
+          <mxGeometry y="64" width="220" height="106" as="geometry" />
+        </mxCell>
+
+        <!-- AuditService -->
+        <mxCell id="clsAuditService" value="AuditService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="500" y="260" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAuditService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsAuditService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAuditService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsAuditService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAuditService_ops" value="+ log_action()&#xa;+ get_audit_logs()&#xa;+ generate_audit_report()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsAuditService">
+          <mxGeometry y="64" width="220" height="86" as="geometry" />
+        </mxCell>
+
+        <!-- NotificationService -->
+        <mxCell id="clsNotificationService" value="NotificationService" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#0277BD;" vertex="1" parent="pkgService">
+          <mxGeometry x="740" y="260" width="220" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNotificationService_attrs" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsNotificationService">
+          <mxGeometry y="28" width="220" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNotificationService_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#0277BD;" vertex="1" parent="clsNotificationService">
+          <mxGeometry y="56" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNotificationService_ops" value="+ create_notification()&#xa;+ get_user_notifications()&#xa;+ send_email_notification()&#xa;+ send_push_notification()" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsNotificationService">
+          <mxGeometry y="64" width="220" height="106" as="geometry" />
+        </mxCell>
+
+        <!-- USER DOMAIN -->
+        <mxCell id="pkgUser" value="USER DOMAIN MODELS" style="shape=folder;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;recursiveResize=0;fillColor=#E8F5E9;strokeColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="80" width="520" height="520" as="geometry" />
+        </mxCell>
+        <!-- User -->
+        <mxCell id="clsUser" value="User" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgUser">
+          <mxGeometry x="20" y="60" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsUser_attrs" value="uid: str&#xa;email: str&#xa;displayName: str&#xa;createdAt: datetime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsUser">
+          <mxGeometry y="28" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="clsUser_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsUser">
+          <mxGeometry y="118" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsUser_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsUser">
+          <mxGeometry y="126" width="240" height="24" as="geometry" />
+        </mxCell>
+        <!-- Profile -->
+        <mxCell id="clsProfile" value="Profile" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgUser">
+          <mxGeometry x="280" y="60" width="220" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsProfile_attrs" value="firstName: str&#xa;lastName: str&#xa;company: str&#xa;timezone: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsProfile">
+          <mxGeometry y="28" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="clsProfile_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsProfile">
+          <mxGeometry y="128" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsProfile_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsProfile">
+          <mxGeometry y="136" width="220" height="24" as="geometry" />
+        </mxCell>
+        <!-- Subscription -->
+        <mxCell id="clsSubscription" value="Subscription" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgUser">
+          <mxGeometry x="20" y="240" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="clsSubscription_attrs" value="plan: str&#xa;status: str&#xa;billing_cycle: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsSubscription">
+          <mxGeometry y="28" width="240" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="clsSubscription_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsSubscription">
+          <mxGeometry y="112" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsSubscription_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsSubscription">
+          <mxGeometry y="120" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- Usage -->
+        <mxCell id="clsUsage" value="Usage" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgUser">
+          <mxGeometry x="280" y="240" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="clsUsage_attrs" value="tokensUsed: int&#xa;totalWorkflows: int&#xa;totalApiCalls: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsUsage">
+          <mxGeometry y="28" width="220" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="clsUsage_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsUsage">
+          <mxGeometry y="112" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsUsage_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsUsage">
+          <mxGeometry y="120" width="220" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- WORKFLOW DOMAIN -->
+        <mxCell id="pkgWorkflow" value="WORKFLOW DOMAIN MODELS" style="shape=folder;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;recursiveResize=0;fillColor=#E8F5E9;strokeColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="1750" y="80" width="560" height="520" as="geometry" />
+        </mxCell>
+        <!-- Workflow -->
+        <mxCell id="clsWorkflow" value="Workflow" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgWorkflow">
+          <mxGeometry x="20" y="60" width="240" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflow_attrs" value="id: str&#xa;userId: str&#xa;name: str&#xa;status: str&#xa;version: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsWorkflow">
+          <mxGeometry y="28" width="240" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflow_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsWorkflow">
+          <mxGeometry y="138" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflow_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsWorkflow">
+          <mxGeometry y="146" width="240" height="14" as="geometry" />
+        </mxCell>
+        <!-- Node -->
+        <mxCell id="clsNode" value="Node" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgWorkflow">
+          <mxGeometry x="280" y="60" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNode_attrs" value="nodeId: str&#xa;type: str&#xa;configuration: Dict" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsNode">
+          <mxGeometry y="28" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNode_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsNode">
+          <mxGeometry y="128" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNode_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsNode">
+          <mxGeometry y="136" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- Edge -->
+        <mxCell id="clsEdge" value="Edge" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgWorkflow">
+          <mxGeometry x="20" y="240" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="clsEdge_attrs" value="edgeId: str&#xa;source: str&#xa;target: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsEdge">
+          <mxGeometry y="28" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="clsEdge_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsEdge">
+          <mxGeometry y="128" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsEdge_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsEdge">
+          <mxGeometry y="136" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- WorkflowExecution -->
+        <mxCell id="clsWorkflowExecution" value="WorkflowExecution" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgWorkflow">
+          <mxGeometry x="280" y="240" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflowExecution_attrs" value="id: str&#xa;workflowId: str&#xa;status: str&#xa;startTime: datetime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsWorkflowExecution">
+          <mxGeometry y="28" width="240" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflowExecution_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsWorkflowExecution">
+          <mxGeometry y="132" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsWorkflowExecution_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsWorkflowExecution">
+          <mxGeometry y="140" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- ExecutionLog -->
+        <mxCell id="clsExecutionLog" value="ExecutionLog" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgWorkflow">
+          <mxGeometry x="20" y="400" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="clsExecutionLog_attrs" value="timestamp: datetime&#xa;nodeId: str&#xa;status: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsExecutionLog">
+          <mxGeometry y="28" width="240" height="84" as="geometry" />
+        </mxCell>
+        <mxCell id="clsExecutionLog_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsExecutionLog">
+          <mxGeometry y="112" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsExecutionLog_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsExecutionLog">
+          <mxGeometry y="120" width="240" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- INTEGRATION DOMAIN -->
+        <mxCell id="pkgIntegration" value="INTEGRATION DOMAIN MODELS" style="shape=folder;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;recursiveResize=0;fillColor=#E8F5E9;strokeColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="640" width="520" height="340" as="geometry" />
+        </mxCell>
+        <!-- Integration -->
+        <mxCell id="clsIntegration" value="Integration" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgIntegration">
+          <mxGeometry x="20" y="60" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsIntegration_attrs" value="id: str&#xa;name: str&#xa;category: str&#xa;authType: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsIntegration">
+          <mxGeometry y="28" width="240" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="clsIntegration_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsIntegration">
+          <mxGeometry y="132" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsIntegration_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsIntegration">
+          <mxGeometry y="140" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- Credential -->
+        <mxCell id="clsCredential" value="Credential" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgIntegration">
+          <mxGeometry x="280" y="60" width="220" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="clsCredential_attrs" value="id: str&#xa;userId: str&#xa;integrationId: str&#xa;encryptedValue: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsCredential">
+          <mxGeometry y="28" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="clsCredential_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsCredential">
+          <mxGeometry y="138" width="220" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsCredential_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsCredential">
+          <mxGeometry y="146" width="220" height="10" as="geometry" />
+        </mxCell>
+        <!-- Connection -->
+        <mxCell id="clsConnection" value="Connection" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgIntegration">
+          <mxGeometry x="20" y="230" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="clsConnection_attrs" value="id: str&#xa;userId: str&#xa;integrationId: str&#xa;status: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsConnection">
+          <mxGeometry y="28" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="clsConnection_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsConnection">
+          <mxGeometry y="128" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsConnection_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsConnection">
+          <mxGeometry y="136" width="240" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- BUSINESS DOMAIN -->
+        <mxCell id="pkgBusiness" value="BUSINESS DOMAIN MODELS" style="shape=folder;tabWidth=110;tabHeight=30;tabPosition=left;html=1;boundedLbl=1;labelInHeader=1;container=1;collapsible=0;recursiveResize=0;fillColor=#E8F5E9;strokeColor=#1B5E20;" vertex="1" parent="1">
+          <mxGeometry x="1750" y="640" width="560" height="540" as="geometry" />
+        </mxCell>
+        <!-- BillingRecord -->
+        <mxCell id="clsBillingRecord" value="BillingRecord" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgBusiness">
+          <mxGeometry x="20" y="60" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsBillingRecord_attrs" value="id: str&#xa;userId: str&#xa;amount: float&#xa;status: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsBillingRecord">
+          <mxGeometry y="28" width="240" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="clsBillingRecord_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsBillingRecord">
+          <mxGeometry y="132" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsBillingRecord_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsBillingRecord">
+          <mxGeometry y="140" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- Invoice -->
+        <mxCell id="clsInvoice" value="Invoice" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgBusiness">
+          <mxGeometry x="280" y="60" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsInvoice_attrs" value="id: str&#xa;userId: str&#xa;total: float&#xa;items: List" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsInvoice">
+          <mxGeometry y="28" width="240" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="clsInvoice_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsInvoice">
+          <mxGeometry y="132" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsInvoice_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsInvoice">
+          <mxGeometry y="140" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- MarketplaceItem -->
+        <mxCell id="clsMarketplaceItem" value="MarketplaceItem" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgBusiness">
+          <mxGeometry x="20" y="230" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsMarketplaceItem_attrs" value="id: str&#xa;creatorId: str&#xa;name: str&#xa;price: float" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsMarketplaceItem">
+          <mxGeometry y="28" width="240" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="clsMarketplaceItem_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsMarketplaceItem">
+          <mxGeometry y="132" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsMarketplaceItem_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsMarketplaceItem">
+          <mxGeometry y="140" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- Purchase -->
+        <mxCell id="clsPurchase" value="Purchase" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgBusiness">
+          <mxGeometry x="280" y="230" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="clsPurchase_attrs" value="id: str&#xa;userId: str&#xa;itemId: str&#xa;purchaseDate: datetime" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsPurchase">
+          <mxGeometry y="28" width="240" height="104" as="geometry" />
+        </mxCell>
+        <mxCell id="clsPurchase_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsPurchase">
+          <mxGeometry y="132" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsPurchase_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsPurchase">
+          <mxGeometry y="140" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- AuditLog -->
+        <mxCell id="clsAuditLog" value="AuditLog" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgBusiness">
+          <mxGeometry x="20" y="400" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAuditLog_attrs" value="id: str&#xa;action: str&#xa;resourceType: str&#xa;userId: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsAuditLog">
+          <mxGeometry y="28" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAuditLog_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsAuditLog">
+          <mxGeometry y="128" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsAuditLog_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsAuditLog">
+          <mxGeometry y="136" width="240" height="10" as="geometry" />
+        </mxCell>
+        <!-- Notification -->
+        <mxCell id="clsNotification" value="Notification" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=28;rounded=1;arcSize=8;horizontalStack=0;resizeParent=0;collapsible=0;fillColor=#FFFFFF;strokeColor=#1B5E20;" vertex="1" parent="pkgBusiness">
+          <mxGeometry x="280" y="400" width="240" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNotification_attrs" value="id: str&#xa;userId: str&#xa;type: str&#xa;message: str" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsNotification">
+          <mxGeometry y="28" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNotification_sep" value="" style="line;strokeWidth=1;fillColor=none;strokeColor=#1B5E20;" vertex="1" parent="clsNotification">
+          <mxGeometry y="128" width="240" height="8" as="geometry" />
+        </mxCell>
+        <mxCell id="clsNotification_ops" value="" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="clsNotification">
+          <mxGeometry y="136" width="240" height="10" as="geometry" />
+        </mxCell>
+
+        <!-- RELATIONSHIPS: Services -> Models -->
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsFirebaseService" target="clsUser"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsWorkflowService" target="clsWorkflow"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsWorkflowService" target="clsNode"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsWorkflowService" target="clsEdge"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsExecutionService" target="clsWorkflowExecution"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsExecutionService" target="clsExecutionLog"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsAnalyticsService" target="clsWorkflowExecution"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsIntegrationService" target="clsIntegration"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsIntegrationService" target="clsCredential"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsIntegrationService" target="clsConnection"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsBillingService" target="clsBillingRecord"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsBillingService" target="clsInvoice"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsMarketplaceService" target="clsMarketplaceItem"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsMarketplaceService" target="clsPurchase"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsAuditService" target="clsAuditLog"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#0277BD;endArrow=block;" edge="1" parent="1" source="clsNotificationService" target="clsNotification"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <!-- Model relationships -->
+        <mxCell id="m1" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsUser" target="clsProfile"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m2" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsUser" target="clsSubscription"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m3" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsUser" target="clsUsage"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m4" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsWorkflow" target="clsNode"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m5" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsWorkflow" target="clsEdge"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m6" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsWorkflowExecution" target="clsExecutionLog"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="m7" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#555555;endArrow=open;" edge="1" parent="1" source="clsMarketplaceItem" target="clsPurchase"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
 from app.models.workflow_models import (
     WorkflowCreateRequest,
     WorkflowUpdateRequest,
@@ -9,13 +10,29 @@ from app.models.workflow_models import (
 )
 from app.services.firebase_service import firebase_service
 from app.services.workflow_service import workflow_service
-from typing import Optional
+from typing import Optional, Any, Dict, List
 import logging
+
+# Import LangGraph orchestrator
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+
+from lib.workflow.langgraph.orchestrator import WorkflowOrchestrator
+from lib.workflow.langgraph.error_recovery import CheckpointType
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
+
+# Global orchestrator instance
+orchestrator = WorkflowOrchestrator(
+    api_keys={},  # Will be populated with actual API keys
+    enable_checkpointing=True,
+    enable_circuit_breakers=True,
+    checkpoint_storage_dir="./checkpoints"
+)
 security = HTTPBearer()
 
 
@@ -445,4 +462,79 @@ async def get_public_workflows(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get public workflows"
+        )
+
+
+class ExecuteWorkflowRequest(BaseModel):
+    input: Optional[Any] = None
+    config: Optional[Dict[str, Any]] = None
+
+
+class ExecuteWorkflowResponse(BaseModel):
+    status: str
+    summary: Optional[Dict[str, Any]] = None
+    final_output: Optional[Any] = None
+    node_logs: Optional[List[Dict[str, Any]]] = None
+    execution_time_ms: Optional[float] = None
+    error: Optional[str] = None
+    partial_results: Optional[List[Dict[str, Any]]] = None
+
+
+@router.post("/{workflow_id}/execute", response_model=ExecuteWorkflowResponse)
+async def execute_workflow(
+    workflow_id: str,
+    request: ExecuteWorkflowRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Execute a workflow using LangGraph orchestrator
+    
+    Requires authentication via Bearer token
+    User must own the workflow
+    """
+    try:
+        user_id = current_user['uid']
+        
+        # Get workflow
+        workflow = await workflow_service.get_workflow_by_id(
+            workflow_id=workflow_id,
+            user_id=user_id
+        )
+        
+        if not workflow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found or access denied"
+            )
+        
+        # Prepare workflow data for execution
+        # Convert the workflow structure to match what our orchestrator expects
+        workflow_data = {
+            "id": workflow["id"],
+            "name": workflow["name"],
+            "nodes": workflow.get("nodes", []),
+            "connections": workflow.get("edges", []),  # Assuming edges are connections
+            "config": request.config or workflow.get("config", {})
+        }
+        
+        # Execute workflow
+        logger.info(f"Executing workflow {workflow_id} for user {user_id}")
+        result = await orchestrator.execute_workflow(
+            workflow_data=workflow_data,
+            initial_input=request.input
+        )
+        
+        # Update execution count
+        await workflow_service.increment_execution_count(workflow_id)
+        
+        logger.info(f"Workflow {workflow_id} execution completed with status: {result['status']}")
+        return ExecuteWorkflowResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Execute workflow error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to execute workflow"
         )
