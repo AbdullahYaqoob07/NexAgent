@@ -1,6 +1,38 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from pydantic import model_validator
+from typing import List, Union
 import os
+import json
+
+
+def _parse_cors_origins(v: Union[str, List[str], None]) -> List[str]:
+    """Parse CORS origins from environment variable - handles both JSON and comma-separated strings"""
+    # Handle None or empty string
+    if v is None or (isinstance(v, str) and not v.strip()):
+        return ["http://localhost:3000", "https://nexagent.com"]
+    
+    if isinstance(v, str):
+        # Try to parse as JSON first (for JSON array format)
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return [str(origin).strip() for origin in parsed if origin]
+        except (json.JSONDecodeError, ValueError, TypeError):
+            # If not JSON, treat as comma-separated string
+            pass
+        
+        # If not JSON, treat as comma-separated string
+        origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        if origins:
+            return origins
+        # If empty after splitting, return default
+        return ["http://localhost:3000", "https://nexagent.com"]
+    elif isinstance(v, list):
+        # Already a list, just ensure strings
+        return [str(origin).strip() for origin in v if origin]
+    
+    # Fallback to default
+    return ["http://localhost:3000", "https://nexagent.com"]
 
 
 class Settings(BaseSettings):
@@ -45,7 +77,12 @@ class Settings(BaseSettings):
     STRIPE_WEBHOOK_SECRET: str = "whsec_example"
     
     # CORS Configuration
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "https://nexagent.com"]
+    # Can be set via environment variable as:
+    # - Comma-separated string: CORS_ORIGINS="http://localhost:3000,https://nexagent.com"
+    # - JSON array: CORS_ORIGINS='["http://localhost:3000","https://nexagent.com"]'
+    # Note: localhost:3000 is automatically added in main.py for local development
+    # Store as string to avoid JSON parsing issues, then convert in validator
+    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,https://nexagent.com"
     
     # Rate Limiting
     RATE_LIMIT_REQUESTS: int = 100
@@ -53,6 +90,20 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
+    
+    @model_validator(mode='after')
+    def parse_cors_origins(self):
+        """Convert CORS_ORIGINS from string to list after model creation"""
+        if isinstance(self.CORS_ORIGINS, str):
+            # This is a workaround - we'll store the parsed value
+            parsed = _parse_cors_origins(self.CORS_ORIGINS)
+            # Use object.__setattr__ to bypass Pydantic's immutability
+            object.__setattr__(self, 'CORS_ORIGINS', parsed)
+        elif isinstance(self.CORS_ORIGINS, list):
+            # Already a list, ensure it's properly formatted
+            parsed = _parse_cors_origins(self.CORS_ORIGINS)
+            object.__setattr__(self, 'CORS_ORIGINS', parsed)
+        return self
     
     class Config:
         env_file = ".env"

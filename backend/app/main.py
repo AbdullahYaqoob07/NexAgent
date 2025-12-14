@@ -34,9 +34,17 @@ app = FastAPI(
 )
 
 # Add CORS middleware
+# Ensure localhost:3000 is always included for local development
+cors_origins = list(settings.CORS_ORIGINS) if isinstance(settings.CORS_ORIGINS, list) else [str(settings.CORS_ORIGINS)]
+if "http://localhost:3000" not in cors_origins:
+    cors_origins.append("http://localhost:3000")
+
+# Log CORS origins for debugging
+logger.info(f"CORS allowed origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -117,6 +125,8 @@ async def startup_event():
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
     logger.info(f"API Version: {settings.API_VERSION}")
+    logger.info(f"CORS Origins from config: {settings.CORS_ORIGINS}")
+    logger.info(f"CORS Origins after processing: {cors_origins}")
 
 
 # Shutdown event
