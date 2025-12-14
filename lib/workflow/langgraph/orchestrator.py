@@ -27,6 +27,7 @@ from .error_recovery import (
     CheckpointManager, FileCheckpointStorage,
     ErrorRecoveryManager, RecoveryStrategy, CheckpointType
 )
+from .scheduler import get_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -74,9 +75,87 @@ class WorkflowOrchestrator:
     
     def _register_node_types(self):
         """Register all supported node types"""
-        # We'll register some basic node types here
-        # In a real implementation, you would register your specific node executors
-        pass
+        from .nodes import (
+            # Triggers
+            ScheduleTriggerExecutor,
+            WebhookTriggerExecutor,
+            ManualTriggerExecutor,
+            # Actions
+            HttpRequestExecutor,
+            EmailExecutor,
+            SlackExecutor,
+            DatabaseExecutor,
+            # Logic
+            IfConditionExecutor,
+            SwitchExecutor,
+            LoopExecutor,
+            MergeExecutor,
+            DelayExecutor,
+            # AI/ML
+            OpenAIExecutor,
+            TextAnalysisExecutor,
+            ImageProcessingExecutor,
+            DataTransformExecutor,
+            # Data
+            JsonParseExecutor,
+            XmlParseExecutor,
+            CsvParseExecutor,
+            DataFilterExecutor,
+        )
+        
+        # Register triggers
+        self.executor_factory.register_executor("Schedule", ScheduleTriggerExecutor)
+        self.executor_factory.register_executor("ScheduleTriggerNode", ScheduleTriggerExecutor)
+        self.executor_factory.register_executor("Webhook", WebhookTriggerExecutor)
+        self.executor_factory.register_executor("WebhookTriggerNode", WebhookTriggerExecutor)
+        self.executor_factory.register_executor("Manual Trigger", ManualTriggerExecutor)
+        self.executor_factory.register_executor("OnClickExecuteTriggerNode", ManualTriggerExecutor)
+        
+        # Register actions
+        self.executor_factory.register_executor("HTTP Request", HttpRequestExecutor)
+        self.executor_factory.register_executor("HTTP Request Action", HttpRequestExecutor)
+        self.executor_factory.register_executor("HttpNode", HttpRequestExecutor)
+        self.executor_factory.register_executor("Send Email", EmailExecutor)
+        self.executor_factory.register_executor("EmailNode", EmailExecutor)
+        self.executor_factory.register_executor("Slack Message", SlackExecutor)
+        self.executor_factory.register_executor("SlackNode", SlackExecutor)
+        self.executor_factory.register_executor("Database Query", DatabaseExecutor)
+        self.executor_factory.register_executor("DatabaseNode", DatabaseExecutor)
+        
+        # Register logic
+        self.executor_factory.register_executor("If Condition", IfConditionExecutor)
+        self.executor_factory.register_executor("IfNode", IfConditionExecutor)
+        self.executor_factory.register_executor("Switch", SwitchExecutor)
+        self.executor_factory.register_executor("SwitchNode", SwitchExecutor)
+        self.executor_factory.register_executor("Loop", LoopExecutor)
+        self.executor_factory.register_executor("LoopNode", LoopExecutor)
+        self.executor_factory.register_executor("Merge", MergeExecutor)
+        self.executor_factory.register_executor("MergeNode", MergeExecutor)
+        self.executor_factory.register_executor("Delay", DelayExecutor)
+        self.executor_factory.register_executor("DelayNode", DelayExecutor)
+        
+        # Register AI/ML
+        self.executor_factory.register_executor("OpenAI GPT", OpenAIExecutor)
+        self.executor_factory.register_executor("OpenAI", OpenAIExecutor)
+        self.executor_factory.register_executor("OpenAINode", OpenAIExecutor)
+        self.executor_factory.register_executor("Text Analysis", TextAnalysisExecutor)
+        self.executor_factory.register_executor("TextAnalysisNode", TextAnalysisExecutor)
+        self.executor_factory.register_executor("Image Processing", ImageProcessingExecutor)
+        self.executor_factory.register_executor("ImageProcessingNode", ImageProcessingExecutor)
+        self.executor_factory.register_executor("Data Transformation", DataTransformExecutor)
+        self.executor_factory.register_executor("DataTransformNode", DataTransformExecutor)
+        
+        # Register data
+        self.executor_factory.register_executor("JSON Parse", JsonParseExecutor)
+        self.executor_factory.register_executor("JsonParseNode", JsonParseExecutor)
+        self.executor_factory.register_executor("XML Parse", XmlParseExecutor)
+        self.executor_factory.register_executor("XmlParseNode", XmlParseExecutor)
+        self.executor_factory.register_executor("CSV Parse", CsvParseExecutor)
+        self.executor_factory.register_executor("CsvParseNode", CsvParseExecutor)
+        self.executor_factory.register_executor("Data Filter", DataFilterExecutor)
+        self.executor_factory.register_executor("DataFilterNode", DataFilterExecutor)
+        
+        logger.info(f"Registered {len(self.executor_factory.get_registered_types())} node types")
     
     async def execute_workflow(
         self,
@@ -102,6 +181,10 @@ class WorkflowOrchestrator:
             config=workflow_data.get("config", {}),
             api_keys=self.api_keys
         )
+        
+        # Add workflow data to global config for nodes to access (needed for Schedule node)
+        state["global_config"]["workflow_data"] = workflow_data
+        state["global_config"]["workflow_id"] = workflow_data.get("id", "unknown")
         
         # Update workflow status
         state["workflow_status"] = "running"
@@ -305,53 +388,48 @@ class WorkflowOrchestrator:
         )
         
         # Create execution context
+        # Get workflow data from state for Schedule node
+        workflow_data = state.get("global_config", {}).get("workflow_data", {})
         context = NodeExecutionContext(
             execution_id=state["execution_id"],
             variables=state["variables"],
             api_keys=state["api_keys"],
-            global_config=state["global_config"]
+            global_config={
+                **state["global_config"],
+                "workflow_data": workflow_data,
+                "workflow_id": workflow_data.get("id", "unknown")
+            }
         )
         
-        # For now, we'll simulate node execution since we haven't implemented
-        # specific node executors for each node type
-        # In a real implementation, you would use the executor factory:
-        #
-        # output, metrics = await self.executor_factory.execute_node(
-        #     config, context, input_data
-        # )
-        #
-        # For demonstration purposes, we'll just return the input data
-        # with some modifications based on node type
+        # Use executor factory to execute the node
+        try:
+            output, metrics = await self.executor_factory.execute_node(
+                config, context, input_data
+            )
+            
+            # Log execution metrics
+            logger.info(
+                f"Node {node_id} executed successfully. "
+                f"Time: {metrics.get('execution_time_ms', 0):.2f}ms"
+            )
+            
+            return output
+            
+        except ValueError as e:
+            # Configuration validation error
+            error_msg = str(e)
+            logger.error(f"Node {node_id} configuration error: {error_msg}")
+            
+            # Update state with error
+            state["errors"].append(f"Node {node_id}: {error_msg}")
+            
+            raise ValueError(f"Node '{node_id}' ({node_type}) is not properly configured. {error_msg}")
         
-        if node_type == "Delay":
-            # Simulate a delay
-            duration_ms = node_config.get("duration_ms", 1000)
-            await asyncio.sleep(duration_ms / 1000.0)
-            return {"delayed": True, "duration_ms": duration_ms, "input": input_data}
-        
-        elif node_type == "HTTP Request":
-            # Simulate an HTTP request
-            url = node_config.get("url", "")
-            method = node_config.get("method", "GET")
-            return {
-                "http_response": f"Simulated {method} request to {url}",
-                "status_code": 200,
-                "data": input_data
-            }
-        
-        elif node_type == "OpenAI":
-            # Simulate an OpenAI call
-            prompt = node_config.get("prompt", "")
-            model = node_config.get("model", "gpt-3.5-turbo")
-            return {
-                "ai_response": f"Simulated AI response for prompt: {prompt}",
-                "model": model,
-                "input": input_data
-            }
-        
-        else:
-            # Default behavior - just pass through the input
-            return input_data
+        except Exception as e:
+            # Other execution errors
+            error_msg = str(e)
+            logger.error(f"Node {node_id} execution error: {error_msg}")
+            raise
     
     def register_node_executor(
         self,

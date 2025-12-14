@@ -41,6 +41,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [terminalHeight, setTerminalHeight] = useState(256); // Default height: 256px
   const [isDragging, setIsDragging] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const [schedulerStatus, setSchedulerStatus] = useState<{scheduled: boolean; status: string | null}>({scheduled: false, status: null});
   
   // Draggable terminal handlers
   const startDrag = (e: React.MouseEvent) => {
@@ -83,6 +84,37 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   };
+
+  // Check scheduler status for this workflow
+  useEffect(() => {
+    const checkSchedulerStatus = async () => {
+      if (!currentWorkflowId) return;
+      
+      try {
+        const token = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
+        if (!token) return;
+        
+        const response = await fetch(`/api/workflows/${currentWorkflowId}/scheduler/status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSchedulerStatus({scheduled: data.scheduled, status: data.status});
+        }
+      } catch (error) {
+        // Silently fail - scheduler might not be running
+        console.log('Scheduler status check failed:', error);
+      }
+    };
+    
+    checkSchedulerStatus();
+    // Check every 5 seconds
+    const interval = setInterval(checkSchedulerStatus, 5000);
+    return () => clearInterval(interval);
+  }, [currentWorkflowId]);
 
   // Tour disabled for now
 
@@ -162,6 +194,41 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     }
   };
 
+  // Stop scheduler function
+  const stopScheduler = async () => {
+    if (!currentWorkflowId) {
+      addToast('No workflow ID found', 'error');
+      return;
+    }
+
+    try {
+      const token = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
+      if (!token) {
+        addToast('Authentication required', 'error');
+        return;
+      }
+
+      const response = await fetch(`/api/workflows/${currentWorkflowId}/scheduler/stop`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setSchedulerStatus({scheduled: false, status: null});
+        addToast('Scheduler stopped successfully', 'info');
+      } else {
+        const error = await response.json();
+        addToast(error.detail || 'Failed to stop scheduler', 'error');
+      }
+    } catch (error) {
+      addToast('Failed to stop scheduler', 'error');
+      console.error('Stop scheduler error:', error);
+    }
+  };
+
   // Execute workflow function
   const executeWorkflow = async () => {
     if (!canvasRef.current) {
@@ -177,6 +244,35 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     try {
       // Get workflow data from canvas
       const workflowData = canvasRef.current.getWorkflowData();
+      
+      // Validate workflow before execution
+      try {
+        const { validateWorkflow, formatValidationErrors } = await import('@/lib/workflow/utils/validateWorkflow');
+        const validationErrors = validateWorkflow(workflowData);
+        
+        if (validationErrors.length > 0) {
+          const errorMessage = formatValidationErrors(validationErrors);
+          setExecutionError(errorMessage);
+          
+          // Highlight error nodes
+          const errorNodeIds = validationErrors.map(e => e.nodeId).filter(id => id && id !== 'workflow');
+          setErrorNodeIds(errorNodeIds);
+          try { canvasRef.current?.setErrorNodes?.(errorNodeIds); } catch {}
+          
+          addToast('Please fix configuration errors before executing', 'error');
+          setIsExecuting(false);
+          return;
+        }
+      } catch (validationError) {
+        // If validation itself fails, show a user-friendly error
+        const errorMsg = validationError instanceof Error 
+          ? `Validation error: ${validationError.message}` 
+          : 'Failed to validate workflow. Please check that all nodes are properly configured.';
+        setExecutionError(errorMsg);
+        addToast(errorMsg, 'error');
+        setIsExecuting(false);
+        return;
+      }
 
       // Validation: ensure proper connections
       const nodesArr = workflowData.nodes;
@@ -401,6 +497,31 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       await workflowManager.saveWorkflow(workflow);
       setCurrentWorkflowId(wfId);
       
+      // Check if this is a scheduled workflow
+      const hasScheduleNode = workflow.nodes.some((n: any) => 
+        n.sidebarType === 'Schedule' || n.type === 'Schedule' || n.type === 'ScheduleTriggerNode'
+      );
+      
+      if (hasScheduleNode) {
+        // Check scheduler status after execution
+        if (currentWorkflowId) {
+          try {
+            const token = await (window as any).firebase?.auth()?.currentUser?.getIdToken();
+            if (token) {
+              const statusResponse = await fetch(`/api/workflows/${currentWorkflowId}/scheduler/status`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                setSchedulerStatus({scheduled: statusData.scheduled, status: statusData.status});
+              }
+            }
+          } catch (error) {
+            console.log('Failed to check scheduler status:', error);
+          }
+        }
+      }
+      
       // Set last execution id; remain on canvas (no navigation)
       setActiveNodeId(null);
       setLastExecutionId(execution.id);
@@ -432,7 +553,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           showAssistant={showAssistant}
           onToggleAssistant={() => setShowAssistant(!showAssistant)}
           assistantMinimized={assistantMinimized}
-          onExecute={executeWorkflow}
+          onExecute={schedulerStatus.scheduled && schedulerStatus.status === 'running' ? stopScheduler : executeWorkflow}
+          isExecuting={isExecuting || (schedulerStatus.scheduled && schedulerStatus.status === 'running')}
+          isScheduled={schedulerStatus.scheduled && schedulerStatus.status === 'running'}
           onSave={saveCurrentWorkflow}
           isExecuting={isExecuting}
           workflowName={workflowName}

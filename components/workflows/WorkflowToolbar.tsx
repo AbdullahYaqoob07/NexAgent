@@ -14,7 +14,8 @@ import {
   Bot,
   Minimize2,
   Maximize2,
-  X
+  X,
+  Square
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -28,6 +29,7 @@ interface WorkflowToolbarProps {
   isExecuting?: boolean;
   workflowName: string;
   onRenameWorkflow: (name: string) => void;
+  isScheduled?: boolean;
 }
 
 export function WorkflowToolbar({ 
@@ -38,7 +40,8 @@ export function WorkflowToolbar({
   onSave,
   isExecuting = false,
   workflowName,
-  onRenameWorkflow
+  onRenameWorkflow,
+  isScheduled = false
 }: WorkflowToolbarProps) {
   const router = useRouter();
 
@@ -139,11 +142,20 @@ export function WorkflowToolbar({
         
         <Button
           onClick={onExecute}
-          disabled={isExecuting}
+          disabled={isExecuting && !isScheduled}
           size="sm"
-          className="bg-[#FF6900] hover:bg-[#E55D00] text-white h-8 px-4 gap-2 disabled:opacity-50"
+          className={`h-8 px-4 gap-2 disabled:opacity-50 ${
+            isScheduled 
+              ? "bg-red-600 hover:bg-red-700 text-white" 
+              : "bg-[#FF6900] hover:bg-[#E55D00] text-white"
+          }`}
         >
-          {isExecuting ? (
+          {isScheduled ? (
+            <>
+              <Square className="w-4 h-4" />
+              <span className="text-sm">Stop</span>
+            </>
+          ) : isExecuting ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               <span className="text-sm">Executing...</span>

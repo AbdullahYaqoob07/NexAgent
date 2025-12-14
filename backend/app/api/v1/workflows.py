@@ -16,10 +16,18 @@ import logging
 # Import LangGraph orchestrator
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from pathlib import Path
+
+# Add project root to Python path
+# File is at: backend/app/api/v1/workflows.py
+# We need to go up 4 levels to reach project root
+backend_dir = Path(__file__).parent.parent.parent.parent
+project_root = backend_dir.parent
+sys.path.insert(0, str(project_root))
 
 from lib.workflow.langgraph.orchestrator import WorkflowOrchestrator
 from lib.workflow.langgraph.error_recovery import CheckpointType
+from lib.workflow.langgraph.scheduler import get_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -517,7 +525,69 @@ async def execute_workflow(
             "config": request.config or workflow.get("config", {})
         }
         
-        # Execute workflow
+        # Check if this workflow has a Schedule node - if so, register with scheduler
+        schedule_nodes = [n for n in workflow_data.get("nodes", []) 
+                         if n.get("type") in ["Schedule", "ScheduleTriggerNode"]]
+        
+        if schedule_nodes and len(schedule_nodes) > 0:
+            # This is a scheduled workflow - register with scheduler instead of executing immediately
+            schedule_node = schedule_nodes[0]
+            cron = schedule_node.get("config", {}).get("cron")
+            
+            if cron:
+                scheduler = get_scheduler()
+                
+                # Check if job already exists and is running
+                existing_job = scheduler.get_job_by_workflow_id(workflow_id)
+                if existing_job and existing_job.status.value == "running":
+                    # Already running, return status
+                    return ExecuteWorkflowResponse(
+                        status="scheduled",
+                        summary={
+                            "workflow_id": workflow_id,
+                            "status": "scheduled",
+                            "scheduler_job_id": existing_job.job_id,
+                            "next_run": existing_job.next_run.isoformat() if existing_job.next_run else None
+                        },
+                        final_output={"scheduler_job_id": existing_job.job_id, "status": "scheduled"},
+                        node_logs=[],
+                        execution_time_ms=0
+                    )
+                
+                # Create executor function
+                async def execute_scheduled_workflow(wf_data: Dict[str, Any], wf_input: Any):
+                    return await orchestrator.execute_workflow(wf_data, wf_input)
+                
+                # Remove existing job if any
+                if existing_job:
+                    scheduler.remove_job(existing_job.job_id)
+                
+                job_id = scheduler.register_job(
+                    workflow_id=workflow_id,
+                    workflow_data=workflow_data,
+                    cron=cron,
+                    timezone=schedule_node.get("config", {}).get("timezone", "UTC"),
+                    executor_func=execute_scheduled_workflow
+                )
+                
+                # Start the scheduler
+                await scheduler.start_scheduler(job_id)
+                
+                job = scheduler.get_job(job_id)
+                return ExecuteWorkflowResponse(
+                    status="scheduled",
+                    summary={
+                        "workflow_id": workflow_id,
+                        "status": "scheduled",
+                        "scheduler_job_id": job_id,
+                        "next_run": job.next_run.isoformat() if job and job.next_run else None
+                    },
+                    final_output={"scheduler_job_id": job_id, "status": "scheduled"},
+                    node_logs=[],
+                    execution_time_ms=0
+                )
+        
+        # Execute workflow normally (no schedule node or manual execution)
         logger.info(f"Executing workflow {workflow_id} for user {user_id}")
         result = await orchestrator.execute_workflow(
             workflow_data=workflow_data,
@@ -537,4 +607,212 @@ async def execute_workflow(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to execute workflow"
+        )
+
+
+@router.post("/{workflow_id}/scheduler/stop")
+async def stop_scheduler(
+    workflow_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Stop a scheduled workflow
+    """
+    try:
+        user_id = current_user['uid']
+        
+        # Verify workflow ownership
+        workflow = await workflow_service.get_workflow_by_id(
+            workflow_id=workflow_id,
+            user_id=user_id
+        )
+        
+        if not workflow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found or access denied"
+            )
+        
+        # Find and stop the scheduler job
+        scheduler = get_scheduler()
+        job = scheduler.get_job_by_workflow_id(workflow_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No scheduled job found for this workflow"
+            )
+        
+        await scheduler.stop_scheduler(job.job_id)
+        
+        return {
+            "success": True,
+            "message": "Scheduler stopped",
+            "job_id": job.job_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Stop scheduler error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop scheduler: {str(e)}"
+        )
+
+
+@router.get("/{workflow_id}/scheduler/status")
+async def get_scheduler_status(
+    workflow_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get scheduler status for a workflow
+    """
+    try:
+        user_id = current_user['uid']
+        
+        # Verify workflow ownership
+        workflow = await workflow_service.get_workflow_by_id(
+            workflow_id=workflow_id,
+            user_id=user_id
+        )
+        
+        if not workflow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found or access denied"
+            )
+        
+        # Get scheduler job
+        scheduler = get_scheduler()
+        job = scheduler.get_job_by_workflow_id(workflow_id)
+        
+        if not job:
+            return {
+                "scheduled": False,
+                "status": None
+            }
+        
+        return {
+            "scheduled": True,
+            "status": job.status,
+            "job_id": job.job_id,
+            "cron": job.cron,
+            "next_run": job.next_run.isoformat() if job.next_run else None,
+            "last_run": job.last_run.isoformat() if job.last_run else None,
+            "run_count": job.run_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get scheduler status error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get scheduler status: {str(e)}"
+        )
+
+
+@router.post("/{workflow_id}/scheduler/stop")
+async def stop_scheduler(
+    workflow_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Stop a scheduled workflow
+    """
+    try:
+        user_id = current_user['uid']
+        
+        # Verify workflow ownership
+        workflow = await workflow_service.get_workflow_by_id(
+            workflow_id=workflow_id,
+            user_id=user_id
+        )
+        
+        if not workflow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found or access denied"
+            )
+        
+        # Find and stop the scheduler job
+        scheduler = get_scheduler()
+        job = scheduler.get_job_by_workflow_id(workflow_id)
+        
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No scheduled job found for this workflow"
+            )
+        
+        await scheduler.stop_scheduler(job.job_id)
+        
+        return {
+            "success": True,
+            "message": "Scheduler stopped",
+            "job_id": job.job_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Stop scheduler error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to stop scheduler: {str(e)}"
+        )
+
+
+@router.get("/{workflow_id}/scheduler/status")
+async def get_scheduler_status(
+    workflow_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get scheduler status for a workflow
+    """
+    try:
+        user_id = current_user['uid']
+        
+        # Verify workflow ownership
+        workflow = await workflow_service.get_workflow_by_id(
+            workflow_id=workflow_id,
+            user_id=user_id
+        )
+        
+        if not workflow:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found or access denied"
+            )
+        
+        # Get scheduler job
+        scheduler = get_scheduler()
+        job = scheduler.get_job_by_workflow_id(workflow_id)
+        
+        if not job:
+            return {
+                "scheduled": False,
+                "status": None
+            }
+        
+        return {
+            "scheduled": True,
+            "status": job.status,
+            "job_id": job.job_id,
+            "cron": job.cron,
+            "next_run": job.next_run.isoformat() if job.next_run else None,
+            "last_run": job.last_run.isoformat() if job.last_run else None,
+            "run_count": job.run_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get scheduler status error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get scheduler status: {str(e)}"
         )

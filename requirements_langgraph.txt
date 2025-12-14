@@ -3,3 +3,7 @@ langgraph>=0.0.15
 langchain-core>=0.1.0
 langchain>=0.1.0
 asyncio-mqtt>=0.12.1
+
+# Node Executor Dependencies
+croniter>=2.0.0
+aiohttp>=3.9.0

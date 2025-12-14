@@ -2,6 +2,13 @@
 """
 Development script to run the NexAgent FastAPI backend
 """
+import sys
+from pathlib import Path
+
+# Add project root to Python path so we can import lib
+backend_dir = Path(__file__).parent
+project_root = backend_dir.parent
+sys.path.insert(0, str(project_root))
 
 import uvicorn
 from app.main import app

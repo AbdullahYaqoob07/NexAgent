@@ -276,16 +276,19 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 /**
  * Get node mapping by sidebar type (with alias support)
  */
-export function getNodeMapping(sidebarType: string): NodeTypeMapping | undefined {
+export function getNodeMapping(sidebarType: string | undefined | null): NodeTypeMapping | undefined {
+  if (!sidebarType || typeof sidebarType !== 'string') return undefined;
+  
   // First try exact match
   let mapping = NODE_TYPE_MAPPINGS.find(mapping => mapping.sidebarType === sidebarType);
   
   // If no exact match, try aliases
   if (!mapping) {
     mapping = NODE_TYPE_MAPPINGS.find(mapping => 
-      mapping.aliases?.some(alias => 
-        alias.toLowerCase() === sidebarType.toLowerCase()
-      )
+      mapping.aliases?.some(alias => {
+        if (!alias || typeof alias !== 'string') return false;
+        return alias.toLowerCase() === sidebarType.toLowerCase();
+      })
     );
   }
   
@@ -340,7 +343,11 @@ export function createNodeInstance(sidebarType: string): any | null {
 /**
  * Validate node configuration
  */
-export function validateNodeConfig(sidebarType: string, config: Record<string, any>): string[] {
+export function validateNodeConfig(sidebarType: string | undefined | null, config: Record<string, any>): string[] {
+  if (!sidebarType || typeof sidebarType !== 'string') {
+    return [`Invalid node type: ${sidebarType}`];
+  }
+  
   const mapping = getNodeMapping(sidebarType);
   if (!mapping) {
     return [`Unknown node type: ${sidebarType}`];
@@ -349,10 +356,11 @@ export function validateNodeConfig(sidebarType: string, config: Record<string, a
   try {
     const nodeInstance = new mapping.nodeClass();
     if (nodeInstance.validate) {
-      return nodeInstance.validate(config);
+      const validationErrors = nodeInstance.validate(config || {});
+      return Array.isArray(validationErrors) ? validationErrors : [];
     }
     return [];
   } catch (error) {
-    return [`Failed to validate node configuration: ${error}`];
+    return [`Failed to validate node configuration: ${error instanceof Error ? error.message : String(error)}`];
   }
 }

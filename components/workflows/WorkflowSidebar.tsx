@@ -314,6 +314,7 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
           target.style.opacity = '1';
         }
       }, 100);
+    }
   };
 
   return (
