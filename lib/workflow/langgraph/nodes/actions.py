@@ -107,7 +107,10 @@ class HttpRequestExecutor(BaseNodeExecutor):
                             "status": response.status,
                             "statusText": response.reason,
                             "url": str(response.url),
+                            "method": method,  # Include method for network tab
                             "headers": response_headers,
+                            "requestHeaders": headers,  # Include request headers
+                            "requestBody": request_body,  # Include request body
                             "contentType": content_type,
                             "data": data,
                             "ok": response.status < 400

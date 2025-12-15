@@ -125,11 +125,15 @@ export class HttpNode implements NodeClass {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
+        method: method, // Include method for Network tab
         redirected: response.redirected,
-        headers: respHeaders,
+        headers: respHeaders, // Response headers
+        requestHeaders: headers, // Request headers for Network tab
+        requestBody: body, // Request body for Network tab
         contentType,
         contentLength,
         data,
+        ok: response.ok,
       };
 
       const success = response.ok;

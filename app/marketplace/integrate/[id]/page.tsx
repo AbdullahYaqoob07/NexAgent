@@ -5,6 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { ArrowLeft, CheckCircle, Shield, Zap, Star, Plug } from 'lucide-react';
 import Link from 'next/link';
+import PaymentModal from '@/components/marketplace/PaymentModal';
+import PaymentMethodSelector, { PaymentMethod } from '@/components/marketplace/PaymentMethodSelector';
+import EasyPaisaPaymentModal from '@/components/marketplace/EasyPaisaPaymentModal';
+import JazzcashPaymentModal from '@/components/marketplace/JazzcashPaymentModal';
+import SadapayPaymentModal from '@/components/marketplace/SadapayPaymentModal';
 
 export default function IntegratePage() {
   const params = useParams();
@@ -13,6 +18,12 @@ export default function IntegratePage() {
   
   const [loading, setLoading] = useState(false);
   const [nexa, setNexa] = useState<any>(null);
+  const [showPaymentMethodSelector, setShowPaymentMethodSelector] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [showEasyPaisaModal, setShowEasyPaisaModal] = useState(false);
+  const [showJazzcashModal, setShowJazzcashModal] = useState(false);
+  const [showSadapayModal, setShowSadapayModal] = useState(false);
 
   useEffect(() => {
     // Fetch NEXA data - using the same data from marketplace
@@ -148,47 +159,54 @@ export default function IntegratePage() {
   }, [nexaId, router]);
 
   const handlePayment = async () => {
-    try {
-      setLoading(true);
-      
-      // If the NEXA is free, skip payment and activate directly
-      if (nexa.priceAmount === 0 || nexa.price === 'Free') {
+    // If the NEXA is free, skip payment and activate directly
+    if (nexa.priceAmount === 0 || nexa.price === 'Free') {
+      try {
+        setLoading(true);
         // TODO: Activate the integration in your backend
         router.push(`/marketplace/success?nexa_id=${nexa.id}&free=true`);
-        return;
+      } catch (error: any) {
+        console.error('Activation error:', error);
+        alert(error.message || 'Something went wrong. Please try again.');
+      } finally {
+        setLoading(false);
       }
-      
-      // Call your backend API to create a Stripe checkout session
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nexaId: nexa.id,
-          nexaName: nexa.name,
-          price: nexa.priceAmount,
-        }),
-      });
+      return;
+    }
+    
+    // Show payment method selector for paid Nexas
+    setShowPaymentMethodSelector(true);
+  };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
-      }
+  const handlePaymentMethodSelect = (method: PaymentMethod) => {
+    setSelectedPaymentMethod(method);
+    setShowPaymentMethodSelector(false);
+    
+    // Show the appropriate payment modal based on selection
+    switch (method) {
+      case 'stripe':
+        setShowStripeModal(true);
+        break;
+      case 'easypaisa':
+        setShowEasyPaisaModal(true);
+        break;
+      case 'jazzcash':
+        setShowJazzcashModal(true);
+        break;
+      case 'sadapay':
+        setShowSadapayModal(true);
+        break;
+    }
+  };
 
-      const data = await response.json();
-      
-      if (!data.url) {
-        throw new Error('Failed to get checkout URL');
-      }
-
-      // Redirect to Stripe Checkout using standard redirect
-      window.location.href = data.url;
+  const handlePaymentSuccess = async (transactionId: string, method: PaymentMethod) => {
+    try {
+      // TODO: Verify payment and activate the integration in your backend
+      // You can call your backend API here to confirm the purchase
+      router.push(`/marketplace/success?nexa_id=${nexa.id}&transaction_id=${transactionId}&method=${method}`);
     } catch (error: any) {
-      console.error('Payment error:', error);
-      alert(error.message || 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error('Payment confirmation error:', error);
+      alert('Payment succeeded but activation failed. Please contact support.');
     }
   };
 
@@ -320,6 +338,65 @@ export default function IntegratePage() {
           </div>
         </div>
       </div>
+
+      {/* Payment Method Selector */}
+      {nexa && nexa.priceAmount > 0 && (
+        <PaymentMethodSelector
+          open={showPaymentMethodSelector}
+          onOpenChange={setShowPaymentMethodSelector}
+          onSelectMethod={handlePaymentMethodSelect}
+          amount={nexa.priceAmount}
+          nexaName={nexa.name}
+        />
+      )}
+
+      {/* Stripe Payment Modal */}
+      {nexa && nexa.priceAmount > 0 && (
+        <PaymentModal
+          open={showStripeModal}
+          onOpenChange={setShowStripeModal}
+          nexaId={nexa.id}
+          nexaName={nexa.name}
+          amount={nexa.priceAmount}
+          onSuccess={(paymentIntentId) => handlePaymentSuccess(paymentIntentId, 'stripe')}
+        />
+      )}
+
+      {/* EasyPaisa Payment Modal */}
+      {nexa && nexa.priceAmount > 0 && (
+        <EasyPaisaPaymentModal
+          open={showEasyPaisaModal}
+          onOpenChange={setShowEasyPaisaModal}
+          nexaId={nexa.id}
+          nexaName={nexa.name}
+          amount={nexa.priceAmount}
+          onSuccess={(transactionId) => handlePaymentSuccess(transactionId, 'easypaisa')}
+        />
+      )}
+
+      {/* JazzCash Payment Modal */}
+      {nexa && nexa.priceAmount > 0 && (
+        <JazzcashPaymentModal
+          open={showJazzcashModal}
+          onOpenChange={setShowJazzcashModal}
+          nexaId={nexa.id}
+          nexaName={nexa.name}
+          amount={nexa.priceAmount}
+          onSuccess={(transactionId) => handlePaymentSuccess(transactionId, 'jazzcash')}
+        />
+      )}
+
+      {/* SadaPay Payment Modal */}
+      {nexa && nexa.priceAmount > 0 && (
+        <SadapayPaymentModal
+          open={showSadapayModal}
+          onOpenChange={setShowSadapayModal}
+          nexaId={nexa.id}
+          nexaName={nexa.name}
+          amount={nexa.priceAmount}
+          onSuccess={(transactionId) => handlePaymentSuccess(transactionId, 'sadapay')}
+        />
+      )}
     </DashboardLayout>
   );
 }

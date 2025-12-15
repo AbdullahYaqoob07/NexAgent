@@ -42,6 +42,22 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [isDragging, setIsDragging] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const [schedulerStatus, setSchedulerStatus] = useState<{scheduled: boolean; status: string | null}>({scheduled: false, status: null});
+  const [outputTab, setOutputTab] = useState<'output' | 'network'>('output');
+  const [networkRequests, setNetworkRequests] = useState<Array<{
+    id: string;
+    timestamp: string;
+    method: string;
+    url: string;
+    status: number;
+    statusText: string;
+    duration: number;
+    headers: Record<string, string>;
+    responseHeaders: Record<string, string>;
+    requestBody?: any;
+    responseBody?: any;
+    nodeId?: string;
+    nodeName?: string;
+  }>>([]);
   
   // Draggable terminal handlers
   const startDrag = (e: React.MouseEvent) => {
@@ -96,6 +112,98 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         
         if (response.data) {
           setSchedulerStatus({scheduled: response.data.scheduled, status: response.data.status});
+          
+          // Show execution logs from scheduled runs
+          if (response.data.last_execution && response.data.last_execution.timestamp) {
+            const lastExec = response.data.last_execution;
+            const execTime = new Date(lastExec.timestamp);
+            const timeStr = execTime.toLocaleTimeString();
+            
+            // Add execution start message if not already shown
+            const execStartMsg = `[${timeStr}] Scheduled execution started`;
+            setExecutionOutput(prev => {
+              // Check if we already logged this execution (use timestamp to avoid duplicates)
+              const execTimestamp = execTime.toISOString();
+              const alreadyLogged = prev.some(msg => msg.includes(execTimestamp.substring(0, 19)));
+              if (!alreadyLogged && prev.length < 100) { // Limit to prevent memory issues
+                return [...prev, execStartMsg];
+              }
+              return prev;
+            });
+            
+            // Add node execution logs and track HTTP requests
+            if (lastExec.node_logs && Array.isArray(lastExec.node_logs)) {
+              // Find currently executing node (status: running or pending)
+              const executingNode = lastExec.node_logs.find((log: any) => 
+                log.status === 'running' || log.status === 'pending'
+              );
+              
+              // Update active node for loading indicator
+              if (executingNode) {
+                setActiveNodeId(executingNode.nodeId);
+                try { canvasRef.current?.setExecutingNode(executingNode.nodeId); } catch {}
+              } else {
+                // No executing node, clear indicator
+                setActiveNodeId(null);
+                try { canvasRef.current?.setExecutingNode(null); } catch {}
+              }
+              
+              lastExec.node_logs.forEach((log: any) => {
+                const nodeMsg = `[${timeStr}] ${log.status === 'completed' ? '✅' : log.status === 'failed' ? '❌' : '⏳'} ${log.nodeName || log.nodeId}: ${log.status}`;
+                setExecutionOutput(prev => {
+                  const execTimestamp = execTime.toISOString().substring(0, 19);
+                  if (!prev.some(msg => msg.includes(log.nodeId) && msg.includes(execTimestamp)) && prev.length < 100) {
+                    return [...prev, nodeMsg];
+                  }
+                  return prev;
+                });
+                
+                // Track HTTP requests for Network tab
+                if (log.nodeType === 'HTTP Request' || log.nodeType === 'HttpNode' || log.nodeType === 'HTTP Request Action') {
+                  const output = log.output || {};
+                  if (output.status || output.url) {
+                    const networkReq = {
+                      id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                      timestamp: log.startedAt || execTime.toISOString(),
+                      method: output.method || 'GET',
+                      url: output.url || log.nodeName || 'Unknown URL',
+                      status: output.status || 0,
+                      statusText: output.statusText || 'Unknown',
+                      duration: log.executionTimeMs || 0,
+                      headers: output.requestHeaders || {},
+                      responseHeaders: output.headers || {},
+                      requestBody: output.requestBody,
+                      responseBody: output.data,
+                      nodeId: log.nodeId,
+                      nodeName: log.nodeName
+                    };
+                    setNetworkRequests(prev => [...prev.slice(-49), networkReq]); // Keep last 50
+                  }
+                }
+              });
+            }
+            
+            // Add completion or error message
+            if (lastExec.status === 'completed') {
+              const completeMsg = `[${timeStr}] ✅ Execution completed (${lastExec.execution_time_ms}ms)`;
+              setExecutionOutput(prev => {
+                const execTimestamp = execTime.toISOString().substring(0, 19);
+                if (!prev.some(msg => msg.includes('Execution completed') && msg.includes(execTimestamp)) && prev.length < 100) {
+                  return [...prev, completeMsg];
+                }
+                return prev;
+              });
+            } else if (lastExec.error) {
+              const errorMsg = `[${timeStr}] ❌ Execution failed: ${lastExec.error}`;
+              setExecutionOutput(prev => {
+                const execTimestamp = execTime.toISOString().substring(0, 19);
+                if (!prev.some(msg => msg.includes('Execution failed') && msg.includes(execTimestamp)) && prev.length < 100) {
+                  return [...prev, errorMsg];
+                }
+                return prev;
+              });
+            }
+          }
         }
       } catch (error) {
         // Silently fail - scheduler might not be running
@@ -453,7 +561,27 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       };
 
       // Check if this is a scheduled workflow BEFORE execution
-      // Check both sidebar type and engine type, and also check via node mapping
+      // Also ensure Schedule nodes have timezone set to user's local timezone
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      workflow.nodes = workflow.nodes.map((n: any) => {
+        const nodeType = n.type || n.sidebarType || '';
+        // Check if this is a Schedule node
+        const isSchedule = nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' ||
+          (getNodeMapping(nodeType)?.engineType === 'ScheduleTriggerNode' || 
+           getNodeMapping(nodeType)?.sidebarType === 'Schedule');
+        
+        if (isSchedule && n.config) {
+          // Always update timezone to user's local timezone (even if already set)
+          // This ensures we use local timezone instead of UTC
+          const oldTimezone = n.config.timezone;
+          n.config.timezone = userTimezone;
+          if (oldTimezone !== userTimezone) {
+            console.log(`Updated Schedule node timezone from ${oldTimezone} to ${userTimezone}`);
+          }
+        }
+        return n;
+      });
+      
       const hasScheduleNode = workflow.nodes.some((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
         // Direct type check
@@ -470,7 +598,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
       // Save the workflow first (required for backend execution)
       await workflowManager.saveWorkflow(workflow);
-      setCurrentWorkflowId(wfId);
+      // Use the workflow ID after saving (it might have been updated by the backend)
+      const savedWorkflowId = workflow.id;
+      setCurrentWorkflowId(savedWorkflowId);
 
       // If it's a scheduled workflow, use backend API instead of local engine
       if (hasScheduleNode) {
@@ -498,7 +628,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           const apiClient = (await import('@/lib/api/client')).default;
           
           try {
-            const response = await apiClient.post(`/api/v1/workflows/${wfId}/execute`, {
+            // Use the saved workflow ID (might be different from wfId if backend generated new ID)
+            const executeWorkflowId = savedWorkflowId || wfId;
+            const response = await apiClient.post(`/api/v1/workflows/${executeWorkflowId}/execute`, {
               input: { demoInput: 'Hello from workflow editor!' },
               config: {}
             });
@@ -508,7 +640,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           if (result.status === 'scheduled') {
             setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow scheduled successfully!`]);
             if (result.summary?.next_run) {
-              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Next run: ${new Date(result.summary.next_run).toLocaleString()}`]);
+              // Convert to local timezone for display
+              const nextRunDate = new Date(result.summary.next_run);
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Next run: ${nextRunDate.toLocaleString()} (your local time)`]);
             }
             
             // Update scheduler status
@@ -523,17 +657,27 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           } catch (apiError: any) {
             // Handle API client errors
             console.error('Scheduled workflow API error:', apiError);
+            console.error('Full error details:', {
+              message: apiError.message,
+              response: apiError.response,
+              code: apiError.code,
+              originalError: apiError.originalError
+            });
             
             let errorMessage = 'Failed to start scheduled workflow';
             
-            if (apiError.message) {
-              errorMessage = apiError.message;
+            // Check for network/connection errors first
+            if (apiError.code === 'ECONNREFUSED' || 
+                apiError.message?.includes('Failed to fetch') || 
+                apiError.message === 'Network error. Please check your connection.' ||
+                apiError.error === 'NETWORK_ERROR') {
+              errorMessage = 'Cannot connect to backend server. Please ensure the backend is running on ' + (process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000');
             } else if (apiError.response?.data?.detail) {
               errorMessage = apiError.response.data.detail;
             } else if (apiError.response?.data?.message) {
               errorMessage = apiError.response.data.message;
-            } else if (apiError.code === 'ECONNREFUSED' || apiError.message?.includes('Failed to fetch')) {
-              errorMessage = 'Cannot connect to backend server. Please ensure the backend is running on ' + (process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000');
+            } else if (apiError.message && apiError.message !== 'Network error. Please check your connection.') {
+              errorMessage = apiError.message;
             }
             
             setExecutionError(errorMessage);
@@ -585,6 +729,29 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             if (log?.nodeId) {
               const node = workflowNodes.find(n => n.id === log.nodeId);
               setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Completed node: ${node?.name || log.nodeId}`]);
+            }
+            
+            // Track HTTP requests for Network tab (manual executions)
+            if (log?.nodeType === 'HTTP Request' || log?.nodeType === 'HttpNode' || log?.nodeType === 'HTTP Request Action') {
+              const output = log.output || {};
+              if (output.status || output.url) {
+                const networkReq = {
+                  id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                  timestamp: log.startTime ? new Date(log.startTime).toISOString() : new Date().toISOString(),
+                  method: output.method || 'GET',
+                  url: output.url || log.nodeName || 'Unknown URL',
+                  status: output.status || 0,
+                  statusText: output.statusText || 'Unknown',
+                  duration: log.duration || log.metadata?.executionTime || 0,
+                  headers: output.requestHeaders || {},
+                  responseHeaders: output.headers || {},
+                  requestBody: output.requestBody,
+                  responseBody: output.data,
+                  nodeId: log.nodeId,
+                  nodeName: log.nodeName
+                };
+                setNetworkRequests(prev => [...prev.slice(-49), networkReq]); // Keep last 50
+              }
             }
           },
           onStepFail: (log) => {
@@ -708,7 +875,34 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               >
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-[#FF6900]" />
-                  <span className="text-sm font-medium text-white">Execution Output</span>
+                  {/* Tabs */}
+                  <div className="flex gap-1 bg-zinc-800 rounded-lg p-1">
+                    <button
+                      onClick={() => setOutputTab('output')}
+                      className={`px-3 py-1 text-xs rounded transition-colors ${
+                        outputTab === 'output' 
+                          ? 'bg-[#FF6900] text-white' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Output
+                    </button>
+                    <button
+                      onClick={() => setOutputTab('network')}
+                      className={`px-3 py-1 text-xs rounded transition-colors relative ${
+                        outputTab === 'network' 
+                          ? 'bg-[#FF6900] text-white' 
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Network
+                      {networkRequests.length > 0 && (
+                        <span className="ml-1.5 bg-zinc-700 text-zinc-300 text-[10px] px-1.5 py-0.5 rounded-full">
+                          {networkRequests.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {/* Draggable handle indicator */}
@@ -717,7 +911,13 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                     <div className="w-4 h-0.5 bg-current rounded"></div>
                   </div>
                   <button
-                    onClick={() => setExecutionOutput([])}
+                    onClick={() => {
+                      if (outputTab === 'output') {
+                        setExecutionOutput([]);
+                      } else {
+                        setNetworkRequests([]);
+                      }
+                    }}
                     className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors"
                   >
                     Clear
@@ -730,18 +930,99 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                   </button>
                 </div>
               </div>
-              <div className="p-3 overflow-y-auto font-mono text-xs bg-zinc-900" style={{ height: `${terminalHeight - 48}px` }}>
-                {executionOutput.length > 0 ? (
-                  <div className="space-y-1">
-                    {executionOutput.map((line, index) => (
-                      <div key={index} className="text-zinc-300">
-                        {line}
+              <div className="overflow-y-auto bg-zinc-900" style={{ height: `${terminalHeight - 48}px` }}>
+                {outputTab === 'output' ? (
+                  <div className="p-3 font-mono text-xs">
+                    {executionOutput.length > 0 ? (
+                      <div className="space-y-1">
+                        {executionOutput.map((line, index) => (
+                          <div key={index} className="text-zinc-300">
+                            {line}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="text-zinc-500 italic">
+                        No output yet. Click "Execute" to run the workflow.
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="text-zinc-500 italic">
-                    No output yet. Click "Execute" to run the workflow.
+                  <div className="p-3">
+                    {networkRequests.length > 0 ? (
+                      <div className="space-y-2">
+                        {networkRequests.map((req) => (
+                          <div key={req.id} className="border border-zinc-700 rounded-lg p-3 bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  req.status >= 200 && req.status < 300 ? 'bg-green-500/20 text-green-400' :
+                                  req.status >= 300 && req.status < 400 ? 'bg-yellow-500/20 text-yellow-400' :
+                                  req.status >= 400 ? 'bg-red-500/20 text-red-400' :
+                                  'bg-zinc-500/20 text-zinc-400'
+                                }`}>
+                                  {req.status || 'Pending'}
+                                </span>
+                                <span className="text-xs text-zinc-400 font-mono">{req.method}</span>
+                                <span className="text-xs text-white font-mono truncate max-w-md">{req.url}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-xs text-zinc-400">
+                                <span>{req.duration}ms</span>
+                                <span>{new Date(req.timestamp).toLocaleTimeString()}</span>
+                              </div>
+                            </div>
+                            {req.nodeName && (
+                              <div className="text-xs text-zinc-500 mb-2">
+                                Node: {req.nodeName}
+                              </div>
+                            )}
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-zinc-400 hover:text-white mb-1">
+                                Details
+                              </summary>
+                              <div className="mt-2 space-y-2 pl-4">
+                                {Object.keys(req.headers).length > 0 && (
+                                  <div>
+                                    <div className="text-zinc-400 mb-1">Request Headers:</div>
+                                    <pre className="bg-zinc-900 p-2 rounded text-zinc-300 overflow-x-auto">
+                                      {JSON.stringify(req.headers, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {Object.keys(req.responseHeaders).length > 0 && (
+                                  <div>
+                                    <div className="text-zinc-400 mb-1">Response Headers:</div>
+                                    <pre className="bg-zinc-900 p-2 rounded text-zinc-300 overflow-x-auto">
+                                      {JSON.stringify(req.responseHeaders, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {req.requestBody && (
+                                  <div>
+                                    <div className="text-zinc-400 mb-1">Request Body:</div>
+                                    <pre className="bg-zinc-900 p-2 rounded text-zinc-300 overflow-x-auto max-h-32">
+                                      {typeof req.requestBody === 'string' ? req.requestBody : JSON.stringify(req.requestBody, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {req.responseBody && (
+                                  <div>
+                                    <div className="text-zinc-400 mb-1">Response Body:</div>
+                                    <pre className="bg-zinc-900 p-2 rounded text-zinc-300 overflow-x-auto max-h-32">
+                                      {typeof req.responseBody === 'string' ? req.responseBody : JSON.stringify(req.responseBody, null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-zinc-500 italic text-center py-8">
+                        No HTTP requests yet. HTTP Request nodes will appear here.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

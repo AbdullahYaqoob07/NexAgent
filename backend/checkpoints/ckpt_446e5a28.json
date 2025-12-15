@@ -1,0 +1,17 @@
+{
+  "checkpoint_id": "ckpt_446e5a28",
+  "workflow_id": "liINFkkLr1D1H58lPLZP",
+  "execution_id": "c33f9a79-d61b-43f3-a98c-99aef45dc58e",
+  "checkpoint_type": "error",
+  "current_node_id": "",
+  "current_data": {},
+  "node_logs": [],
+  "variables": {},
+  "visited_nodes": [],
+  "pending_nodes": [],
+  "created_at": "2025-12-14T15:01:23.492645",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": null,
+  "last_error": "'targetNodeId'"
+}

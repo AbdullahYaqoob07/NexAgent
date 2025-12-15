@@ -121,9 +121,13 @@ apiClient.interceptors.response.use(
       });
     }
 
+    // Log the actual error for debugging
+    console.error('[API Client] Network error:', error);
+    
     return Promise.reject({
-      message: 'Network error. Please check your connection.',
+      message: error.message || 'Network error. Please check your connection.',
       error: 'NETWORK_ERROR',
+      originalError: error
     });
   }
 );

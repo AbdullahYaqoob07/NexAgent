@@ -53,13 +53,30 @@ class WorkflowService:
             # Save workflow to Firestore
             workflow_ref.set(workflow_data)
             
-            # Update user's workflow count
+            # Update user's workflow count (create user doc if it doesn't exist)
             user_ref = self.db.collection(self.users_collection).document(user_id)
-            user_ref.update({
-                'usage.totalWorkflows': firestore.Increment(1),
-                'usage.workflowsCreated': firestore.Increment(1),
-                'updatedAt': firestore.SERVER_TIMESTAMP
-            })
+            try:
+                user_ref.update({
+                    'usage.totalWorkflows': firestore.Increment(1),
+                    'usage.workflowsCreated': firestore.Increment(1),
+                    'updatedAt': firestore.SERVER_TIMESTAMP
+                })
+            except Exception as user_update_error:
+                # If user document doesn't exist, create it
+                logger.warning(f"User document not found, creating it: {user_id}")
+                user_ref.set({
+                    'usage': {
+                        'totalWorkflows': 1,
+                        'workflowsCreated': 1
+                    },
+                    'updatedAt': firestore.SERVER_TIMESTAMP,
+                    'createdAt': firestore.SERVER_TIMESTAMP
+                }, merge=True)
+            
+            # Read back the workflow to get actual timestamps (Firestore replaces SERVER_TIMESTAMP)
+            workflow_doc = workflow_ref.get()
+            if workflow_doc.exists:
+                workflow_data = workflow_doc.to_dict()
             
             logger.info(f"✅ Workflow created: {workflow_id} for user {user_id}")
             

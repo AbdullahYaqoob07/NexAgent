@@ -13,9 +13,10 @@ export class BackendStorageProvider implements IStorageProvider {
   async saveWorkflow(workflow: Workflow): Promise<void> {
     try {
       const savedWorkflow = await workflowApi.saveWorkflow(workflow);
-      // Update the workflow ID if it was newly created
-      if (!workflow.id) {
+      // Update the workflow ID if it was newly created or if backend generated a different ID
+      if (!workflow.id || workflow.id !== savedWorkflow.id) {
         workflow.id = savedWorkflow.id;
+        console.log(`✅ Workflow ID updated: ${workflow.id} -> ${savedWorkflow.id}`);
       }
       console.log(`✅ Workflow saved via backend: ${workflow.id}`);
     } catch (error) {

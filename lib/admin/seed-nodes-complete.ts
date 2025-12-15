@@ -144,8 +144,8 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
         label: 'Cron Expression',
         type: 'text',
         required: true,
-        placeholder: '0 */5 * * * *',
-        description: 'Cron schedule expression',
+        placeholder: '*/1 * * * *',
+        description: 'Cron schedule expression (5 fields: minute hour day month weekday)',
         order: 0
       }
     ],
@@ -161,7 +161,12 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
       {
         name: 'Every 5 minutes',
         description: 'Run every 5 minutes',
-        config: { cron: '0 */5 * * * *' }
+        config: { cron: '*/5 * * * *' }
+      },
+      {
+        name: 'Every minute',
+        description: 'Run every minute',
+        config: { cron: '*/1 * * * *' }
       }
     ],
     implementation: {

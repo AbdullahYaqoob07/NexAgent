@@ -11,6 +11,7 @@ from app.models.workflow_models import (
 from app.services.firebase_service import firebase_service
 from app.services.workflow_service import workflow_service
 from typing import Optional, Any, Dict, List
+from datetime import datetime
 import logging
 
 # Import LangGraph orchestrator
@@ -110,6 +111,30 @@ async def create_workflow(
         
         workflow = result['workflow']
         
+        # Convert Firestore timestamps to datetime objects
+        from datetime import datetime
+        
+        def convert_timestamp(ts):
+            if ts is None:
+                return None
+            # Check if it's already a datetime
+            if isinstance(ts, datetime):
+                return ts
+            # Check if it's a Firestore Timestamp (has to_datetime method)
+            if hasattr(ts, 'to_datetime'):
+                return ts.to_datetime()
+            # Check if it's a Firestore Timestamp (has timestamp method)
+            if hasattr(ts, 'timestamp'):
+                return datetime.fromtimestamp(ts.timestamp())
+            # If it's a string, try to parse it
+            if isinstance(ts, str):
+                try:
+                    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                except:
+                    pass
+            # Fallback to current time
+            return datetime.now()
+        
         return WorkflowDetailResponse(
             success=True,
             workflow=WorkflowResponse(
@@ -123,9 +148,9 @@ async def create_workflow(
                 variables=workflow['variables'],
                 status=workflow['status'],
                 version=workflow['version'],
-                createdAt=workflow.get('createdAt', None),
-                updatedAt=workflow.get('updatedAt', None),
-                lastExecutedAt=workflow.get('lastExecutedAt'),
+                createdAt=convert_timestamp(workflow.get('createdAt')),
+                updatedAt=convert_timestamp(workflow.get('updatedAt')),
+                lastExecutedAt=convert_timestamp(workflow.get('lastExecutedAt')),
                 executionCount=workflow['executionCount']
             )
         )
@@ -517,11 +542,28 @@ async def execute_workflow(
         
         # Prepare workflow data for execution
         # Convert the workflow structure to match what our orchestrator expects
+        # Convert edges (backend format) to connections (orchestrator format)
+        edges = workflow.get("edges", [])
+        connections = []
+        for edge in edges:
+            # Backend edges use: source, target, sourceHandle, targetHandle
+            # Orchestrator expects: sourceNodeId, targetNodeId, sourcePortId, targetPortId
+            connection = {
+                "id": edge.get("id", f"conn_{len(connections)}"),
+                "sourceNodeId": edge.get("source") or edge.get("sourceNodeId"),
+                "targetNodeId": edge.get("target") or edge.get("targetNodeId"),
+                "sourcePortId": edge.get("sourceHandle") or edge.get("sourcePortId", "output"),
+                "targetPortId": edge.get("targetHandle") or edge.get("targetPortId", "input"),
+                "enabled": edge.get("enabled", True),
+                "condition": edge.get("condition")
+            }
+            connections.append(connection)
+        
         workflow_data = {
             "id": workflow["id"],
             "name": workflow["name"],
             "nodes": workflow.get("nodes", []),
-            "connections": workflow.get("edges", []),  # Assuming edges are connections
+            "connections": connections,
             "config": request.config or workflow.get("config", {})
         }
         
@@ -533,9 +575,49 @@ async def execute_workflow(
             # This is a scheduled workflow - register with scheduler instead of executing immediately
             schedule_node = schedule_nodes[0]
             cron = schedule_node.get("config", {}).get("cron")
+            # Get timezone from config, default to UTC if not set
+            timezone = schedule_node.get("config", {}).get("timezone", "UTC")
+            
+            # Log schedule node config for debugging
+            logger.info(f"Schedule node config: {schedule_node.get('config', {})}")
+            logger.info(f"Scheduling workflow {workflow_id} with cron '{cron}' in timezone '{timezone}'")
+            
+            # Log current time for debugging cron calculation
+            try:
+                import pytz
+                tz = pytz.timezone(timezone)
+                current_time = datetime.now(tz)
+                logger.info(f"Current time in {timezone}: {current_time}")
+            except:
+                logger.info(f"Current UTC time: {datetime.utcnow()}")
             
             if cron:
                 scheduler = get_scheduler()
+                
+                # Normalize cron expression first (6-field to 5-field)
+                try:
+                    normalized_cron = scheduler.normalize_cron(cron)
+                    cron = normalized_cron  # Use normalized version
+                except ValueError as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid cron expression: {str(e)}"
+                    )
+                
+                # Check if croniter is available and validate
+                try:
+                    from croniter import croniter
+                    croniter(cron)  # Validate normalized cron expression
+                except ImportError:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="croniter library is required for scheduled workflows. Please install it: pip install croniter"
+                    )
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid cron expression: {str(e)}"
+                    )
                 
                 # Check if job already exists and is running
                 existing_job = scheduler.get_job_by_workflow_id(workflow_id)
@@ -562,30 +644,60 @@ async def execute_workflow(
                 if existing_job:
                     scheduler.remove_job(existing_job.job_id)
                 
-                job_id = scheduler.register_job(
-                    workflow_id=workflow_id,
-                    workflow_data=workflow_data,
-                    cron=cron,
-                    timezone=schedule_node.get("config", {}).get("timezone", "UTC"),
-                    executor_func=execute_scheduled_workflow
-                )
-                
-                # Start the scheduler
-                await scheduler.start_scheduler(job_id)
-                
-                job = scheduler.get_job(job_id)
-                return ExecuteWorkflowResponse(
-                    status="scheduled",
-                    summary={
-                        "workflow_id": workflow_id,
-                        "status": "scheduled",
-                        "scheduler_job_id": job_id,
-                        "next_run": job.next_run.isoformat() if job and job.next_run else None
-                    },
-                    final_output={"scheduler_job_id": job_id, "status": "scheduled"},
-                    node_logs=[],
-                    execution_time_ms=0
-                )
+                try:
+                    logger.info(f"Registering scheduler job for workflow {workflow_id} with cron: {cron}")
+                    job_id = scheduler.register_job(
+                        workflow_id=workflow_id,
+                        workflow_data=workflow_data,
+                        cron=cron,
+                        timezone=timezone,
+                        executor_func=execute_scheduled_workflow
+                    )
+                    logger.info(f"Scheduler job registered: {job_id}")
+                    
+                    # Start the scheduler
+                    logger.info(f"Starting scheduler for job: {job_id}")
+                    await scheduler.start_scheduler(job_id)
+                    logger.info(f"Scheduler started successfully for job: {job_id}")
+                    
+                    job = scheduler.get_job(job_id)
+                    if not job:
+                        raise HTTPException(
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Scheduler job was created but could not be retrieved"
+                        )
+                    
+                    logger.info(f"Returning scheduled response for workflow {workflow_id}")
+                    return ExecuteWorkflowResponse(
+                        status="scheduled",
+                        summary={
+                            "workflow_id": workflow_id,
+                            "status": "scheduled",
+                            "scheduler_job_id": job_id,
+                            "next_run": job.next_run.isoformat() if job.next_run else None
+                        },
+                        final_output={"scheduler_job_id": job_id, "status": "scheduled"},
+                        node_logs=[],
+                        execution_time_ms=0
+                    )
+                except ValueError as e:
+                    # Cron validation error from register_job
+                    logger.error(f"Cron validation error: {str(e)}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid cron expression: {str(e)}"
+                    )
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    import traceback
+                    error_traceback = traceback.format_exc()
+                    logger.error(f"Failed to register scheduler job: {str(e)}")
+                    logger.error(f"Error traceback: {error_traceback}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Failed to schedule workflow: {str(e)}"
+                    )
         
         # Execute workflow normally (no schedule node or manual execution)
         logger.info(f"Executing workflow {workflow_id} for user {user_id}")
@@ -593,6 +705,25 @@ async def execute_workflow(
             workflow_data=workflow_data,
             initial_input=request.input
         )
+        
+        # Convert node_logs from snake_case to camelCase for frontend
+        if result.get("node_logs"):
+            converted_logs = []
+            for log in result["node_logs"]:
+                converted_log = {
+                    "nodeId": log.get("node_id", ""),
+                    "nodeName": log.get("node_name", log.get("node_id", "Unknown")),
+                    "nodeType": log.get("node_type", "unknown"),
+                    "status": log.get("status", "unknown"),
+                    "output": log.get("output"),
+                    "error": log.get("error"),
+                    "executionTimeMs": log.get("execution_time_ms", 0),
+                    "startedAt": log.get("started_at", ""),
+                    "completedAt": log.get("completed_at", ""),
+                    "metadata": log.get("metadata", {})
+                }
+                converted_logs.append(converted_log)
+            result["node_logs"] = converted_logs
         
         # Update execution count
         await workflow_service.increment_execution_count(workflow_id)
@@ -603,10 +734,13 @@ async def execute_workflow(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
         logger.error(f"Execute workflow error: {str(e)}")
+        logger.error(f"Error traceback: {error_traceback}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to execute workflow"
+            detail=f"Failed to execute workflow: {str(e)}"
         )
 
 
@@ -638,16 +772,19 @@ async def stop_scheduler(
         job = scheduler.get_job_by_workflow_id(workflow_id)
         
         if not job:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No scheduled job found for this workflow"
-            )
+            logger.info(f"No scheduled job found for workflow {workflow_id}")
+            return {
+                "success": True,
+                "message": "No active scheduler found for this workflow",
+                "job_id": None
+            }
         
         await scheduler.stop_scheduler(job.job_id)
+        logger.info(f"Stopped scheduler job {job.job_id} for workflow {workflow_id}")
         
         return {
             "success": True,
-            "message": "Scheduler stopped",
+            "message": "Scheduler stopped successfully",
             "job_id": job.job_id
         }
         
@@ -694,15 +831,22 @@ async def get_scheduler_status(
                 "status": None
             }
         
-        return {
+        response = {
             "scheduled": True,
-            "status": job.status,
+            "status": job.status.value if hasattr(job.status, 'value') else str(job.status),
             "job_id": job.job_id,
             "cron": job.cron,
+            "timezone": job.timezone,
             "next_run": job.next_run.isoformat() if job.next_run else None,
             "last_run": job.last_run.isoformat() if job.last_run else None,
             "run_count": job.run_count
         }
+        
+        # Include last execution result if available
+        if hasattr(job, 'last_execution_result') and job.last_execution_result:
+            response["last_execution"] = job.last_execution_result
+        
+        return response
         
     except HTTPException:
         raise

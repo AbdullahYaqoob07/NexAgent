@@ -288,11 +288,17 @@ class WorkflowOrchestrator:
                 )
                 
                 # Update state with node result
+                # Get node name with fallback: name -> type -> id
+                node_name = (
+                    current_node.get("name") or 
+                    current_node.get("type") or 
+                    node_id
+                )
                 log_entry = StateManager.update_node_log(
                     state,
                     node_id=node_id,
-                    node_name=current_node.get("name", node_id),
-                    node_type=current_node["type"],
+                    node_name=node_name,
+                    node_type=current_node.get("type", "unknown"),
                     status=NodeStatus.SUCCESS,
                     output=node_output,
                     execution_time_ms=100.0  # Placeholder
@@ -337,11 +343,17 @@ class WorkflowOrchestrator:
                 logger.error(f"Error executing node {node_id}: {str(e)}")
                 
                 # Log the error
+                # Get node name with fallback: name -> type -> id
+                node_name = (
+                    current_node.get("name") or 
+                    current_node.get("type") or 
+                    node_id
+                )
                 log_entry = StateManager.update_node_log(
                     state,
                     node_id=node_id,
-                    node_name=current_node.get("name", node_id),
-                    node_type=current_node["type"],
+                    node_name=node_name,
+                    node_type=current_node.get("type", "unknown"),
                     status=NodeStatus.FAILED,
                     error=e,
                     execution_time_ms=0.0

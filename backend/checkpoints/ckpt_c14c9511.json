@@ -1,0 +1,71 @@
+{
+  "checkpoint_id": "ckpt_c14c9511",
+  "workflow_id": "nqINNwaycPdgi8ccjnU3",
+  "execution_id": "d59df48b-ef6e-45f8-ab19-426ca577ad0a",
+  "checkpoint_type": "error",
+  "current_node_id": "node_1765772626680",
+  "current_data": {
+    "triggered": true,
+    "trigger_type": "schedule",
+    "cron": "*/1 * * * *",
+    "timezone": "Asia/Karachi",
+    "next_run": "2025-12-15T09:43:00",
+    "triggered_at": "2025-12-15T04:42:30.456576",
+    "scheduler_job_id": "job_fde2cec4",
+    "input": {}
+  },
+  "node_logs": [
+    {
+      "node_id": "node_1765772624335",
+      "node_name": "Schedule",
+      "node_type": "Schedule",
+      "status": "success",
+      "output": {
+        "triggered": true,
+        "trigger_type": "schedule",
+        "cron": "*/1 * * * *",
+        "timezone": "Asia/Karachi",
+        "next_run": "2025-12-15T09:43:00",
+        "triggered_at": "2025-12-15T04:42:30.456576",
+        "scheduler_job_id": "job_fde2cec4",
+        "input": {}
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-15T04:42:30.448613",
+      "completed_at": "2025-12-15T04:42:30.456982",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    },
+    {
+      "node_id": "node_1765772626680",
+      "node_name": "HTTP Request",
+      "node_type": "HTTP Request",
+      "status": "failed",
+      "output": null,
+      "error": "",
+      "error_type": "TimeoutError",
+      "stack_trace": null,
+      "execution_time_ms": 0.0,
+      "started_at": "2025-12-15T04:42:30.448613",
+      "completed_at": "2025-12-15T04:43:00.466008",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "node_1765772624335",
+    "node_1765772626680"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-15T04:43:00.467343",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "node_1765772624335",
+  "last_error": ""
+}

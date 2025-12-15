@@ -28,6 +28,8 @@ const WORKFLOW_BASE_PATH = '/api/v1/workflows';
 export async function createWorkflow(workflow: Workflow): Promise<Workflow> {
   try {
     const request = workflowToCreateRequest(workflow);
+    console.log('Creating workflow with request:', JSON.stringify(request, null, 2));
+    
     const response = await apiClient.post<WorkflowDetailResponse>(
       WORKFLOW_BASE_PATH,
       request
@@ -39,8 +41,30 @@ export async function createWorkflow(workflow: Workflow): Promise<Workflow> {
     
     return backendWorkflowToFrontend(response.data.workflow);
   } catch (error: any) {
-    console.error('Create workflow error:', error);
-    throw new Error(error.message || 'Failed to create workflow');
+    console.error('Create workflow error - Full error object:', error);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    console.error('Error message:', error.message);
+    
+    // Extract detailed error message
+    let errorMessage = 'Failed to create workflow';
+    
+    if (error.response?.data) {
+      const data = error.response.data;
+      errorMessage = data.detail || data.message || data.error || errorMessage;
+      
+      // If it's a validation error, include field details
+      if (data.detail && Array.isArray(data.detail)) {
+        const validationErrors = data.detail.map((err: any) => 
+          `${err.loc?.join('.')}: ${err.msg}`
+        ).join(', ');
+        errorMessage = `Validation error: ${validationErrors}`;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
   }
 }
 
@@ -174,7 +198,21 @@ export async function listPublicWorkflows(params?: WorkflowListParams): Promise<
  */
 export async function saveWorkflow(workflow: Workflow): Promise<Workflow> {
   if (workflow.id) {
-    return updateWorkflow(workflow.id, workflow);
+    // Try to update first, but if workflow doesn't exist, create it instead
+    try {
+      return await updateWorkflow(workflow.id, workflow);
+    } catch (error: any) {
+      // If workflow not found, create it instead
+      if (error.message?.includes('not found') || error.message?.includes('404') || 
+          error.response?.status === 404) {
+        console.log(`⚠️ Workflow ${workflow.id} not found, creating new workflow instead`);
+        // Create new workflow (backend will generate new ID)
+        const { id, ...workflowWithoutId } = workflow;
+        return await createWorkflow(workflowWithoutId as Workflow);
+      }
+      // Re-throw other errors
+      throw error;
+    }
   } else {
     return createWorkflow(workflow);
   }

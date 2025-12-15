@@ -1,0 +1,55 @@
+{
+  "checkpoint_id": "ckpt_ddbffcb8",
+  "workflow_id": "nqINNwaycPdgi8ccjnU3",
+  "execution_id": "3a59ff3f-5e51-4b5b-8bb0-ac29deab1b56",
+  "checkpoint_type": "node",
+  "current_node_id": "node_1765772626680",
+  "current_data": {
+    "triggered": true,
+    "trigger_type": "schedule",
+    "cron": "*/1 * * * *",
+    "timezone": "Asia/Karachi",
+    "next_run": "2025-12-15T09:45:00",
+    "triggered_at": "2025-12-15T04:44:00.011118",
+    "scheduler_job_id": "job_591d892d",
+    "input": {}
+  },
+  "node_logs": [
+    {
+      "node_id": "node_1765772624335",
+      "node_name": "Schedule",
+      "node_type": "Schedule",
+      "status": "success",
+      "output": {
+        "triggered": true,
+        "trigger_type": "schedule",
+        "cron": "*/1 * * * *",
+        "timezone": "Asia/Karachi",
+        "next_run": "2025-12-15T09:45:00",
+        "triggered_at": "2025-12-15T04:44:00.011118",
+        "scheduler_job_id": "job_591d892d",
+        "input": {}
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-15T04:44:00.001474",
+      "completed_at": "2025-12-15T04:44:00.011960",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "node_1765772624335",
+    "node_1765772626680"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-15T04:44:00.012857",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "node_1765772624335",
+  "last_error": null
+}

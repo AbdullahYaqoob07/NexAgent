@@ -814,28 +814,62 @@ export default function NodeConfigModal({
                               {groupName}
                             </h4>
                           )}
-                          {(fields as any[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((field) => (
-                            <div key={field.key} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <Label className="text-white text-sm font-medium">
-                                  {field.label}
+                          {(fields as any[]).sort((a, b) => (a.order || 0) - (b.order || 0)).map((field) => {
+                            // Special handling for cron field
+                            const isCronField = field.key === 'cron';
+                            const cronValue = isCronField ? (config[field.key] || '') : '';
+                            const cronFields = cronValue.trim().split(/\s+/);
+                            const is6FieldCron = cronFields.length === 6;
+                            const isValidCron = cronFields.length === 5 || cronFields.length === 6;
+                            
+                            return (
+                              <div key={field.key} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-white text-sm font-medium">
+                                    {field.label}
+                                    {field.required && (
+                                      <span className="text-red-400 ml-1">*</span>
+                                    )}
+                                  </Label>
                                   {field.required && (
-                                    <span className="text-red-400 ml-1">*</span>
+                                    <Badge variant="destructive" className="text-xs">Required</Badge>
                                   )}
-                                </Label>
-                                {field.required && (
-                                  <Badge variant="destructive" className="text-xs">Required</Badge>
+                                </div>
+                                {field.description && (
+                                  <p className="text-xs text-zinc-400 mb-2">{field.description}</p>
+                                )}
+                                {renderConfigField(field, field.key)}
+                                
+                                {/* Cron-specific help text */}
+                                {isCronField && (
+                                  <div className="mt-2 space-y-1">
+                                    {is6FieldCron && (
+                                      <p className="text-xs text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 rounded p-2">
+                                        ⚠️ 6-field cron detected. The system will automatically convert to 5-field format (removes seconds field).
+                                      </p>
+                                    )}
+                                    <div className="text-xs text-zinc-500 bg-zinc-800/50 border border-zinc-700 rounded p-2">
+                                      <p className="font-medium text-zinc-300 mb-1">Cron Format (5 fields):</p>
+                                      <code className="block text-zinc-400 font-mono text-xs mb-1">
+                                        minute hour day month weekday
+                                      </code>
+                                      <p className="text-zinc-400 mt-2 mb-1">Examples:</p>
+                                      <ul className="list-disc list-inside space-y-0.5 text-zinc-500">
+                                        <li><code className="text-zinc-400">*/1 * * * *</code> - Every minute</li>
+                                        <li><code className="text-zinc-400">0 */1 * * *</code> - Every hour</li>
+                                        <li><code className="text-zinc-400">0 9 * * *</code> - Daily at 9:00 AM</li>
+                                        <li><code className="text-zinc-400">*/5 * * * *</code> - Every 5 minutes</li>
+                                      </ul>
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {field.helpText && !isCronField && (
+                                  <p className="text-xs text-zinc-500 mt-1">{field.helpText}</p>
                                 )}
                               </div>
-                              {field.description && (
-                                <p className="text-xs text-zinc-400 mb-2">{field.description}</p>
-                              )}
-                              {renderConfigField(field, field.key)}
-                              {field.helpText && (
-                                <p className="text-xs text-zinc-500 mt-1">{field.helpText}</p>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ))
                     ) : (
