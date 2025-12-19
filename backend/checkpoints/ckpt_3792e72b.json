@@ -1,0 +1,53 @@
+{
+  "checkpoint_id": "ckpt_3792e72b",
+  "workflow_id": "3zj5TVineewOExDdzGy9",
+  "execution_id": "a88e3cde-54ad-4951-8bde-0715a565e70b",
+  "checkpoint_type": "node",
+  "current_node_id": "node_1766168727511",
+  "current_data": {
+    "triggered": true,
+    "trigger_type": "manual",
+    "triggered_at": "2025-12-19T18:25:48.234440",
+    "input": {
+      "demoInput": "Hello from workflow editor!"
+    },
+    "triggered_by": "unknown"
+  },
+  "node_logs": [
+    {
+      "node_id": "node_1766168721760",
+      "node_name": "Manual Trigger",
+      "node_type": "OnClickExecuteTriggerNode",
+      "status": "success",
+      "output": {
+        "triggered": true,
+        "trigger_type": "manual",
+        "triggered_at": "2025-12-19T18:25:48.234440",
+        "input": {
+          "demoInput": "Hello from workflow editor!"
+        },
+        "triggered_by": "unknown"
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-19T18:25:48.214079",
+      "completed_at": "2025-12-19T18:25:48.237122",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "node_1766168721760",
+    "node_1766168727511"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-19T18:25:48.239237",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "node_1766168721760",
+  "last_error": null
+}

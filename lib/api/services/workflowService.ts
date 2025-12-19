@@ -15,6 +15,21 @@ import {
   ApiError,
 } from '../types/workflow';
 
+interface ExecuteWorkflowRequest {
+  input?: any;
+  config?: Record<string, any>;
+}
+
+interface ExecuteWorkflowResponse {
+  status: string;
+  summary?: Record<string, any>;
+  final_output?: any;
+  node_logs?: Array<Record<string, any>>;
+  execution_time_ms?: number;
+  error?: string;
+  partial_results?: Array<Record<string, any>>;
+}
+
 const WORKFLOWS_BASE = '/api/v1/workflows';
 
 export const workflowService = {
@@ -136,6 +151,25 @@ export const workflowService = {
         return false;
       }
       throw error;
+    }
+  },
+
+  /**
+   * Execute a workflow using the backend LangGraph engine
+   * POST /api/v1/workflows/{id}/execute
+   */
+  async executeWorkflow(
+    workflowId: string,
+    data: ExecuteWorkflowRequest
+  ): Promise<ExecuteWorkflowResponse> {
+    try {
+      const response = await apiClient.post<ExecuteWorkflowResponse>(
+        `${WORKFLOWS_BASE}/${workflowId}/execute`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw error as ApiError;
     }
   },
 };

@@ -11,6 +11,7 @@ import {
   WorkflowCreateRequest,
   WorkflowUpdateRequest 
 } from '../types/workflow';
+import { convertSidebarTypeToEngineType, convertEngineTypeToSidebarType } from '@/lib/workflow/engine/nodeTypeMapping';
 
 /**
  * Convert frontend WorkflowNode to backend format
@@ -18,7 +19,7 @@ import {
 export function frontendNodeToBackend(node: WorkflowNode): BackendWorkflowNode {
   return {
     id: node.id,
-    type: node.type,
+    type: convertSidebarTypeToEngineType(node.type),
     name: node.name,
     description: node.description,
     config: node.config,
@@ -50,7 +51,7 @@ export function frontendConnectionToBackendEdge(connection: WorkflowConnection):
 export function backendNodeToFrontend(backendNode: BackendWorkflowNode): WorkflowNode {
   return {
     id: backendNode.id || `node_${Date.now()}`,
-    type: backendNode.type || 'unknown',
+    type: convertEngineTypeToSidebarType(backendNode.type) || 'unknown',
     name: backendNode.name || 'Unnamed Node',
     description: backendNode.description,
     config: backendNode.config || {},

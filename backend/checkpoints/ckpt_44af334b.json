@@ -1,0 +1,90 @@
+{
+  "checkpoint_id": "ckpt_44af334b",
+  "workflow_id": "VQZj8HNticWuWrJCyBYe",
+  "execution_id": "c01fe817-3630-4291-b921-76ce8e67c122",
+  "checkpoint_type": "node",
+  "current_node_id": "node_1766168221122",
+  "current_data": {
+    "requested_duration_ms": 2000,
+    "actual_duration_ms": 2001.2620000000002,
+    "started_at": "2025-12-19T18:22:07.053965",
+    "completed_at": "2025-12-19T18:22:09.055227",
+    "input": {
+      "triggered": true,
+      "trigger_type": "manual",
+      "triggered_at": "2025-12-19T18:22:07.048434",
+      "input": {
+        "demoInput": "Hello from workflow editor!"
+      },
+      "triggered_by": "unknown"
+    }
+  },
+  "node_logs": [
+    {
+      "node_id": "node_1766168207247",
+      "node_name": "Manual Trigger",
+      "node_type": "OnClickExecuteTriggerNode",
+      "status": "success",
+      "output": {
+        "triggered": true,
+        "trigger_type": "manual",
+        "triggered_at": "2025-12-19T18:22:07.048434",
+        "input": {
+          "demoInput": "Hello from workflow editor!"
+        },
+        "triggered_by": "unknown"
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-19T18:22:07.045300",
+      "completed_at": "2025-12-19T18:22:07.048958",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    },
+    {
+      "node_id": "node_1766168217592",
+      "node_name": "Delay",
+      "node_type": "DelayNode",
+      "status": "success",
+      "output": {
+        "requested_duration_ms": 2000,
+        "actual_duration_ms": 2001.2620000000002,
+        "started_at": "2025-12-19T18:22:07.053965",
+        "completed_at": "2025-12-19T18:22:09.055227",
+        "input": {
+          "triggered": true,
+          "trigger_type": "manual",
+          "triggered_at": "2025-12-19T18:22:07.048434",
+          "input": {
+            "demoInput": "Hello from workflow editor!"
+          },
+          "triggered_by": "unknown"
+        }
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2025-12-19T18:22:07.045300",
+      "completed_at": "2025-12-19T18:22:09.056151",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "node_1766168207247",
+    "node_1766168217592",
+    "node_1766168221122"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-19T18:22:09.056813",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "node_1766168217592",
+  "last_error": null
+}

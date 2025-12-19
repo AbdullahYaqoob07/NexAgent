@@ -324,6 +324,22 @@ export function getSupportedEngineTypes(): string[] {
 }
 
 /**
+ * Convert sidebar node type to engine node type
+ */
+export function convertSidebarTypeToEngineType(sidebarType: string): string {
+  const mapping = getNodeMapping(sidebarType);
+  return mapping ? mapping.engineType : sidebarType; // fallback to original if not found
+}
+
+/**
+ * Convert engine node type to sidebar node type
+ */
+export function convertEngineTypeToSidebarType(engineType: string): string {
+  const mapping = NODE_TYPE_MAPPINGS.find(mapping => mapping.engineType === engineType);
+  return mapping ? mapping.sidebarType : engineType; // fallback to original if not found
+}
+
+/**
  * Create a node instance from sidebar type
  */
 export function createNodeInstance(sidebarType: string): any | null {

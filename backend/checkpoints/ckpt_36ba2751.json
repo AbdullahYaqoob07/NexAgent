@@ -1,0 +1,38 @@
+{
+  "checkpoint_id": "ckpt_36ba2751",
+  "workflow_id": "NMpbXaPhtPRD4LeXUzX1",
+  "execution_id": "113248e6-b750-477a-ac58-ee53eecd60f5",
+  "checkpoint_type": "error",
+  "current_node_id": "node_1766164854456",
+  "current_data": {
+    "demoInput": "Hello from workflow editor!"
+  },
+  "node_logs": [
+    {
+      "node_id": "node_1766164854456",
+      "node_name": "Manual Trigger",
+      "node_type": "On Clicking Execute",
+      "status": "failed",
+      "output": null,
+      "error": "Node 'node_1766164854456' (On Clicking Execute) is not properly configured. No executor registered for node type: On Clicking Execute. Available types: ['Schedule', 'ScheduleTriggerNode', 'Webhook', 'WebhookTriggerNode', 'Manual Trigger', 'OnClickExecuteTriggerNode', 'HTTP Request', 'HTTP Request Action', 'HttpNode', 'Send Email', 'EmailNode', 'Slack Message', 'SlackNode', 'Database Query', 'DatabaseNode', 'If Condition', 'IfNode', 'Switch', 'SwitchNode', 'Loop', 'LoopNode', 'Merge', 'MergeNode', 'Delay', 'DelayNode', 'OpenAI GPT', 'OpenAI', 'OpenAINode', 'Text Analysis', 'TextAnalysisNode', 'Image Processing', 'ImageProcessingNode', 'Data Transformation', 'DataTransformNode', 'JSON Parse', 'JsonParseNode', 'XML Parse', 'XmlParseNode', 'CSV Parse', 'CsvParseNode', 'Data Filter', 'DataFilterNode']",
+      "error_type": "ValueError",
+      "stack_trace": null,
+      "execution_time_ms": 0.0,
+      "started_at": "2025-12-19T17:25:16.114279",
+      "completed_at": "2025-12-19T17:25:16.117057",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "node_1766164854456"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-19T17:25:16.117890",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": null,
+  "last_error": "Node 'node_1766164854456' (On Clicking Execute) is not properly configured. No executor registered for node type: On Clicking Execute. Available types: ['Schedule', 'ScheduleTriggerNode', 'Webhook', 'WebhookTriggerNode', 'Manual Trigger', 'OnClickExecuteTriggerNode', 'HTTP Request', 'HTTP Request Action', 'HttpNode', 'Send Email', 'EmailNode', 'Slack Message', 'SlackNode', 'Database Query', 'DatabaseNode', 'If Condition', 'IfNode', 'Switch', 'SwitchNode', 'Loop', 'LoopNode', 'Merge', 'MergeNode', 'Delay', 'DelayNode', 'OpenAI GPT', 'OpenAI', 'OpenAINode', 'Text Analysis', 'TextAnalysisNode', 'Image Processing', 'ImageProcessingNode', 'Data Transformation', 'DataTransformNode', 'JSON Parse', 'JsonParseNode', 'XML Parse', 'XmlParseNode', 'CSV Parse', 'CsvParseNode', 'Data Filter', 'DataFilterNode']"
+}

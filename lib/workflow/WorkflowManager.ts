@@ -12,12 +12,13 @@ import { authService } from '../auth';
 import { getAuthToken } from '../api/client';
 import { Workflow, WorkflowExecution, ExecutionContext, StorageProvider as IStorageProvider } from './types';
 import { WorkflowConfig } from './engine/types';
+import { workflowService } from '@/lib/api/services/workflowService';
 
 export class WorkflowManager {
   private engine: WorkflowEngine;
   private advancedEngine: AdvancedWorkflowEngine;
   private storage: IStorageProvider;
-  private useAdvancedEngine: boolean = true; // Use advanced engine by default
+  private useBackendAPI: boolean = true; // Use backend API by default
 
   constructor(useLocalStorage: boolean = false, useBackendAPI: boolean = true) {
     if (typeof window !== 'undefined') {
@@ -165,7 +166,7 @@ export class WorkflowManager {
   }
 
   /**
-   * Execute a workflow using the new engine
+   * Execute a workflow using the backend LangGraph engine
    */
   async executeWorkflow(
     workflow: Workflow,
@@ -173,102 +174,58 @@ export class WorkflowManager {
     options: import('./engine/types').ExecuteOptions = {}
   ): Promise<WorkflowExecution> {
     try {
-      // Use advanced engine for better execution
-      if (this.useAdvancedEngine) {
-        console.log('🚀 Using Advanced Workflow Engine');
-        const execution = await this.advancedEngine.execute(workflow, input, {
-          timeout: options.timeout,
-          retryCount: options.retryCount,
-          errorHandling: options.errorHandling,
-          onStepStart: options.onStepStart ? (nodeLog) => {
-            // Convert NodeExecutionLog to ExecutionLog format
-            const executionLog = {
-              ...nodeLog,
-              stepNumber: 0, // We'll need to track this
-              sidebarNodeType: nodeLog.nodeType,
-              engineNodeClass: nodeLog.nodeType
-            };
-            options.onStepStart!(executionLog as any);
-          } : undefined,
-          onStepComplete: options.onStepComplete ? (nodeLog) => {
-            const executionLog = {
-              ...nodeLog,
-              stepNumber: 0,
-              sidebarNodeType: nodeLog.nodeType,
-              engineNodeClass: nodeLog.nodeType
-            };
-            options.onStepComplete!(executionLog as any);
-          } : undefined,
-          onStepFail: options.onStepFail ? (nodeLog) => {
-            const executionLog = {
-              ...nodeLog,
-              stepNumber: 0,
-              sidebarNodeType: nodeLog.nodeType,
-              engineNodeClass: nodeLog.nodeType
-            };
-            options.onStepFail!(executionLog as any);
-          } : undefined
-        });
-        
-        // Save execution to storage
+      // Always use backend API with LangGraph engine when possible
+      const uid = authService.getUserId();
+      const hasBackendToken = !!getAuthToken();
+      
+      if (uid && hasBackendToken && this.useBackendAPI) {
+        // Use backend API with LangGraph engine
+        console.log('🚀 Using Backend LangGraph Engine');
         try {
-          this.ensureStorage();
-          await this.storage.saveExecution(execution);
+          // Save workflow first to ensure it exists in backend
+          await this.saveWorkflow(workflow);
+          
+          // Execute workflow through backend API
+          const response = await workflowService.executeWorkflow(workflow.id, {
+            input: input,
+            config: {}
+          });
+          
+          // Convert backend response to WorkflowExecution format
+          const execution: WorkflowExecution = {
+            id: `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            workflowId: workflow.id,
+            status: response.status === 'success' ? 'completed' : 'failed',
+            startTime: Date.now(),
+            endTime: Date.now(),
+            duration: response.execution_time_ms || 0,
+            input: input,
+            nodeLogs: response.node_logs || [],
+            metadata: {
+              tokensUsed: 0,
+              cost: 0
+            },
+            output: response.final_output || {},
+            error: response.error
+          };
+          
+          // Save execution to storage
+          try {
+            this.ensureStorage();
+            await this.storage.saveExecution(execution);
+          } catch (error) {
+            console.error('Failed to save execution:', error);
+          }
+          
+          return execution;
         } catch (error) {
-          console.error('Failed to save execution:', error);
+          console.error('Backend workflow execution failed:', error);
+          throw error;
         }
-        
-        return execution;
       }
       
-      // Fallback to old engine
-      const workflowConfig = this.convertToWorkflowConfig(workflow);
-      const result = await this.engine.executeWorkflow(workflowConfig, input, options);
-    
-    // Convert result back to WorkflowExecution format
-    const execution: WorkflowExecution = {
-      id: result.executionId,
-      workflowId: result.workflowId,
-      status: result.status,
-      startTime: result.startTime,
-      endTime: result.endTime,
-      duration: result.duration,
-      input: input, // Use the original input
-      nodeLogs: result.logs.map(log => ({
-        nodeId: log.nodeId || log.nodeName,
-        nodeName: log.nodeName,
-        nodeType: log.engineNodeClass,
-        status: log.status,
-        startTime: log.startTime,
-        endTime: log.endTime,
-        duration: log.duration,
-        input: log.input,
-        output: log.output,
-        error: log.error,
-        retryCount: log.retryCount,
-        metadata: log.metadata
-      })),
-      metadata: {
-        tokensUsed: result.totalTokensUsed,
-        cost: result.totalCost,
-        totalSteps: result.logs.length,
-        completedSteps: result.logs.filter(log => log.status === 'completed').length,
-        failedSteps: result.logs.filter(log => log.status === 'failed').length
-      },
-      output: result.context,
-      error: result.error
-    };
-
-      // Save execution to storage
-      try {
-        this.ensureStorage();
-        await this.storage.saveExecution(execution);
-      } catch (error) {
-        console.error('Failed to save execution:', error);
-        // Continue execution even if saving fails
-      }
-      
-      return execution;
+      // If we can't use backend API, throw an error to make it clear
+      throw new Error('Cannot execute workflow: Backend API not available or user not authenticated. Please ensure you are logged in and the backend server is running.');
     } catch (error) {
       console.error('Workflow execution failed:', error);
       throw error;
