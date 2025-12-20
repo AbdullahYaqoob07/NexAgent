@@ -8,7 +8,7 @@ import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star } from 'lucide-react';
+import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -22,6 +22,7 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showVerificationWarning, setShowVerificationWarning] = useState(false);
 
   // If already authenticated (Firebase or backend), don't show sign-in at all
   useEffect(() => {
@@ -49,10 +50,17 @@ export default function SignInPage() {
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setShowVerificationWarning(false);
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const authUser = await signIn(email, password);
+      
+      // Check if email is verified
+      if (authUser && !authUser.emailVerified) {
+        setShowVerificationWarning(true);
+        // Still allow sign in, but show warning
+      }
       
       // Check if user is admin and redirect accordingly
       if (email === 'admin@gmail.com') {
@@ -79,7 +87,7 @@ export default function SignInPage() {
       // Check if user is admin and redirect accordingly  
       setTimeout(() => {
         // Get user email from Firebase after sign in
-        const userEmail = result?.user?.email;
+        const userEmail = result?.email;
         if (userEmail === 'admin@gmail.com') {
           console.log('🔐 Admin user detected, redirecting to admin panel');
           router.push('/admin321');
@@ -192,6 +200,23 @@ export default function SignInPage() {
               >
                 <AlertCircle size={16} className="flex-shrink-0" />
                 <span className="text-xs font-medium">{error}</span>
+              </motion.div>
+            )}
+
+            {/* Email Verification Warning */}
+            {showVerificationWarning && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start space-x-2 text-amber-400 bg-amber-400/10 border border-amber-400/20 p-3 rounded-lg mb-4"
+              >
+                <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium mb-1">Email not verified</p>
+                  <p className="text-xs text-amber-300/80">
+                    Please check your email and verify your account to access all features.
+                  </p>
+                </div>
               </motion.div>
             )}
 

@@ -7,13 +7,13 @@ import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Mail, Lock, Eye, EyeOff, User, ArrowRight, Star, Check } from 'lucide-react';
+import { AlertCircle, Mail, Lock, Eye, EyeOff, User, ArrowRight, Star, Check, MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, sendVerificationEmail } = useAuth();
   
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,6 +24,8 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +38,17 @@ export default function SignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    // Password validation: at least 8 characters, including uppercase, lowercase, and number
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (!passwordRegex.test(password)) {
+      setError('Password must contain at least 8 characters with uppercase, lowercase, and a number');
       setLoading(false);
       return;
     }
@@ -63,6 +74,22 @@ export default function SignUpPage() {
       setError(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setError('');
+    setResendSuccess(false);
+
+    try {
+      await sendVerificationEmail();
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    } catch (error: any) {
+      setError(error.message || 'Failed to resend verification email. Please try again.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -116,17 +143,58 @@ export default function SignUpPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
-                className="text-white/70 text-sm mb-6 leading-relaxed"
+                className="text-white/70 text-sm mb-4 leading-relaxed"
                 style={{ fontFamily: 'Poppins, sans-serif' }}
               >
-                We've sent you a secure verification link to complete your account setup.
+                We've sent you a secure verification link to <span className="text-white font-semibold">{email}</span> to complete your account setup.
               </motion.p>
+
+              {resendSuccess && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-xs text-center"
+                >
+                  ✓ Verification email sent successfully!
+                </motion.div>
+              )}
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 bg-red-400/10 border border-red-400/20 rounded-lg text-red-400 text-xs text-center"
+                >
+                  {error}
+                </motion.div>
+              )}
               
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
+                className="space-y-3"
               >
+                <Button
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  variant="outline"
+                  className="w-full h-10 bg-white/5 border border-white/20 text-white hover:bg-white/10 hover:border-white/40 rounded-lg font-medium text-sm transition-all duration-300 flex items-center justify-center gap-2"
+                  style={{ fontFamily: 'Poppins, sans-serif' }}
+                >
+                  {resendLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <MailCheck className="w-4 h-4" />
+                      Resend Verification Email
+                    </>
+                  )}
+                </Button>
+
                 <Button
                   onClick={() => router.push('/sign-in')}
                   className="w-full h-11 bg-gradient-to-r from-[#FF6900] to-[#FF8555] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
