@@ -217,3 +217,189 @@ class DataFilterExecutor(BaseNodeExecutor):
         
         return True
 
+
+class StringManipulationExecutor(BaseNodeExecutor):
+    """
+    String Manipulation Node - Performs basic string operations
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return ["input_field"]
+    
+    def _validate_custom_config(self) -> List[str]:
+        errors = []
+        config = self.config.config
+        
+        operation = config.get("operation")
+        valid_operations = ["uppercase", "lowercase", "trim", "capitalize", "reverse"]
+        
+        if not operation:
+            errors.append("Operation is required")
+        elif operation not in valid_operations:
+            errors.append(f"Invalid operation. Must be one of: {', '.join(valid_operations)}")
+        
+        return errors
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Perform string manipulation operation.
+        """
+        config = self.config.config
+        input_field = config.get("input_field")
+        operation = config.get("operation")
+        
+        # Extract the string to manipulate
+        if input_field and isinstance(input_data, dict):
+            text = input_data.get(input_field, "")
+        else:
+            text = input_data if isinstance(input_data, str) else str(input_data)
+        
+        # Perform operation
+        try:
+            result = self._perform_operation(text, operation)
+            
+            return {
+                "original_text": text,
+                "result": result,
+                "operation": operation,
+                "input": input_data,
+                "manipulated_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error performing string operation: {str(e)}")
+            raise ValueError(f"Failed to perform string operation: {str(e)}")
+    
+    def _perform_operation(self, text: str, operation: str) -> str:
+        """
+        Perform the specified string operation.
+        """
+        if operation == "uppercase":
+            return text.upper()
+        elif operation == "lowercase":
+            return text.lower()
+        elif operation == "trim":
+            return text.strip()
+        elif operation == "capitalize":
+            return text.capitalize()
+        elif operation == "reverse":
+            return text[::-1]
+        else:
+            raise ValueError(f"Unsupported operation: {operation}")
+
+
+class NumberFormatterExecutor(BaseNodeExecutor):
+    """
+    Number Formatter Node - Formats numbers with specific decimal places and formatting
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return ["input_field"]
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Format a number according to specified formatting options.
+        """
+        config = self.config.config
+        input_field = config.get("input_field")
+        decimal_places = config.get("decimal_places", 2)
+        thousands_separator = config.get("thousands_separator", False)
+        prefix = config.get("prefix", "")
+        suffix = config.get("suffix", "")
+        
+        # Extract the number to format
+        if input_field and isinstance(input_data, dict):
+            value = input_data.get(input_field)
+        else:
+            value = input_data
+        
+        # Convert to number if it's a string
+        if isinstance(value, str):
+            try:
+                value = float(value)
+            except ValueError:
+                raise ValueError(f"Cannot convert '{value}' to a number")
+        
+        # Ensure it's a number
+        if not isinstance(value, (int, float)):
+            raise ValueError(f"Value must be a number, got {type(value).__name__}")
+        
+        # Format the number
+        try:
+            if thousands_separator:
+                formatted = f"{value:,.{decimal_places}f}"
+            else:
+                formatted = f"{value:.{decimal_places}f}"
+            
+            result = f"{prefix}{formatted}{suffix}"
+            
+            return {
+                "original_value": value,
+                "formatted_value": result,
+                "decimal_places": decimal_places,
+                "thousands_separator": thousands_separator,
+                "prefix": prefix,
+                "suffix": suffix,
+                "input": input_data,
+                "formatted_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error formatting number: {str(e)}")
+            raise ValueError(f"Failed to format number: {str(e)}")
+
+
+class DateFormatterExecutor(BaseNodeExecutor):
+    """
+    Date Formatter Node - Converts dates between different formats and timezones
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return ["input_field"]
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Format a date according to specified formatting options.
+        """
+        import datetime as dt
+        
+        config = self.config.config
+        input_field = config.get("input_field")
+        input_format = config.get("input_format", "auto")
+        output_format = config.get("output_format", "%Y-%m-%d %H:%M:%S")
+        
+        # Extract the date to format
+        if input_field and isinstance(input_data, dict):
+            date_value = input_data.get(input_field)
+        else:
+            date_value = input_data
+        
+        # Parse the date
+        try:
+            if isinstance(date_value, str):
+                if input_format == "auto":
+                    # Try to parse automatically
+                    parsed_date = dt.datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+                else:
+                    parsed_date = dt.datetime.strptime(date_value, input_format)
+            elif isinstance(date_value, (int, float)):
+                # Assume it's a timestamp
+                parsed_date = dt.datetime.fromtimestamp(date_value)
+            elif isinstance(date_value, dt.datetime):
+                parsed_date = date_value
+            else:
+                raise ValueError(f"Unsupported date type: {type(date_value).__name__}")
+            
+            # Format the date
+            formatted_date = parsed_date.strftime(output_format)
+            
+            return {
+                "original_date": date_value,
+                "formatted_date": formatted_date,
+                "input_format": input_format,
+                "output_format": output_format,
+                "input": input_data,
+                "formatted_at": dt.datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error formatting date: {str(e)}")
+            raise ValueError(f"Failed to format date: {str(e)}")
+

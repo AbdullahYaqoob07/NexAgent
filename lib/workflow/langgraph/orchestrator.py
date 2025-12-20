@@ -81,11 +81,16 @@ class WorkflowOrchestrator:
             WebhookTriggerExecutor,
             ManualTriggerExecutor,
             # Actions
+            LoggerExecutor,
+            VariableSetterExecutor,
             HttpRequestExecutor,
             EmailExecutor,
             SlackExecutor,
             DatabaseExecutor,
             # Logic
+            TimerExecutor,
+            CounterExecutor,
+            BooleanExecutor,
             IfConditionExecutor,
             SwitchExecutor,
             LoopExecutor,
@@ -97,6 +102,9 @@ class WorkflowOrchestrator:
             ImageProcessingExecutor,
             DataTransformExecutor,
             # Data
+            DateFormatterExecutor,
+            NumberFormatterExecutor,
+            StringManipulationExecutor,
             JsonParseExecutor,
             XmlParseExecutor,
             CsvParseExecutor,
@@ -112,6 +120,10 @@ class WorkflowOrchestrator:
         self.executor_factory.register_executor("OnClickExecuteTriggerNode", ManualTriggerExecutor)
         
         # Register actions
+        self.executor_factory.register_executor("Logger", LoggerExecutor)
+        self.executor_factory.register_executor("LoggerNode", LoggerExecutor)
+        self.executor_factory.register_executor("Variable Setter", VariableSetterExecutor)
+        self.executor_factory.register_executor("VariableSetterNode", VariableSetterExecutor)
         self.executor_factory.register_executor("HTTP Request", HttpRequestExecutor)
         self.executor_factory.register_executor("HTTP Request Action", HttpRequestExecutor)
         self.executor_factory.register_executor("HttpNode", HttpRequestExecutor)
@@ -123,6 +135,12 @@ class WorkflowOrchestrator:
         self.executor_factory.register_executor("DatabaseNode", DatabaseExecutor)
         
         # Register logic
+        self.executor_factory.register_executor("Timer", TimerExecutor)
+        self.executor_factory.register_executor("TimerNode", TimerExecutor)
+        self.executor_factory.register_executor("Counter", CounterExecutor)
+        self.executor_factory.register_executor("CounterNode", CounterExecutor)
+        self.executor_factory.register_executor("Boolean", BooleanExecutor)
+        self.executor_factory.register_executor("BooleanNode", BooleanExecutor)
         self.executor_factory.register_executor("If Condition", IfConditionExecutor)
         self.executor_factory.register_executor("IfNode", IfConditionExecutor)
         self.executor_factory.register_executor("Switch", SwitchExecutor)
@@ -146,6 +164,12 @@ class WorkflowOrchestrator:
         self.executor_factory.register_executor("DataTransformNode", DataTransformExecutor)
         
         # Register data
+        self.executor_factory.register_executor("Date Formatter", DateFormatterExecutor)
+        self.executor_factory.register_executor("DateFormatterNode", DateFormatterExecutor)
+        self.executor_factory.register_executor("Number Formatter", NumberFormatterExecutor)
+        self.executor_factory.register_executor("NumberFormatterNode", NumberFormatterExecutor)
+        self.executor_factory.register_executor("String Manipulation", StringManipulationExecutor)
+        self.executor_factory.register_executor("StringManipulationNode", StringManipulationExecutor)
         self.executor_factory.register_executor("JSON Parse", JsonParseExecutor)
         self.executor_factory.register_executor("JsonParseNode", JsonParseExecutor)
         self.executor_factory.register_executor("XML Parse", XmlParseExecutor)

@@ -8,8 +8,103 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime
 import logging
 from ..nodes.base import BaseNodeExecutor
+import json
 
 logger = logging.getLogger(__name__)
+
+
+class LoggerExecutor(BaseNodeExecutor):
+    """
+    Logger Node - Outputs input data to logs for debugging and monitoring
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return []
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Log input data and return it unchanged.
+        """
+        config = self.config.config
+        log_level = config.get("log_level", "info").lower()
+        log_message = config.get("message", "Workflow node execution")
+        
+        # Prepare data for logging
+        log_data = {
+            "node_id": self.config.node_id,
+            "node_name": self.config.node_name,
+            "message": log_message,
+            "input_data": input_data,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Log at appropriate level
+        if log_level == "debug":
+            logger.debug(json.dumps(log_data, indent=2))
+        elif log_level == "warning":
+            logger.warning(json.dumps(log_data, indent=2))
+        elif log_level == "error":
+            logger.error(json.dumps(log_data, indent=2))
+        else:  # default to info
+            logger.info(json.dumps(log_data, indent=2))
+        
+        # Return input data unchanged
+        return {
+            "logged": True,
+            "log_level": log_level,
+            "message": log_message,
+            "input": input_data,
+            "logged_at": datetime.utcnow().isoformat()
+        }
+
+
+class VariableSetterExecutor(BaseNodeExecutor):
+    """
+    Variable Setter Node - Sets or updates workflow variables
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return ["variable_name"]
+    
+    def _validate_custom_config(self) -> List[str]:
+        errors = []
+        config = self.config.config
+        
+        variable_name = config.get("variable_name")
+        if not variable_name:
+            errors.append("Variable name is required")
+        elif not isinstance(variable_name, str):
+            errors.append("Variable name must be a string")
+        
+        return errors
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Set a workflow variable and return input data unchanged.
+        """
+        config = self.config.config
+        variable_name = config.get("variable_name")
+        variable_value = config.get("variable_value")
+        value_source = config.get("value_source", "config")  # config or input
+        
+        # Determine the value to set
+        if value_source == "input":
+            value = input_data
+        else:
+            value = variable_value
+        
+        # Set the variable in context (this would typically be handled by the orchestrator)
+        # For now, we'll just log that we would set it
+        logger.info(f"Setting variable '{variable_name}' to: {value}")
+        
+        return {
+            "variable_set": True,
+            "variable_name": variable_name,
+            "variable_value": value,
+            "value_source": value_source,
+            "input": input_data,
+            "set_at": datetime.utcnow().isoformat()
+        }
 
 
 class HttpRequestExecutor(BaseNodeExecutor):

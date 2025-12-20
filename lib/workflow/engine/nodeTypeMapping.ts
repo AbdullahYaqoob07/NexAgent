@@ -37,6 +37,15 @@ import { DoubleForkNode } from './nodes/DoubleForkNode';
 import { TripleForkNode } from './nodes/TripleForkNode';
 import { QuadraForkNode } from './nodes/QuadraForkNode';
 import { CustomForkNode } from './nodes/CustomForkNode';
+// Newly added nodes
+import { LoggerNode } from './nodes/LoggerNode';
+import { VariableSetterNode } from './nodes/VariableSetterNode';
+import { BooleanNode } from './nodes/BooleanNode';
+import { CounterNode } from './nodes/CounterNode';
+import { TimerNode } from './nodes/TimerNode';
+import { StringManipulationNode } from './nodes/StringManipulationNode';
+import { NumberFormatterNode } from './nodes/NumberFormatterNode';
+import { DateFormatterNode } from './nodes/DateFormatterNode';
 
 /**
  * Central mapping registry for sidebar node types to engine node classes
@@ -92,6 +101,18 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 
   // Actions
   {
+    sidebarType: 'Logger',
+    engineType: 'LoggerNode',
+    nodeClass: LoggerNode,
+    category: 'action'
+  },
+  {
+    sidebarType: 'Variable Setter',
+    engineType: 'VariableSetterNode',
+    nodeClass: VariableSetterNode,
+    category: 'action'
+  },
+  {
     sidebarType: 'HTTP Request',
     engineType: 'HttpNode',
     nodeClass: HttpNode,
@@ -133,6 +154,24 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
 
   // Logic
+  {
+    sidebarType: 'Boolean',
+    engineType: 'BooleanNode',
+    nodeClass: BooleanNode,
+    category: 'logic'
+  },
+  {
+    sidebarType: 'Counter',
+    engineType: 'CounterNode',
+    nodeClass: CounterNode,
+    category: 'logic'
+  },
+  {
+    sidebarType: 'Timer',
+    engineType: 'TimerNode',
+    nodeClass: TimerNode,
+    category: 'logic'
+  },
   {
     sidebarType: 'If Condition',
     engineType: 'IfNode',
@@ -194,6 +233,24 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
 
   // Data
+  {
+    sidebarType: 'String Manipulation',
+    engineType: 'StringManipulationNode',
+    nodeClass: StringManipulationNode,
+    category: 'data'
+  },
+  {
+    sidebarType: 'Number Formatter',
+    engineType: 'NumberFormatterNode',
+    nodeClass: NumberFormatterNode,
+    category: 'data'
+  },
+  {
+    sidebarType: 'Date Formatter',
+    engineType: 'DateFormatterNode',
+    nodeClass: DateFormatterNode,
+    category: 'data'
+  },
   {
     sidebarType: 'JSON Parse',
     engineType: 'JsonParseNode',

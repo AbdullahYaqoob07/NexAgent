@@ -2020,6 +2020,1051 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
     createdBy: 'system',
     isActive: true,
     isPublic: true
+  },
+  
+  // ============ NEWLY ADDED ACTION NODES ============
+  {
+    name: 'Logger',
+    type: 'Logger',
+    category: 'Actions',
+    version: '1.0.0',
+    description: 'Outputs input data to logs for debugging and monitoring',
+    icon: '📝',
+    color: '#4CAF50',
+    tags: ['logging', 'debugging', 'monitoring'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'logLevel',
+        label: 'Log Level',
+        type: 'select',
+        description: 'Severity level for the log entry',
+        required: false,
+        defaultValue: 'info',
+        options: [
+          { label: 'Debug', value: 'debug' },
+          { label: 'Info', value: 'info' },
+          { label: 'Warning', value: 'warning' },
+          { label: 'Error', value: 'error' }
+        ]
+      },
+      {
+        key: 'message',
+        label: 'Log Message',
+        type: 'string',
+        description: 'Custom message to include in the log',
+        required: false,
+        defaultValue: 'Workflow node execution'
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data to be logged',
+        required: false
+      }
+    ],
+    outputs: [
+      {
+        key: 'logged',
+        label: 'Logged',
+        type: 'boolean',
+        description: 'Indicates if data was logged successfully',
+        example: true
+      },
+      {
+        key: 'logLevel',
+        label: 'Log Level',
+        type: 'string',
+        description: 'The log level used',
+        example: 'info'
+      },
+      {
+        key: 'message',
+        label: 'Message',
+        type: 'string',
+        description: 'The log message',
+        example: 'Workflow node execution'
+      }
+    ],
+    examples: [
+      {
+        name: 'Basic Logging',
+        description: 'Log workflow data with default settings',
+        config: {},
+        expectedOutput: { logged: true, logLevel: 'info', message: 'Workflow node execution' }
+      },
+      {
+        name: 'Error Logging',
+        description: 'Log workflow data as an error',
+        config: { logLevel: 'error', message: 'Critical workflow error occurred' },
+        expectedOutput: { logged: true, logLevel: 'error', message: 'Critical workflow error occurred' }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Logger node implementation
+        const logLevel = config.logLevel || 'info';
+        const message = config.message || 'Workflow node execution';
+        
+        // Log data based on level
+        switch(logLevel) {
+          case 'debug':
+            console.debug(message, input);
+            break;
+          case 'warning':
+            console.warn(message, input);
+            break;
+          case 'error':
+            console.error(message, input);
+            break;
+          default:
+            console.log(message, input);
+        }
+        
+        return {
+          logged: true,
+          logLevel: logLevel,
+          message: message,
+          input: input
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  {
+    name: 'Variable Setter',
+    type: 'Variable Setter',
+    category: 'Actions',
+    version: '1.0.0',
+    description: 'Sets or updates workflow variables',
+    icon: ':variables:',
+    color: '#2196F3',
+    tags: ['variables', 'data', 'state'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'variableName',
+        label: 'Variable Name',
+        type: 'string',
+        description: 'Name of the variable to set',
+        required: true
+      },
+      {
+        key: 'valueSource',
+        label: 'Value Source',
+        type: 'select',
+        description: 'Where to get the value from',
+        required: true,
+        defaultValue: 'config',
+        options: [
+          { label: 'From Configuration', value: 'config' },
+          { label: 'From Input Data', value: 'input' }
+        ]
+      },
+      {
+        key: 'variableValue',
+        label: 'Variable Value',
+        type: 'string',
+        description: 'Value to set (used when Value Source is Configuration)',
+        required: false
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data to use as variable value (when Value Source is Input Data)',
+        required: false
+      }
+    ],
+    outputs: [
+      {
+        key: 'variableSet',
+        label: 'Variable Set',
+        type: 'boolean',
+        description: 'Indicates if variable was set successfully',
+        example: true
+      },
+      {
+        key: 'variableName',
+        label: 'Variable Name',
+        type: 'string',
+        description: 'Name of the variable that was set',
+        example: 'userId'
+      },
+      {
+        key: 'variableValue',
+        label: 'Variable Value',
+        type: 'any',
+        description: 'The value that was set',
+        example: '12345'
+      }
+    ],
+    examples: [
+      {
+        name: 'Set Static Variable',
+        description: 'Set a workflow variable to a static value',
+        config: { variableName: 'status', valueSource: 'config', variableValue: 'processing' },
+        expectedOutput: { variableSet: true, variableName: 'status', variableValue: 'processing' }
+      },
+      {
+        name: 'Set Variable from Input',
+        description: 'Set a workflow variable from input data',
+        config: { variableName: 'userId', valueSource: 'input' },
+        expectedOutput: { variableSet: true, variableName: 'userId', variableValue: 'input_data' }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Variable Setter node implementation
+        const variableName = config.variableName;
+        const valueSource = config.valueSource || 'config';
+        
+        let value;
+        if (valueSource === 'input') {
+          value = input;
+        } else {
+          value = config.variableValue;
+        }
+        
+        // In a real implementation, this would set the variable in the workflow context
+        console.log(\`Setting variable '\${variableName}' to: \${JSON.stringify(value)}\`);
+        
+        return {
+          variableSet: true,
+          variableName: variableName,
+          variableValue: value,
+          valueSource: valueSource
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  
+  // ============ NEWLY ADDED LOGIC NODES ============
+  {
+    name: 'Boolean',
+    type: 'Boolean',
+    category: 'Logic',
+    version: '1.0.0',
+    description: 'Evaluates conditions and returns true/false values',
+    icon: '❓',
+    color: '#9C27B0',
+    tags: ['condition', 'comparison', 'logic'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'leftValue',
+        label: 'Left Value',
+        type: 'string',
+        description: 'Left side of the comparison',
+        required: true
+      },
+      {
+        key: 'operator',
+        label: 'Operator',
+        type: 'select',
+        description: 'Comparison operator',
+        required: true,
+        options: [
+          { label: 'Equals', value: '==' },
+          { label: 'Not Equals', value: '!=' },
+          { label: 'Greater Than', value: '>' },
+          { label: 'Less Than', value: '<' },
+          { label: 'Greater Than or Equal', value: '>=' },
+          { label: 'Less Than or Equal', value: '<=' },
+          { label: 'In', value: 'in' },
+          { label: 'Not In', value: 'not_in' }
+        ]
+      },
+      {
+        key: 'rightValue',
+        label: 'Right Value',
+        type: 'string',
+        description: 'Right side of the comparison',
+        required: true
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data for variable interpolation',
+        required: false
+      }
+    ],
+    outputs: [
+      {
+        key: 'result',
+        label: 'Result',
+        type: 'boolean',
+        description: 'The result of the boolean evaluation',
+        example: true
+      },
+      {
+        key: 'leftValue',
+        label: 'Left Value',
+        type: 'any',
+        description: 'The left value used in comparison',
+        example: 'value1'
+      },
+      {
+        key: 'operator',
+        label: 'Operator',
+        type: 'string',
+        description: 'The operator used',
+        example: '=='
+      },
+      {
+        key: 'rightValue',
+        label: 'Right Value',
+        type: 'any',
+        description: 'The right value used in comparison',
+        example: 'value2'
+      }
+    ],
+    examples: [
+      {
+        name: 'Simple Equality Check',
+        description: 'Check if two values are equal',
+        config: { leftValue: '{{input.status}}', operator: '==', rightValue: 'active' },
+        expectedOutput: { result: true, leftValue: 'active', operator: '==', rightValue: 'active' }
+      },
+      {
+        name: 'Numeric Comparison',
+        description: 'Check if a number is greater than another',
+        config: { leftValue: '{{input.amount}}', operator: '>', rightValue: '100' },
+        expectedOutput: { result: false, leftValue: 50, operator: '>', rightValue: 100 }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Boolean node implementation
+        const leftValue = config.leftValue;
+        const operator = config.operator;
+        const rightValue = config.rightValue;
+        
+        // Simple evaluation function
+        function evaluate(left, op, right) {
+          switch(op) {
+            case '==': return left == right;
+            case '!=': return left != right;
+            case '>': return left > right;
+            case '<': return left < right;
+            case '>=': return left >= right;
+            case '<=': return left <= right;
+            case 'in': return Array.isArray(right) ? right.includes(left) : (typeof right === 'string' ? right.includes(left) : false);
+            case 'not_in': return Array.isArray(right) ? !right.includes(left) : (typeof right === 'string' ? !right.includes(left) : true);
+            default: throw new Error(\`Unsupported operator: \${op}\`);
+          }
+        }
+        
+        const result = evaluate(leftValue, operator, rightValue);
+        
+        return {
+          result: result,
+          leftValue: leftValue,
+          operator: operator,
+          rightValue: rightValue
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  {
+    name: 'Counter',
+    type: 'Counter',
+    category: 'Logic',
+    version: '1.0.0',
+    description: 'Increments or decrements a numerical counter',
+    icon: '🔢',
+    color: '#FF9800',
+    tags: ['counter', 'increment', 'decrement'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'counterName',
+        label: 'Counter Name',
+        type: 'string',
+        description: 'Name of the counter to modify',
+        required: true
+      },
+      {
+        key: 'operation',
+        label: 'Operation',
+        type: 'select',
+        description: 'Whether to increment or decrement',
+        required: true,
+        defaultValue: 'increment',
+        options: [
+          { label: 'Increment', value: 'increment' },
+          { label: 'Decrement', value: 'decrement' }
+        ]
+      },
+      {
+        key: 'step',
+        label: 'Step',
+        type: 'number',
+        description: 'Amount to increment or decrement by',
+        required: false,
+        defaultValue: 1
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data for variable interpolation',
+        required: false
+      }
+    ],
+    outputs: [
+      {
+        key: 'counterName',
+        label: 'Counter Name',
+        type: 'string',
+        description: 'Name of the counter that was modified',
+        example: 'processCount'
+      },
+      {
+        key: 'operation',
+        label: 'Operation',
+        type: 'string',
+        description: 'The operation performed',
+        example: 'increment'
+      },
+      {
+        key: 'step',
+        label: 'Step',
+        type: 'number',
+        description: 'The step size used',
+        example: 1
+      }
+    ],
+    examples: [
+      {
+        name: 'Increment Process Counter',
+        description: 'Increment a process counter by 1',
+        config: { counterName: 'processCount', operation: 'increment' },
+        expectedOutput: { counterName: 'processCount', operation: 'increment', step: 1 }
+      },
+      {
+        name: 'Decrement Retry Counter',
+        description: 'Decrement a retry counter by 2',
+        config: { counterName: 'retryCount', operation: 'decrement', step: 2 },
+        expectedOutput: { counterName: 'retryCount', operation: 'decrement', step: 2 }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Counter node implementation
+        const counterName = config.counterName;
+        const operation = config.operation || 'increment';
+        const step = config.step || 1;
+        
+        // In a real implementation, this would access shared state
+        console.log(\`\${operation.charAt(0).toUpperCase() + operation.slice(1)} counter '\${counterName}' by \${step}\`);
+        
+        return {
+          counterName: counterName,
+          operation: operation,
+          step: step
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  {
+    name: 'Timer',
+    type: 'Timer',
+    category: 'Logic',
+    version: '1.0.0',
+    description: 'Measures execution time between nodes or workflow segments',
+    icon: '⏱️',
+    color: '#00BCD4',
+    tags: ['timer', 'performance', 'benchmark'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'timerName',
+        label: 'Timer Name',
+        type: 'string',
+        description: 'Name of the timer to use',
+        required: true
+      },
+      {
+        key: 'action',
+        label: 'Action',
+        type: 'select',
+        description: 'Timer action to perform',
+        required: true,
+        defaultValue: 'start',
+        options: [
+          { label: 'Start', value: 'start' },
+          { label: 'Stop', value: 'stop' },
+          { label: 'Lap', value: 'lap' }
+        ]
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data for variable interpolation',
+        required: false
+      }
+    ],
+    outputs: [
+      {
+        key: 'timerName',
+        label: 'Timer Name',
+        type: 'string',
+        description: 'Name of the timer used',
+        example: 'workflowTimer'
+      },
+      {
+        key: 'action',
+        label: 'Action',
+        type: 'string',
+        description: 'The action performed',
+        example: 'start'
+      },
+      {
+        key: 'timestamp',
+        label: 'Timestamp',
+        type: 'string',
+        description: 'Timestamp when action was performed',
+        example: '2024-01-01T00:00:00Z'
+      }
+    ],
+    examples: [
+      {
+        name: 'Start Workflow Timer',
+        description: 'Start timing a workflow segment',
+        config: { timerName: 'workflowTimer', action: 'start' },
+        expectedOutput: { timerName: 'workflowTimer', action: 'start', timestamp: '2024-01-01T00:00:00Z' }
+      },
+      {
+        name: 'Stop Workflow Timer',
+        description: 'Stop timing a workflow segment',
+        config: { timerName: 'workflowTimer', action: 'stop' },
+        expectedOutput: { timerName: 'workflowTimer', action: 'stop', timestamp: '2024-01-01T00:00:05Z' }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Timer node implementation
+        const timerName = config.timerName;
+        const action = config.action || 'start';
+        const timestamp = new Date().toISOString();
+        
+        // In a real implementation, this would access shared timer state
+        console.log(\`\${action.charAt(0).toUpperCase() + action.slice(1)} timer '\${timerName}' at \${timestamp}\`);
+        
+        return {
+          timerName: timerName,
+          action: action,
+          timestamp: timestamp
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  
+  // ============ NEWLY ADDED DATA NODES ============
+  {
+    name: 'String Manipulation',
+    type: 'String Manipulation',
+    category: 'Data',
+    version: '1.0.0',
+    description: 'Performs basic string operations like case conversion and formatting',
+    icon: '🔤',
+    color: '#E91E63',
+    tags: ['string', 'text', 'formatting'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'inputField',
+        label: 'Input Field',
+        type: 'string',
+        description: 'Field from input data to manipulate (leave empty for direct input)',
+        required: false
+      },
+      {
+        key: 'operation',
+        label: 'Operation',
+        type: 'select',
+        description: 'String operation to perform',
+        required: true,
+        options: [
+          { label: 'Uppercase', value: 'uppercase' },
+          { label: 'Lowercase', value: 'lowercase' },
+          { label: 'Trim', value: 'trim' },
+          { label: 'Capitalize', value: 'capitalize' },
+          { label: 'Reverse', value: 'reverse' }
+        ]
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data containing the string to manipulate',
+        required: true
+      }
+    ],
+    outputs: [
+      {
+        key: 'originalText',
+        label: 'Original Text',
+        type: 'string',
+        description: 'The original text before manipulation',
+        example: 'hello world'
+      },
+      {
+        key: 'result',
+        label: 'Result',
+        type: 'string',
+        description: 'The manipulated text',
+        example: 'HELLO WORLD'
+      },
+      {
+        key: 'operation',
+        label: 'Operation',
+        type: 'string',
+        description: 'The operation performed',
+        example: 'uppercase'
+      }
+    ],
+    examples: [
+      {
+        name: 'Uppercase Text',
+        description: 'Convert text to uppercase',
+        config: { inputField: 'name', operation: 'uppercase' },
+        expectedOutput: { originalText: 'john doe', result: 'JOHN DOE', operation: 'uppercase' }
+      },
+      {
+        name: 'Trim Whitespace',
+        description: 'Remove leading and trailing whitespace',
+        config: { inputField: 'email', operation: 'trim' },
+        expectedOutput: { originalText: '  user@example.com  ', result: 'user@example.com', operation: 'trim' }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // String Manipulation node implementation
+        const inputField = config.inputField;
+        const operation = config.operation;
+        
+        // Extract the string to manipulate
+        let text;
+        if (inputField && typeof input === 'object' && input !== null) {
+          text = input[inputField] || '';
+        } else {
+          text = typeof input === 'string' ? input : String(input);
+        }
+        
+        // Perform operation
+        let result;
+        switch(operation) {
+          case 'uppercase':
+            result = text.toUpperCase();
+            break;
+          case 'lowercase':
+            result = text.toLowerCase();
+            break;
+          case 'trim':
+            result = text.trim();
+            break;
+          case 'capitalize':
+            result = text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+            break;
+          case 'reverse':
+            result = text.split('').reverse().join('');
+            break;
+          default:
+            throw new Error(\`Unsupported operation: \${operation}\`);
+        }
+        
+        return {
+          originalText: text,
+          result: result,
+          operation: operation
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  {
+    name: 'Number Formatter',
+    type: 'Number Formatter',
+    category: 'Data',
+    version: '1.0.0',
+    description: 'Formats numbers with specific decimal places and formatting',
+    icon: '#️⃣',
+    color: '#8BC34A',
+    tags: ['number', 'format', 'currency'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'inputField',
+        label: 'Input Field',
+        type: 'string',
+        description: 'Field from input data to format (leave empty for direct input)',
+        required: false
+      },
+      {
+        key: 'decimalPlaces',
+        label: 'Decimal Places',
+        type: 'number',
+        description: 'Number of decimal places to show',
+        required: false,
+        defaultValue: 2
+      },
+      {
+        key: 'thousandsSeparator',
+        label: 'Thousands Separator',
+        type: 'boolean',
+        description: 'Add thousands separator (comma)',
+        required: false,
+        defaultValue: false
+      },
+      {
+        key: 'prefix',
+        label: 'Prefix',
+        type: 'string',
+        description: 'Text to add before the number (e.g., currency symbol)',
+        required: false
+      },
+      {
+        key: 'suffix',
+        label: 'Suffix',
+        type: 'string',
+        description: 'Text to add after the number',
+        required: false
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data containing the number to format',
+        required: true
+      }
+    ],
+    outputs: [
+      {
+        key: 'originalValue',
+        label: 'Original Value',
+        type: 'number',
+        description: 'The original number before formatting',
+        example: 1234.567
+      },
+      {
+        key: 'formattedValue',
+        label: 'Formatted Value',
+        type: 'string',
+        description: 'The formatted number as a string',
+        example: '$1,234.57'
+      },
+      {
+        key: 'decimalPlaces',
+        label: 'Decimal Places',
+        type: 'number',
+        description: 'Number of decimal places used',
+        example: 2
+      }
+    ],
+    examples: [
+      {
+        name: 'Currency Formatting',
+        description: 'Format a number as currency',
+        config: { inputField: 'amount', decimalPlaces: 2, thousandsSeparator: true, prefix: '$' },
+        expectedOutput: { originalValue: 1234.567, formattedValue: '$1,234.57', decimalPlaces: 2 }
+      },
+      {
+        name: 'Percentage Formatting',
+        description: 'Format a number as percentage',
+        config: { inputField: 'ratio', decimalPlaces: 1, suffix: '%' },
+        expectedOutput: { originalValue: 0.875, formattedValue: '87.5%', decimalPlaces: 1 }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Number Formatter node implementation
+        const inputField = config.inputField;
+        const decimalPlaces = config.decimalPlaces || 2;
+        const thousandsSeparator = config.thousandsSeparator || false;
+        const prefix = config.prefix || '';
+        const suffix = config.suffix || '';
+        
+        // Extract the number to format
+        let value;
+        if (inputField && typeof input === 'object' && input !== null) {
+          value = input[inputField];
+        } else {
+          value = input;
+        }
+        
+        // Convert to number if it's a string
+        if (typeof value === 'string') {
+          const parsed = parseFloat(value);
+          if (isNaN(parsed)) {
+            throw new Error(\`Cannot convert '\${value}' to a number\`);
+          }
+          value = parsed;
+        }
+        
+        // Ensure it's a number
+        if (typeof value !== 'number') {
+          throw new Error(\`Value must be a number, got \${typeof value}\`);
+        }
+        
+        // Format the number
+        let formatted;
+        if (thousandsSeparator) {
+          formatted = value.toLocaleString(undefined, {
+            minimumFractionDigits: decimalPlaces,
+            maximumFractionDigits: decimalPlaces
+          });
+        } else {
+          formatted = value.toFixed(decimalPlaces);
+        }
+        
+        const result = \`\${prefix}\${formatted}\${suffix}\`;
+        
+        return {
+          originalValue: value,
+          formattedValue: result,
+          decimalPlaces: decimalPlaces,
+          thousandsSeparator: thousandsSeparator,
+          prefix: prefix,
+          suffix: suffix
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+  {
+    name: 'Date Formatter',
+    type: 'Date Formatter',
+    category: 'Data',
+    version: '1.0.0',
+    description: 'Converts dates between different formats and timezones',
+    icon: '📅',
+    color: '#795548',
+    tags: ['date', 'time', 'format'],
+    trigger: null,
+    isStartNode: false,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'inputField',
+        label: 'Input Field',
+        type: 'string',
+        description: 'Field from input data containing the date (leave empty for direct input)',
+        required: false
+      },
+      {
+        key: 'inputFormat',
+        label: 'Input Format',
+        type: 'select',
+        description: 'Format of the input date',
+        required: false,
+        defaultValue: 'auto',
+        options: [
+          { label: 'Auto Detect', value: 'auto' },
+          { label: 'ISO 8601', value: 'iso' },
+          { label: 'Unix Timestamp', value: 'timestamp' }
+        ]
+      },
+      {
+        key: 'outputFormat',
+        label: 'Output Format',
+        type: 'select',
+        description: 'Desired output format',
+        required: false,
+        defaultValue: 'YYYY-MM-DD HH:mm:ss',
+        options: [
+          { label: 'YYYY-MM-DD', value: 'YYYY-MM-DD' },
+          { label: 'YYYY-MM-DD HH:mm:ss', value: 'YYYY-MM-DD HH:mm:ss' },
+          { label: 'MM/DD/YYYY', value: 'MM/DD/YYYY' },
+          { label: 'DD/MM/YYYY', value: 'DD/MM/YYYY' },
+          { label: 'Full ISO String', value: 'iso' }
+        ]
+      }
+    ],
+    inputs: [
+      {
+        key: 'data',
+        label: 'Input Data',
+        type: 'any',
+        description: 'Data containing the date to format',
+        required: true
+      }
+    ],
+    outputs: [
+      {
+        key: 'originalDate',
+        label: 'Original Date',
+        type: 'any',
+        description: 'The original date value',
+        example: '2024-01-01T12:00:00Z'
+      },
+      {
+        key: 'formattedDate',
+        label: 'Formatted Date',
+        type: 'string',
+        description: 'The formatted date as a string',
+        example: '2024-01-01 12:00:00'
+      },
+      {
+        key: 'inputFormat',
+        label: 'Input Format',
+        type: 'string',
+        description: 'The input format used',
+        example: 'auto'
+      },
+      {
+        key: 'outputFormat',
+        label: 'Output Format',
+        type: 'string',
+        description: 'The output format used',
+        example: 'YYYY-MM-DD HH:mm:ss'
+      }
+    ],
+    examples: [
+      {
+        name: 'Standard Date Format',
+        description: 'Format a date in YYYY-MM-DD format',
+        config: { inputField: 'createdAt', outputFormat: 'YYYY-MM-DD' },
+        expectedOutput: { originalDate: '2024-01-01T12:00:00Z', formattedDate: '2024-01-01', inputFormat: 'auto', outputFormat: 'YYYY-MM-DD' }
+      },
+      {
+        name: 'US Date Format',
+        description: 'Format a date in MM/DD/YYYY format',
+        config: { inputField: 'timestamp', outputFormat: 'MM/DD/YYYY' },
+        expectedOutput: { originalDate: 1704110400000, formattedDate: '01/01/2024', inputFormat: 'auto', outputFormat: 'MM/DD/YYYY' }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        // Date Formatter node implementation
+        const inputField = config.inputField;
+        const inputFormat = config.inputFormat || 'auto';
+        const outputFormat = config.outputFormat || 'YYYY-MM-DD HH:mm:ss';
+        
+        // Extract the date to format
+        let dateValue;
+        if (inputField && typeof input === 'object' && input !== null) {
+          dateValue = input[inputField];
+        } else {
+          dateValue = input;
+        }
+        
+        // Parse the date
+        let parsedDate;
+        if (typeof dateValue === 'string') {
+          if (inputFormat === 'auto') {
+            // Try to parse automatically
+            parsedDate = new Date(dateValue);
+            if (isNaN(parsedDate.getTime())) {
+              throw new Error(\`Failed to parse date: \${dateValue}\`);
+            }
+          } else {
+            parsedDate = new Date(dateValue);
+            if (isNaN(parsedDate.getTime())) {
+              throw new Error(\`Failed to parse date with format \${inputFormat}: \${dateValue}\`);
+            }
+          }
+        } else if (typeof dateValue === 'number') {
+          // Assume it's a timestamp
+          parsedDate = new Date(dateValue);
+          if (isNaN(parsedDate.getTime())) {
+            throw new Error(\`Invalid timestamp: \${dateValue}\`);
+          }
+        } else if (dateValue instanceof Date) {
+          parsedDate = dateValue;
+        } else {
+          throw new Error(\`Unsupported date type: \${typeof dateValue}\`);
+        }
+        
+        // Format the date
+        let formattedDate;
+        switch (outputFormat) {
+          case 'YYYY-MM-DD':
+            formattedDate = parsedDate.toISOString().split('T')[0];
+            break;
+          case 'YYYY-MM-DD HH:mm:ss':
+            formattedDate = parsedDate.toISOString().replace('T', ' ').split('.')[0];
+            break;
+          case 'MM/DD/YYYY':
+            formattedDate = \`\${(parsedDate.getMonth() + 1).toString().padStart(2, '0')}/\${parsedDate.getDate().toString().padStart(2, '0')}/\${parsedDate.getFullYear()}\`;
+            break;
+          case 'DD/MM/YYYY':
+            formattedDate = \`\${parsedDate.getDate().toString().padStart(2, '0')}/\${(parsedDate.getMonth() + 1).toString().padStart(2, '0')}/\${parsedDate.getFullYear()}\`;
+            break;
+          default:
+            // Fallback to ISO string
+            formattedDate = parsedDate.toISOString();
+        }
+        
+        return {
+          originalDate: dateValue,
+          formattedDate: formattedDate,
+          inputFormat: inputFormat,
+          outputFormat: outputFormat
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
   }
 ];
 
