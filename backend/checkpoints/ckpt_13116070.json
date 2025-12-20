@@ -1,0 +1,39 @@
+{
+  "checkpoint_id": "ckpt_13116070",
+  "workflow_id": "test_simple_workflow_001",
+  "execution_id": "45693267-4b07-4cf6-b6fe-7916b8c6e489",
+  "checkpoint_type": "error",
+  "current_node_id": "trigger_1",
+  "current_data": {
+    "test": true,
+    "timestamp": "2024-01-01T00:00:00Z"
+  },
+  "node_logs": [
+    {
+      "node_id": "trigger_1",
+      "node_name": "Manual Start",
+      "node_type": "trigger:manual",
+      "status": "failed",
+      "output": null,
+      "error": "Node 'trigger_1' (trigger:manual) is not properly configured. No executor registered for node type: trigger:manual. Available types: ['Schedule', 'ScheduleTriggerNode', 'Webhook', 'WebhookTriggerNode', 'Manual Trigger', 'OnClickExecuteTriggerNode', 'Logger', 'LoggerNode', 'Variable Setter', 'VariableSetterNode', 'HTTP Request', 'HTTP Request Action', 'HttpNode', 'Send Email', 'EmailNode', 'Slack Message', 'SlackNode', 'Database Query', 'DatabaseNode', 'Timer', 'TimerNode', 'Counter', 'CounterNode', 'Boolean', 'BooleanNode', 'If Condition', 'IfNode', 'Switch', 'SwitchNode', 'Loop', 'LoopNode', 'Merge', 'MergeNode', 'Delay', 'DelayNode', 'OpenAI GPT', 'OpenAI', 'OpenAINode', 'Text Analysis', 'TextAnalysisNode', 'Image Processing', 'ImageProcessingNode', 'Data Transformation', 'DataTransformNode', 'Date Formatter', 'DateFormatterNode', 'Number Formatter', 'NumberFormatterNode', 'String Manipulation', 'StringManipulationNode', 'JSON Parse', 'JsonParseNode', 'XML Parse', 'XmlParseNode', 'CSV Parse', 'CsvParseNode', 'Data Filter', 'DataFilterNode']",
+      "error_type": "ValueError",
+      "stack_trace": null,
+      "execution_time_ms": 0.0,
+      "started_at": "2025-12-20T09:43:18.365889",
+      "completed_at": "2025-12-20T09:43:18.372889",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "trigger_1"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-20T09:43:18.374888",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": null,
+  "last_error": "Node 'trigger_1' (trigger:manual) is not properly configured. No executor registered for node type: trigger:manual. Available types: ['Schedule', 'ScheduleTriggerNode', 'Webhook', 'WebhookTriggerNode', 'Manual Trigger', 'OnClickExecuteTriggerNode', 'Logger', 'LoggerNode', 'Variable Setter', 'VariableSetterNode', 'HTTP Request', 'HTTP Request Action', 'HttpNode', 'Send Email', 'EmailNode', 'Slack Message', 'SlackNode', 'Database Query', 'DatabaseNode', 'Timer', 'TimerNode', 'Counter', 'CounterNode', 'Boolean', 'BooleanNode', 'If Condition', 'IfNode', 'Switch', 'SwitchNode', 'Loop', 'LoopNode', 'Merge', 'MergeNode', 'Delay', 'DelayNode', 'OpenAI GPT', 'OpenAI', 'OpenAINode', 'Text Analysis', 'TextAnalysisNode', 'Image Processing', 'ImageProcessingNode', 'Data Transformation', 'DataTransformNode', 'Date Formatter', 'DateFormatterNode', 'Number Formatter', 'NumberFormatterNode', 'String Manipulation', 'StringManipulationNode', 'JSON Parse', 'JsonParseNode', 'XML Parse', 'XmlParseNode', 'CSV Parse', 'CsvParseNode', 'Data Filter', 'DataFilterNode']"
+}

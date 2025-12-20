@@ -47,6 +47,7 @@ export interface WorkflowCanvasRef {
   setExecutingNode: (nodeId: string | null) => void;
   setErrorNodes: (ids: string[]) => void;
   applyLayout: (layout: 'serpentine' | 'row' | 'column' | 'radial') => void;
+  loadWorkflow: (data: { nodes: WorkflowNode[]; connections: Connection[] }) => void;
 }
 
 interface WorkflowNode {
@@ -108,6 +109,11 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       if (ids && ids.length > 0) {
         setTimeout(() => setErrorNodeIdsState([]), 4000);
       }
+    },
+    loadWorkflow: (data: { nodes: WorkflowNode[]; connections: Connection[] }) => {
+      console.log('📥 Loading workflow into canvas:', data);
+      setNodes(data.nodes || []);
+      setConnections(data.connections || []);
     },
     applyLayout: (layout: 'serpentine' | 'row' | 'column' | 'radial') => {
       const canvasEl = canvasRef.current;

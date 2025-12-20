@@ -29,14 +29,27 @@ export default function WorkflowsPage() {
   } = useQuery({
     queryKey: ['workflows'],
     queryFn: async () => {
-      const response = await workflowService.listWorkflows({ page: 1, pageSize: 50 });
-      if (!response.success) {
-        throw new Error('Failed to load workflows');
+      console.log('🔍 Fetching workflows from backend...');
+      try {
+        const response = await workflowService.listWorkflows({ page: 1, pageSize: 50 });
+        console.log('✅ Workflows response:', response);
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to load workflows');
+        }
+        return response;
+      } catch (err: any) {
+        console.error('❌ Failed to fetch workflows:', err);
+        console.error('Error details:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status
+        });
+        throw err;
       }
-      return response;
     },
     enabled: !!isAuthenticated && !authLoading && !backendLoading,
     staleTime: 30 * 1000,
+    retry: 2,
   });
 
   const workflows = workflowsResponse?.workflows ?? [];
@@ -65,6 +78,7 @@ export default function WorkflowsPage() {
   // Refetch when auth state transitions to authenticated
   useEffect(() => {
     if (!authLoading && !backendLoading && isAuthenticated) {
+      console.log('🔄 Auth complete, fetching workflows...');
       refetch();
     }
   }, [authLoading, backendLoading, isAuthenticated, refetch]);
@@ -118,7 +132,17 @@ export default function WorkflowsPage() {
 
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 mb-6">
-            <p className="text-red-400 text-sm">{errorMessage || 'Failed to load workflows'}</p>
+            <p className="text-red-400 text-sm font-semibold mb-2">Error loading workflows</p>
+            <p className="text-red-300/80 text-xs">{errorMessage || 'Failed to load workflows'}</p>
+            <p className="text-red-300/60 text-xs mt-2">Check browser console for details</p>
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline"
+              className="mt-3 text-xs border-red-500/30 hover:bg-red-500/10"
+              size="sm"
+            >
+              Retry
+            </Button>
           </div>
         )}
 

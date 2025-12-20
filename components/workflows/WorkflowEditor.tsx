@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { WorkflowToolbar } from "./WorkflowToolbar";
 import { WorkflowSidebar } from "./WorkflowSidebar";
 import WorkflowCanvas, { WorkflowCanvasRef } from "./WorkflowCanvas";
@@ -18,6 +18,7 @@ interface WorkflowEditorProps {
 
 export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowId: undefined }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [assistantMinimized, setAssistantMinimized] = useState(false);
@@ -28,6 +29,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
   const [workflowName, setWorkflowName] = useState<string>('Untitled Workflow');
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
+  const [isLoadingWorkflow, setIsLoadingWorkflow] = useState(false);
   const sidebarRef = useRef<{ openTriggersWithBlink: () => void }>(null);
   const canvasRef = useRef<WorkflowCanvasRef>(null);
   const [activeTab, setActiveTab] = useState<'nexa' | 'executions'>('nexa');
@@ -246,9 +248,78 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
   // Tour removed for now
 
+  // Load workflow on mount if ID is provided
+  useEffect(() => {
+    const loadWorkflow = async () => {
+      // Get workflow ID from URL params or props
+      const urlWorkflowId = searchParams?.get('id');
+      const wfId = urlWorkflowId || workflowId || currentWorkflowId;
+      
+      if (!wfId || !canvasRef.current) {
+        return;
+      }
+
+      setIsLoadingWorkflow(true);
+      try {
+        console.log('🔄 Loading workflow:', wfId);
+        const workflow = await workflowManager.loadWorkflow(wfId);
+        
+        if (workflow) {
+          console.log('✅ Workflow loaded:', workflow);
+          setWorkflowName(workflow.name || 'Untitled Workflow');
+          setCurrentWorkflowId(workflow.id);
+          
+          // Convert workflow nodes to canvas format
+          const canvasNodes = workflow.nodes.map((node: any) => ({
+            id: node.id,
+            type: node.type,
+            name: node.name,
+            x: node.position?.x || 100,
+            y: node.position?.y || 100,
+            config: node.config || {},
+            data: {
+              type: node.type,
+              name: node.name,
+              config: node.config || {}
+            }
+          }));
+          
+          // Convert workflow connections to canvas format
+          const canvasConnections = workflow.connections.map((conn: any) => ({
+            id: conn.id,
+            from: conn.sourceNodeId,
+            to: conn.targetNodeId,
+            fromPoint: conn.sourcePortId || 'output',
+            toPoint: conn.targetPortId || 'input',
+            condition: conn.condition
+          }));
+          
+          // Load into canvas
+          canvasRef.current.loadWorkflow({
+            nodes: canvasNodes,
+            connections: canvasConnections
+          });
+          
+          addToast(`Workflow "${workflow.name}" loaded`, 'info');
+        } else {
+          console.warn('⚠️ Workflow not found:', wfId);
+        }
+      } catch (error) {
+        console.error('❌ Failed to load workflow:', error);
+        addToast('Failed to load workflow', 'error');
+      } finally {
+        setIsLoadingWorkflow(false);
+      }
+    };
+
+    loadWorkflow();
+  }, [searchParams, workflowId]); // Load when URL params or workflowId prop changes
+
   // Save current workflow without executing
   const saveCurrentWorkflow = async () => {
     try {
+      console.log('💾 Starting workflow save...');
+      
       if (!canvasRef.current) {
         addToast('Canvas not ready', 'error');
         return;
@@ -258,6 +329,11 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         addToast('Nothing to save yet', 'info');
         return;
       }
+
+      console.log('📊 Canvas data:', { 
+        nodeCount: workflowData.nodes.length, 
+        connectionCount: workflowData.connections.length 
+      });
 
       const nodesArr = workflowData.nodes;
       const workflowNodes = nodesArr.map((canvasNode: any) => {
@@ -311,12 +387,25 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         version: '1.0.0'
       };
 
+      console.log('📤 Saving workflow:', {
+        id: wfId,
+        name: workflow.name,
+        nodeCount: workflow.nodes.length,
+        connectionCount: workflow.connections.length
+      });
+
       await workflowManager.saveWorkflow(workflow);
       setCurrentWorkflowId(wfId);
-      addToast('Workflow saved', 'info');
-    } catch (e) {
-      console.error('Failed to save workflow:', e);
-      addToast('Failed to save workflow', 'error');
+      console.log('✅ Workflow saved successfully!');
+      addToast('Workflow saved successfully!', 'info');
+    } catch (e: any) {
+      console.error('❌ Failed to save workflow:', e);
+      console.error('Error details:', {
+        message: e.message,
+        stack: e.stack,
+        response: e.response?.data
+      });
+      addToast(`Failed to save: ${e.message || 'Unknown error'}`, 'error');
     }
   };
 
@@ -856,6 +945,16 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
   return (
     <div className="flex h-screen bg-black text-white overflow-hidden">
+      {/* Loading Overlay */}
+      {isLoadingWorkflow && (
+        <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF6900]"></div>
+            <p className="text-white text-lg">Loading workflow...</p>
+          </div>
+        </div>
+      )}
+      
       {/* Left Sidebar - Nodes */}
       <WorkflowSidebar 
         ref={sidebarRef}

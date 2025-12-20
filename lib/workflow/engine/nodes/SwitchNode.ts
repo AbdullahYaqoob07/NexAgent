@@ -19,10 +19,10 @@ export class SwitchNode implements NodeClass {
         throw new Error(`Configuration validation failed: ${validationErrors.join(', ')}`);
       }
 
-      const { field, cases, defaultCase } = config;
+      const { value, cases, defaultCase } = config;
       
       const result = await this.evaluateSwitch({
-        field,
+        value,
         cases: cases || [],
         defaultCase,
         context
@@ -60,8 +60,8 @@ export class SwitchNode implements NodeClass {
   validate(config: Record<string, any>): string[] {
     const errors: string[] = [];
 
-    if (!config.field) {
-      errors.push('Field to evaluate is required');
+    if (!config.value && config.value !== 0 && config.value !== false) {
+      errors.push('Value to evaluate is required');
     }
 
     if (!config.cases || !Array.isArray(config.cases)) {
@@ -72,14 +72,14 @@ export class SwitchNode implements NodeClass {
   }
 
   private async evaluateSwitch(switchData: {
-    field: string;
+    value: any;
     cases: any[];
     defaultCase?: any;
     context: ExecutionContext;
   }): Promise<any> {
     await new Promise(resolve => setTimeout(resolve, 50 + Math.random() * 100));
 
-    const fieldValue = this.getFieldValue(switchData.context, switchData.field);
+    const fieldValue = switchData.value;
     let matchedCase = null;
     let result = switchData.defaultCase;
 

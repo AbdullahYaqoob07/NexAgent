@@ -1,0 +1,82 @@
+{
+  "id": "demo_conditional_workflow",
+  "name": "Demo: Conditional Logic",
+  "description": "Tests conditional routing based on API response status",
+  "nodes": [
+    {
+      "id": "trigger_1",
+      "type": "Manual Trigger",
+      "name": "Start",
+      "position": { "x": 100, "y": 150 },
+      "config": {
+        "triggerData": {
+          "test_url": "https://httpbin.org/status/200"
+        }
+      }
+    },
+    {
+      "id": "http_1",
+      "type": "HTTP Request",
+      "name": "Check API Status",
+      "position": { "x": 300, "y": 150 },
+      "config": {
+        "method": "GET",
+        "url": "https://httpbin.org/status/200",
+        "timeout": 10000
+      }
+    },
+    {
+      "id": "if_1",
+      "type": "If Condition",
+      "name": "Check if Success",
+      "position": { "x": 500, "y": 150 },
+      "config": {
+        "condition": "{{$node.http_1.status}} === 200"
+      }
+    },
+    {
+      "id": "logger_success",
+      "type": "Logger",
+      "name": "Log Success",
+      "position": { "x": 700, "y": 100 },
+      "config": {
+        "level": "info",
+        "message": "✅ API call successful! Status: {{$node.http_1.status}}"
+      }
+    },
+    {
+      "id": "logger_failure",
+      "type": "Logger",
+      "name": "Log Failure",
+      "position": { "x": 700, "y": 200 },
+      "config": {
+        "level": "error",
+        "message": "❌ API call failed! Status: {{$node.http_1.status}}"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn_1",
+      "sourceNodeId": "trigger_1",
+      "targetNodeId": "http_1"
+    },
+    {
+      "id": "conn_2",
+      "sourceNodeId": "http_1",
+      "targetNodeId": "if_1"
+    },
+    {
+      "id": "conn_3",
+      "sourceNodeId": "if_1",
+      "targetNodeId": "logger_success",
+      "sourceHandle": "true"
+    },
+    {
+      "id": "conn_4",
+      "sourceNodeId": "if_1",
+      "targetNodeId": "logger_failure",
+      "sourceHandle": "false"
+    }
+  ]
+}

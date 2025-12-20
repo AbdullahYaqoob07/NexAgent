@@ -10,10 +10,26 @@ export class LoopNode implements NodeClass {
     const startTime = Date.now();
     
     try {
-      const { items, maxIterations = 100 } = config;
+      const { items, itemsPath, startRange, endRange, maxIterations = 100 } = config;
+      
+      // Determine items to loop over
+      let loopItems: any[] = [];
+      
+      if (startRange !== undefined && endRange !== undefined) {
+        // Range iteration
+        const start = parseInt(startRange);
+        const end = parseInt(endRange);
+        loopItems = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+      } else if (itemsPath && context) {
+        // Extract from context using path
+        loopItems = this.getValueFromPath(context, itemsPath) || [];
+      } else if (items) {
+        // Direct items
+        loopItems = Array.isArray(items) ? items : [items];
+      }
       
       const result = await this.executeLoop({
-        items: items || [],
+        items: loopItems,
         maxIterations,
         context
       });
@@ -28,7 +44,7 @@ export class LoopNode implements NodeClass {
           tokensUsed: this.calculateTokens(result),
           cost: this.calculateCost(result),
           iterations: result.iterations,
-          totalItems: items?.length || 0
+          totalItems: loopItems.length
         }
       };
 
@@ -49,9 +65,16 @@ export class LoopNode implements NodeClass {
 
   validate(config: Record<string, any>): string[] {
     const errors: string[] = [];
-    if (!config.items || !Array.isArray(config.items)) {
-      errors.push('Items array is required');
+    
+    const hasItems = config.items !== undefined && config.items !== null;
+    const hasPath = config.itemsPath !== undefined && config.itemsPath !== null;
+    const hasRange = (config.startRange !== undefined && config.startRange !== null) && 
+                     (config.endRange !== undefined && config.endRange !== null);
+    
+    if (!hasItems && !hasPath && !hasRange) {
+      errors.push('Must provide either items, itemsPath, or both startRange and endRange');
     }
+    
     return errors;
   }
 
@@ -75,6 +98,21 @@ export class LoopNode implements NodeClass {
       totalItems: loopData.items.length,
       processedAt: new Date().toISOString()
     };
+  }
+
+  private getValueFromPath(context: any, path: string): any {
+    const keys = path.split('.');
+    let value = context;
+    
+    for (const key of keys) {
+      if (value && typeof value === 'object' && key in value) {
+        value = value[key];
+      } else {
+        return undefined;
+      }
+    }
+    
+    return value;
   }
 
   private calculateTokens(data: any): number {

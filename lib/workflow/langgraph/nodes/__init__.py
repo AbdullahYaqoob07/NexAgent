@@ -10,12 +10,17 @@ try:
         ManualTriggerExecutor
     )
     from .actions import (
+        LoggerExecutor,
+        VariableSetterExecutor,
         HttpRequestExecutor,
         EmailExecutor,
         SlackExecutor,
         DatabaseExecutor
     )
     from .logic import (
+        TimerExecutor,
+        CounterExecutor,
+        BooleanExecutor,
         IfConditionExecutor,
         SwitchExecutor,
         LoopExecutor,
@@ -29,6 +34,9 @@ try:
         DataTransformExecutor
     )
     from .data import (
+        StringManipulationExecutor,
+        NumberFormatterExecutor,
+        DateFormatterExecutor,
         JsonParseExecutor,
         XmlParseExecutor,
         CsvParseExecutor,
@@ -44,10 +52,15 @@ except ImportError as e:
     ScheduleTriggerExecutor = None
     WebhookTriggerExecutor = None
     ManualTriggerExecutor = None
+    LoggerExecutor = None
+    VariableSetterExecutor = None
     HttpRequestExecutor = None
     EmailExecutor = None
     SlackExecutor = None
     DatabaseExecutor = None
+    TimerExecutor = None
+    CounterExecutor = None
+    BooleanExecutor = None
     IfConditionExecutor = None
     SwitchExecutor = None
     LoopExecutor = None
@@ -57,6 +70,9 @@ except ImportError as e:
     TextAnalysisExecutor = None
     ImageProcessingExecutor = None
     DataTransformExecutor = None
+    StringManipulationExecutor = None
+    NumberFormatterExecutor = None
+    DateFormatterExecutor = None
     JsonParseExecutor = None
     XmlParseExecutor = None
     CsvParseExecutor = None
@@ -69,11 +85,16 @@ __all__ = [
     "WebhookTriggerExecutor",
     "ManualTriggerExecutor",
     # Actions
+    "LoggerExecutor",
+    "VariableSetterExecutor",
     "HttpRequestExecutor",
     "EmailExecutor",
     "SlackExecutor",
     "DatabaseExecutor",
     # Logic
+    "TimerExecutor",
+    "CounterExecutor",
+    "BooleanExecutor",
     "IfConditionExecutor",
     "SwitchExecutor",
     "LoopExecutor",
@@ -85,6 +106,9 @@ __all__ = [
     "ImageProcessingExecutor",
     "DataTransformExecutor",
     # Data
+    "StringManipulationExecutor",
+    "NumberFormatterExecutor",
+    "DateFormatterExecutor",
     "JsonParseExecutor",
     "XmlParseExecutor",
     "CsvParseExecutor",

@@ -36,7 +36,30 @@ const sidebarItems = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF6900] mx-auto mb-4"></div>
+          <p className="text-white/70">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to sign-in if not authenticated (handled by useEffect in pages)
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white/70">Redirecting to sign in...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSignOut = async () => {
     try {

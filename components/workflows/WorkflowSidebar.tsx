@@ -403,7 +403,7 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
                     />
                   </button>
                   
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  <div className={`overflow-y-auto transition-all duration-300 ease-in-out ${
                     expandedCategories.includes(category.name) ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                   }`}>
                     <div className={`pb-2 pt-1 transition-all duration-300 ease-in-out ${

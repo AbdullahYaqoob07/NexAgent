@@ -594,8 +594,19 @@ class AnalyticsDB:
                 'warningCount': warning_count
             }
         except Exception as e:
-            logger.error(f"❌ Failed to get alerts: {str(e)}")
-            return {'success': False, 'error': str(e), 'alerts': [], 'total': 0}
+            error_msg = str(e)
+            # If it's a missing index error, log it but return empty results gracefully
+            if 'requires an index' in error_msg or 'FAILED_PRECONDITION' in error_msg:
+                logger.warning(f"⚠️ Firestore index needed for alerts query. Returning empty results. Error: {error_msg[:200]}")
+                return {
+                    'success': True,
+                    'alerts': [],
+                    'total': 0,
+                    'criticalCount': 0,
+                    'warningCount': 0
+                }
+            logger.error(f"❌ Failed to get alerts: {error_msg}")
+            return {'success': True, 'error': error_msg, 'alerts': [], 'total': 0, 'criticalCount': 0, 'warningCount': 0}
 
 
 # Global instance

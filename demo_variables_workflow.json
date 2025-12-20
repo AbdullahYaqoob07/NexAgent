@@ -1,0 +1,68 @@
+{
+  "id": "demo_variables_workflow",
+  "name": "Demo: Variable Manipulation",
+  "description": "Tests setting and using variables across nodes",
+  "nodes": [
+    {
+      "id": "trigger_1",
+      "type": "Manual Trigger",
+      "name": "Start",
+      "position": { "x": 100, "y": 100 },
+      "config": {
+        "triggerData": {
+          "user_name": "Alice",
+          "user_age": 25
+        }
+      }
+    },
+    {
+      "id": "var_1",
+      "type": "Variable Setter",
+      "name": "Set Greeting",
+      "position": { "x": 300, "y": 100 },
+      "config": {
+        "variableName": "greeting",
+        "valueSource": "custom",
+        "customValue": "Hello, {{$trigger.user_name}}! You are {{$trigger.user_age}} years old."
+      }
+    },
+    {
+      "id": "counter_1",
+      "type": "Counter",
+      "name": "Increment Age",
+      "position": { "x": 500, "y": 100 },
+      "config": {
+        "operation": "increment",
+        "step": 1,
+        "initialValue": "{{$trigger.user_age}}"
+      }
+    },
+    {
+      "id": "logger_1",
+      "type": "Logger",
+      "name": "Log Result",
+      "position": { "x": 700, "y": 100 },
+      "config": {
+        "level": "info",
+        "message": "Greeting: {{$vars.greeting}} | Next year age: {{$node.counter_1.value}}"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn_1",
+      "sourceNodeId": "trigger_1",
+      "targetNodeId": "var_1"
+    },
+    {
+      "id": "conn_2",
+      "sourceNodeId": "var_1",
+      "targetNodeId": "counter_1"
+    },
+    {
+      "id": "conn_3",
+      "sourceNodeId": "counter_1",
+      "targetNodeId": "logger_1"
+    }
+  ]
+}

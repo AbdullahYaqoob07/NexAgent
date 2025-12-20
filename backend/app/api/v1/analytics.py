@@ -526,16 +526,15 @@ async def get_alerts(
     """Get active alerts"""
     try:
         result = await analytics_service.get_alerts(severity, category, acknowledged, limit)
-        if not result['success']:
-            raise HTTPException(status_code=500, detail=result.get('error'))
         
-        alerts = [Alert(**a) for a in result['alerts']]
+        # Always return successfully even if empty (don't crash the dashboard)
+        alerts = [Alert(**a) for a in result.get('alerts', [])]
         return AlertsResponse(
             success=True,
             alerts=alerts,
-            total=result['total'],
-            criticalCount=result['criticalCount'],
-            warningCount=result['warningCount']
+            total=result.get('total', 0),
+            criticalCount=result.get('criticalCount', 0),
+            warningCount=result.get('warningCount', 0)
         )
     except HTTPException:
         raise

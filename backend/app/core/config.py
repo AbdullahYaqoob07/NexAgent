@@ -108,6 +108,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra fields like REDIS_URL from .env
 
 
 # Create settings instance
