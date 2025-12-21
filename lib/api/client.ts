@@ -44,15 +44,6 @@ apiClient.interceptors.request.use(
     const isAnalytics = (config.url || '').includes('/api/v1/analytics');
     
     // Debug logging for token authentication flow
-    if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
-      console.log('[API Client Debug] Request:', {
-        url: config.url,
-        hasFirebaseUser: !!auth?.currentUser,
-        hasLocalToken: !!bearer,
-        hasEnvToken: !!ENV_BEARER,
-        willUseFirebaseToken: !!(auth?.currentUser)
-      });
-    }
 
     // Always prefer Firebase ID token for authenticated users
     if (typeof window !== 'undefined' && auth?.currentUser) {
@@ -61,7 +52,6 @@ apiClient.interceptors.request.use(
         if (idToken) {
           (config.headers as any).Authorization = `Bearer ${idToken}`;
           if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
-            console.log('[API Client Debug] Using fresh Firebase ID token from current user');
           }
         }
       } catch (error) {
@@ -122,7 +112,6 @@ apiClient.interceptors.response.use(
     }
 
     // Log the actual error for debugging
-    console.error('[API Client] Network error:', error);
     
     return Promise.reject({
       message: error.message || 'Network error. Please check your connection.',

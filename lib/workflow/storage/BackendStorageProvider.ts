@@ -18,7 +18,6 @@ export class BackendStorageProvider implements IStorageProvider {
         workflow.id = savedWorkflow.id;
         console.log(`✅ Workflow ID updated: ${workflow.id} -> ${savedWorkflow.id}`);
       }
-      console.log(`✅ Workflow saved via backend: ${workflow.id}`);
     } catch (error) {
       console.error('❌ Failed to save workflow to backend:', error);
       throw error;

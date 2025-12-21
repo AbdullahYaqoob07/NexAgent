@@ -165,7 +165,6 @@ export default function Page() {
     uptime: system?.uptimePercentage ?? 0,
   };
   
-  console.log('📊 KPI Data:', { kpi, overview, system });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

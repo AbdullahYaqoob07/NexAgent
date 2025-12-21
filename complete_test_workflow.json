@@ -1,0 +1,179 @@
+{
+  "id": "complete-node-test-workflow",
+  "name": "Complete Node Test Workflow",
+  "description": "Comprehensive test of Logger, Variable Setter, String Manipulation, Number Formatter, and Date Formatter nodes with HTTP Request and Delay",
+  "nodes": [
+    {
+      "id": "manual_trigger",
+      "type": "On Clicking Execute",
+      "name": "Start Test",
+      "category": "Triggers",
+      "position": {"x": 100, "y": 300},
+      "config": {},
+      "inputs": [],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "delay_before_api",
+      "type": "Delay",
+      "name": "Brief Delay",
+      "category": "Logic",
+      "position": {"x": 250, "y": 300},
+      "config": {
+        "duration": 1000
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "http_request",
+      "type": "HTTP Request",
+      "name": "Get User Data",
+      "category": "Actions",
+      "position": {"x": 400, "y": 300},
+      "config": {
+        "url": "https://jsonplaceholder.typicode.com/users/1",
+        "method": "GET"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "log_raw_response",
+      "type": "Logger",
+      "name": "Log Raw Response",
+      "category": "Actions",
+      "position": {"x": 600, "y": 200},
+      "config": {
+        "logLevel": "info",
+        "message": "Raw API Response:"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "string_manipulation",
+      "type": "String Manipulation",
+      "name": "Format Name",
+      "category": "Data",
+      "position": {"x": 600, "y": 300},
+      "config": {
+        "inputField": "name",
+        "operation": "capitalize"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": true}],
+      "outputs": [
+        {"id": "output", "name": "Output", "type": "any", "required": true}
+      ],
+      "enabled": true
+    },
+    {
+      "id": "number_formatter",
+      "type": "Number Formatter",
+      "name": "Format User ID",
+      "category": "Data",
+      "position": {"x": 600, "y": 400},
+      "config": {
+        "inputField": "id",
+        "decimalPlaces": 0,
+        "prefix": "USER-",
+        "thousandsSeparator": false
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": true}],
+      "outputs": [
+        {"id": "output", "name": "Output", "type": "any", "required": true}
+      ],
+      "enabled": true
+    },
+    {
+      "id": "variable_setter",
+      "type": "Variable Setter",
+      "name": "Store Formatted Name",
+      "category": "Actions",
+      "position": {"x": 800, "y": 300},
+      "config": {
+        "variableName": "userName",
+        "valueSource": "input"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "final_logger",
+      "type": "Logger",
+      "name": "Log Completion",
+      "category": "Actions",
+      "position": {"x": 1000, "y": 300},
+      "config": {
+        "logLevel": "info",
+        "message": "Workflow testing completed successfully"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn_1",
+      "sourceNodeId": "manual_trigger",
+      "targetNodeId": "delay_before_api",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_2",
+      "sourceNodeId": "delay_before_api",
+      "targetNodeId": "http_request",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_3",
+      "sourceNodeId": "http_request",
+      "targetNodeId": "log_raw_response",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_4",
+      "sourceNodeId": "http_request",
+      "targetNodeId": "string_manipulation",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_5",
+      "sourceNodeId": "http_request",
+      "targetNodeId": "number_formatter",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_6",
+      "sourceNodeId": "string_manipulation",
+      "targetNodeId": "variable_setter",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_7",
+      "sourceNodeId": "variable_setter",
+      "targetNodeId": "final_logger",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "checkpoint_id": "ckpt_a54bc022",
+  "workflow_id": "BJpdPzipp7u6Qs0wGFCT",
+  "execution_id": "10b51433-bbbd-4c92-8dad-3a88b2044cb8",
+  "checkpoint_type": "node",
+  "current_node_id": "node_1766264623958",
+  "current_data": {
+    "demoInput": "Hello from workflow editor!"
+  },
+  "node_logs": [],
+  "variables": {},
+  "visited_nodes": [
+    "node_1766264623958"
+  ],
+  "pending_nodes": [],
+  "created_at": "2025-12-20T21:15:42.898500",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": null,
+  "last_error": null
+}

@@ -681,7 +681,6 @@ export default function AdminUsersPage() {
               Cancel
             </Button>
             <Button onClick={() => {
-              console.log(`Suspend ${selectedUser?.email}: ${suspendReason}`);
               setIsSuspendDialogOpen(false);
               setSuspendReason("");
             }} className="bg-red-500/20 hover:bg-red-500/30 text-red-400">

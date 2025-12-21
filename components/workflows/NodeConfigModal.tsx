@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { 
   X, 
   Play, 
@@ -23,7 +23,8 @@ import {
   Calendar,
   FileText,
   Trash2,
-  Plus
+  Plus,
+  Braces
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { WorkflowNode, NodeCategory } from '@/lib/workflow/types';
 import { getNodeMapping } from '@/lib/workflow/utils/NodeMapping';
 import { getBrandLogo } from '@/lib/workflow/utils/BrandLogoMapping';
+import VariableReferencePicker from './VariableReferencePicker';
 
 interface NodeConfigModalProps {
   node: WorkflowNode | null;
@@ -44,6 +46,7 @@ interface NodeConfigModalProps {
   onSave: (nodeConfig: Record<string, any>) => void;
   onTest?: (testWorkflow: any, config: Record<string, any>) => Promise<any>;
   onDelete?: () => void;
+  workflowId?: string;
 }
 
 // Dynamic node categories from API
@@ -64,22 +67,48 @@ const getCategoryIcon = (category: string) => {
 };
 
 // Helper function to render dynamic form fields
-const renderDynamicField = (field: any, value: any, onChange: (newValue: any) => void) => {
+const renderDynamicField = (field: any, value: any, onChange: (newValue: any) => void, fieldName?: string) => {
   const { type, placeholder, options, validation } = field;
+  
+  // Function to open variable picker
+  const openVariablePicker = (fieldKey: string) => {
+    setVariablePickerField(fieldKey);
+    setShowVariablePicker(true);
+  };
+  
+  // Function to handle variable selection
+  const handleVariableSelect = (variablePath: string) => {
+    const newValue = value ? `${value}${variablePath}` : variablePath;
+    onChange(newValue);
+  };
   
   switch (type) {
     case 'text':
     case 'email':
     case 'url':
     case 'password':
+    case 'string':
       return (
-        <Input
-          type={type === 'password' ? 'password' : 'text'}
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="bg-zinc-800 border-zinc-700 text-white"
-        />
+        <div className="relative">
+          <Input
+            type={type === 'password' ? 'password' : 'text'}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="bg-zinc-800 border-zinc-700 text-white pr-10"
+          />
+          {fieldName && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-zinc-400 hover:text-white"
+              onClick={() => openVariablePicker(fieldName)}
+            >
+              <Braces className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
       );
       
     case 'textarea':
@@ -226,7 +255,8 @@ export default function NodeConfigModal({
   onClose, 
   onSave, 
   onTest, 
-  onDelete 
+  onDelete,
+  workflowId
 }: NodeConfigModalProps) {
   const [config, setConfig] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState<'config' | 'settings' | 'test'>('config');
@@ -236,6 +266,10 @@ export default function NodeConfigModal({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
+  const [showVariablePicker, setShowVariablePicker] = useState(false);
+  const [variablePickerField, setVariablePickerField] = useState('');
+  const [workflowData, setWorkflowData] = useState<{nodes: any[]; connections: any[]}>({nodes: [], connections: []});
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string>('');
   
   // Helpers for HTTP Request editor (Webhook/API)
   const addHeaderRow = () => {
@@ -303,6 +337,7 @@ export default function NodeConfigModal({
       setConfig(initial);
       setTestResult(null);
       loadNodeDefinition(node.type);
+      loadWorkflowData();
     }
   }, [node]);
   
@@ -349,6 +384,34 @@ export default function NodeConfigModal({
     }
   };
   
+  // Load workflow data for variable references
+  const loadWorkflowData = async () => {
+    try {
+      // Get workflow ID from URL or props
+      const urlParams = new URLSearchParams(window.location.search);
+      const workflowIdFromUrl = urlParams.get('workflowId') || workflowId || '';
+      
+      if (workflowIdFromUrl) {
+        setCurrentWorkflowId(workflowIdFromUrl);
+        
+        // Load workflow data
+        const response = await fetch(`/api/workflows/${workflowIdFromUrl}`);
+        const data = await response.json();
+        
+        if (data.success && data.workflow) {
+          setWorkflowData({
+            nodes: data.workflow.nodes || [],
+            connections: data.workflow.connections || []
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading workflow data:', error);
+      // Fallback to empty data
+      setWorkflowData({nodes: [], connections: []});
+    }
+  };
+
   // Load specific node definition
   const loadNodeDefinition = async (nodeType: string) => {
     setIsLoadingNodeData(true);
@@ -528,19 +591,34 @@ export default function NodeConfigModal({
     if (!field) {
       // Fallback to simple input for legacy nodes
       return (
-        <Input
-          value={config[key] || ''}
-          onChange={(e) => setConfig(prev => ({ ...prev, [key]: e.target.value }))}
-          placeholder={`Enter ${key}...`}
-          className="bg-zinc-900 border-zinc-700 text-white"
-        />
+        <div className="relative">
+          <Input
+            value={config[key] || ''}
+            onChange={(e) => setConfig(prev => ({ ...prev, [key]: e.target.value }))}
+            placeholder={`Enter ${key}...`}
+            className="bg-zinc-900 border-zinc-700 text-white pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-zinc-400 hover:text-white"
+            onClick={() => {
+              setVariablePickerField(key);
+              setShowVariablePicker(true);
+            }}
+          >
+            <Braces className="w-3 h-3" />
+          </Button>
+        </div>
       );
     }
     
     return renderDynamicField(
       field,
       config[key],
-      (newValue) => setConfig(prev => ({ ...prev, [key]: newValue }))
+      (newValue) => setConfig(prev => ({ ...prev, [key]: newValue })),
+      key
     );
   };
 
@@ -1338,6 +1416,24 @@ export default function NodeConfigModal({
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Variable Reference Picker */}
+      {showVariablePicker && node && (
+        <VariableReferencePicker
+          workflowNodes={workflowData.nodes}
+          workflowConnections={workflowData.connections}
+          currentNodeId={node.id}
+          workflowId={currentWorkflowId}
+          onSelect={(variablePath) => {
+            // Update the config with the selected variable
+            setConfig(prev => ({
+              ...prev,
+              [variablePickerField]: (prev[variablePickerField] || '') + variablePath
+            }));
+          }}
+          onClose={() => setShowVariablePicker(false)}
+        />
       )}
     </div>
   );

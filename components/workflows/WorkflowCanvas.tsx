@@ -111,7 +111,6 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       }
     },
     loadWorkflow: (data: { nodes: WorkflowNode[]; connections: Connection[] }) => {
-      console.log('📥 Loading workflow into canvas:', data);
       setNodes(data.nodes || []);
       setConnections(data.connections || []);
     },
@@ -209,14 +208,12 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         nodeType = nodeData.type;
         nodeName = nodeData.name;
         isStartNode = nodeData.category === 'Triggers' || false; // Check if it's from Triggers category
-        console.log('Dropped node data (JSON):', nodeData);
       } catch (e) {
         // If JSON parsing fails, treat as old format
         nodeType = jsonData;
         nodeName = jsonData;
         const nodeMapping = getNodeMapping(nodeType);
         isStartNode = nodeMapping?.category === 'trigger';
-        console.log('Dropped node type (legacy):', nodeType);
       }
     } else {
       // Fallback to plain text
@@ -225,7 +222,6 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       if (nodeType) {
         const nodeMapping = getNodeMapping(nodeType);
         isStartNode = nodeMapping?.category === 'trigger';
-        console.log('Dropped node type (text):', nodeType);
       }
     }
     
@@ -262,7 +258,6 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       })
     };
 
-    console.log('Adding new node:', newNode); // Debug log
     setNodes(prev => [...prev, newNode]);
     
     // Show modal for Custom fork nodes
@@ -930,7 +925,6 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         onTest={async (testWorkflow, config) => {
           // Execute single node test using the workflow engine
           try {
-            console.log('🧪 Testing node:', selectedNodeForConfig?.name, 'with config:', config);
             
             // Import the advanced workflow engine dynamically
             const { AdvancedWorkflowEngine } = await import('../../lib/workflow/engine/AdvancedWorkflowEngine');
@@ -954,7 +948,6 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
             };
             
           } catch (error) {
-            console.error('Node test failed:', error);
             return {
               success: false,
               error: error instanceof Error ? error.message : 'Test failed',

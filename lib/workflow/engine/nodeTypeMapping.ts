@@ -64,7 +64,8 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     sidebarType: 'Schedule',
     engineType: 'ScheduleTriggerNode',
     nodeClass: ScheduleTriggerNode,
-    category: 'trigger'
+    category: 'trigger',
+    aliases: ['Schedule Event']
   },
   {
     sidebarType: 'Webhook',

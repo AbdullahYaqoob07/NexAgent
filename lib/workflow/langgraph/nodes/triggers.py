@@ -65,9 +65,12 @@ class ScheduleTriggerExecutor(BaseNodeExecutor):
         workflow_data = self.context.global_config.get("workflow_data")
         workflow_id = self.context.global_config.get("workflow_id", "unknown")
         
-        # Register with scheduler if workflow data is available
+        # Register with scheduler if workflow data is available AND we're not already in a scheduled execution
         scheduler_job_id = None
-        if workflow_data:
+        # Check if we're already in a scheduled execution (prevent recursive job registration)
+        is_scheduled_execution = self.context.global_config.get("_is_scheduled_execution", False)
+        
+        if workflow_data and not is_scheduled_execution:
             from ..scheduler import get_scheduler
             scheduler = get_scheduler()
             
@@ -91,6 +94,9 @@ class ScheduleTriggerExecutor(BaseNodeExecutor):
             
             # Store job_id in context for later reference
             self.context.global_config["scheduler_job_id"] = scheduler_job_id
+        elif is_scheduled_execution:
+            # Get existing job ID if we're in a scheduled execution
+            scheduler_job_id = self.context.global_config.get("scheduler_job_id")
         
         return {
             "triggered": True,

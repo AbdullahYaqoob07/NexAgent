@@ -210,6 +210,10 @@ class WorkflowOrchestrator:
         state["global_config"]["workflow_data"] = workflow_data
         state["global_config"]["workflow_id"] = workflow_data.get("id", "unknown")
         
+        # Preserve scheduled execution flag if present
+        if "global_config" in workflow_data and "_is_scheduled_execution" in workflow_data["global_config"]:
+            state["global_config"]["_is_scheduled_execution"] = workflow_data["global_config"]["_is_scheduled_execution"]
+        
         # Update workflow status
         state["workflow_status"] = "running"
         state["started_at"] = datetime.utcnow().isoformat()

@@ -40,10 +40,8 @@ export async function GET(request: NextRequest) {
 
     // Auto-seed default nodes if database is empty
     if (result.success && result.data.length === 0) {
-      console.log('🌱 Database is empty, auto-seeding default nodes...');
       try {
         await seedAllNodes();
-        console.log('🌱 Seeding completed, fetching updated results...');
         
         // Fetch again after seeding
         const seededResult = await nodeDefinitionsService.getAll({

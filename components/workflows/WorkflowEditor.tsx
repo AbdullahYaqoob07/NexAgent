@@ -229,7 +229,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       
       const hasScheduleNode = workflowData.nodes.some((n: any) => {
         const nodeType = n.type || n.data?.type || '';
-        return nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode';
+        return nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent';
       });
       
       // If no schedule node but scheduler is running, stop it
@@ -655,7 +655,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       workflow.nodes = workflow.nodes.map((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
         // Check if this is a Schedule node
-        const isSchedule = nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' ||
+        const isSchedule = nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent' ||
           (getNodeMapping(nodeType)?.engineType === 'ScheduleTriggerNode' || 
            getNodeMapping(nodeType)?.sidebarType === 'Schedule');
         
@@ -674,12 +674,16 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       const hasScheduleNode = workflow.nodes.some((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
         // Direct type check
-        if (nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode') {
+        if (nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent') {
           return true;
         }
         // Check via node mapping
         const mapping = getNodeMapping(nodeType);
         if (mapping && (mapping.engineType === 'ScheduleTriggerNode' || mapping.sidebarType === 'Schedule')) {
+          return true;
+        }
+        // Also check for ScheduleEvent
+        if (nodeType === 'ScheduleEvent') {
           return true;
         }
         return false;

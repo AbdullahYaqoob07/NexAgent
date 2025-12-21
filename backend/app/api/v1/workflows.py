@@ -560,16 +560,21 @@ async def execute_workflow(
             connections.append(connection)
         
         workflow_data = {
-            "id": workflow["id"],
+            "id": workflow_id,
             "name": workflow["name"],
             "nodes": workflow.get("nodes", []),
             "connections": connections,
             "config": request.config or workflow.get("config", {})
         }
+                
+        # Log workflow data for debugging
+        logger.info(f"Prepared workflow data for scheduler - Nodes: {len(workflow_data.get('nodes', []))}, Connections: {len(workflow_data.get('connections', []))}")
+        for i, node in enumerate(workflow_data.get('nodes', [])):
+            logger.info(f"Node {i}: {node.get('type', 'unknown')} - {node.get('name', 'unnamed')}")
         
         # Check if this workflow has a Schedule node - if so, register with scheduler
         schedule_nodes = [n for n in workflow_data.get("nodes", []) 
-                         if n.get("type") in ["Schedule", "ScheduleTriggerNode"]]
+                         if n.get("type") in ["Schedule", "ScheduleTriggerNode", "ScheduleEvent"]]
         
         if schedule_nodes and len(schedule_nodes) > 0:
             # This is a scheduled workflow - register with scheduler instead of executing immediately
@@ -646,6 +651,7 @@ async def execute_workflow(
                 
                 try:
                     logger.info(f"Registering scheduler job for workflow {workflow_id} with cron: {cron}")
+                    logger.info(f"Workflow data keys: {list(workflow_data.keys()) if workflow_data else 'None'}")
                     job_id = scheduler.register_job(
                         workflow_id=workflow_id,
                         workflow_data=workflow_data,
@@ -659,6 +665,13 @@ async def execute_workflow(
                     logger.info(f"Starting scheduler for job: {job_id}")
                     await scheduler.start_scheduler(job_id)
                     logger.info(f"Scheduler started successfully for job: {job_id}")
+                    
+                    # Verify job is running
+                    job = scheduler.get_job(job_id)
+                    if job:
+                        logger.info(f"Job {job_id} status after start: {job.status}")
+                    else:
+                        logger.error(f"Job {job_id} not found after registration")
                     
                     job = scheduler.get_job(job_id)
                     if not job:

@@ -1,0 +1,111 @@
+{
+  "id": "date-formatter-test-workflow",
+  "name": "Date Formatter Test Workflow",
+  "description": "Tests the Date Formatter node with various date formats",
+  "nodes": [
+    {
+      "id": "manual_trigger",
+      "type": "On Clicking Execute",
+      "name": "Start Date Test",
+      "category": "Triggers",
+      "position": {"x": 100, "y": 300},
+      "config": {},
+      "inputs": [],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "http_request_dates",
+      "type": "HTTP Request",
+      "name": "Get Post with Dates",
+      "category": "Actions",
+      "position": {"x": 300, "y": 300},
+      "config": {
+        "url": "https://jsonplaceholder.typicode.com/posts/1",
+        "method": "GET"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "current_timestamp",
+      "type": "Variable Setter",
+      "name": "Set Current Time",
+      "category": "Actions",
+      "position": {"x": 500, "y": 250},
+      "config": {
+        "variableName": "currentTime",
+        "valueSource": "config",
+        "variableValue": "{{new Date().toISOString()}}"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    },
+    {
+      "id": "date_formatter",
+      "type": "Date Formatter",
+      "name": "Format Current Date",
+      "category": "Data",
+      "position": {"x": 500, "y": 350},
+      "config": {
+        "inputField": "currentTime",
+        "outputFormat": "MMMM Do YYYY, h:mm:ss a"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": true}],
+      "outputs": [
+        {"id": "output", "name": "Output", "type": "any", "required": true}
+      ],
+      "enabled": true
+    },
+    {
+      "id": "log_results",
+      "type": "Logger",
+      "name": "Log Formatted Date",
+      "category": "Actions",
+      "position": {"x": 700, "y": 300},
+      "config": {
+        "logLevel": "info",
+        "message": "Formatted date result:"
+      },
+      "inputs": [{"id": "input", "name": "Input", "type": "any", "required": false}],
+      "outputs": [{"id": "output", "name": "Output", "type": "any", "required": true}],
+      "enabled": true
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn_1",
+      "sourceNodeId": "manual_trigger",
+      "targetNodeId": "http_request_dates",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_2",
+      "sourceNodeId": "http_request_dates",
+      "targetNodeId": "current_timestamp",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_3",
+      "sourceNodeId": "current_timestamp",
+      "targetNodeId": "date_formatter",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    },
+    {
+      "id": "conn_4",
+      "sourceNodeId": "date_formatter",
+      "targetNodeId": "log_results",
+      "sourcePortId": "output",
+      "targetPortId": "input",
+      "enabled": true
+    }
+  ]
+}

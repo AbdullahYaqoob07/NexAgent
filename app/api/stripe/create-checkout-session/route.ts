@@ -6,8 +6,6 @@ export async function POST(request: NextRequest) {
     // Initialize Stripe inside the handler
     const secretKey = process.env.STRIPE_SECRET_KEY;
     
-    console.log('Stripe Secret Key exists:', !!secretKey);
-    console.log('Stripe Secret Key length:', secretKey?.length);
     
     if (!secretKey) {
       console.error('STRIPE_SECRET_KEY is not set');
@@ -23,7 +21,6 @@ export async function POST(request: NextRequest) {
 
     const { nexaId, nexaName, price } = await request.json();
 
-    console.log('Creating Stripe session for:', { nexaId, nexaName, price });
 
     // Validate price
     if (!price || price <= 0) {

@@ -181,6 +181,93 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
   },
 
   {
+    name: 'Schedule Event',
+    type: 'ScheduleEvent',
+    category: 'Triggers',
+    version: '1.0.0',
+    description: 'Trigger workflow on a schedule using cron expressions',
+    icon: '📅',
+    color: '#9C27B0',
+    tags: ['trigger', 'cron', 'schedule', 'event'],
+    trigger: {
+      type: 'schedule'
+    },
+    isStartNode: true,
+    isEndNode: false,
+    fields: [
+      {
+        key: 'cron',
+        label: 'Cron Expression',
+        type: 'text',
+        required: true,
+        placeholder: '0 */1 * * * *',
+        description: 'Cron schedule expression (6 fields: second minute hour day month weekday)',
+        order: 0
+      },
+      {
+        key: 'timezone',
+        label: 'Timezone',
+        type: 'select',
+        required: false,
+        description: 'Timezone for the schedule',
+        options: [
+          { label: 'UTC', value: 'UTC' },
+          { label: 'America/New_York', value: 'America/New_York' },
+          { label: 'America/Los_Angeles', value: 'America/Los_Angeles' },
+          { label: 'Europe/London', value: 'Europe/London' },
+          { label: 'Asia/Tokyo', value: 'Asia/Tokyo' },
+          { label: 'Asia/Kolkata', value: 'Asia/Kolkata' }
+        ],
+        defaultValue: 'UTC',
+        order: 1
+      }
+    ],
+    outputs: [
+      {
+        key: 'scheduledTime',
+        label: 'Scheduled Time',
+        type: 'string',
+        description: 'Time the schedule triggered'
+      },
+      {
+        key: 'cronExpression',
+        label: 'Cron Expression',
+        type: 'string',
+        description: 'The cron expression used'
+      }
+    ],
+    examples: [
+      {
+        name: 'Every minute',
+        description: 'Run every minute',
+        config: { cron: '0 */1 * * * *' }
+      },
+      {
+        name: 'Every 5 minutes',
+        description: 'Run every 5 minutes',
+        config: { cron: '0 */5 * * * *' }
+      },
+      {
+        name: 'Daily at 9 AM',
+        description: 'Run daily at 9 AM UTC',
+        config: { cron: '0 0 9 * * *' }
+      }
+    ],
+    implementation: {
+      type: 'javascript',
+      code: `
+        return { 
+          scheduledTime: new Date().toISOString(),
+          cronExpression: config.cron
+        };
+      `
+    },
+    createdBy: 'system',
+    isActive: true,
+    isPublic: true
+  },
+
+  {
     name: 'Webhook',
     type: 'Webhook',
     category: 'Triggers',
@@ -2618,7 +2705,7 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
     isEndNode: false,
     fields: [
       {
-        key: 'inputField',
+        key: 'input_field',
         label: 'Input Field',
         type: 'string',
         description: 'Field from input data to manipulate (leave empty for direct input)',
@@ -2747,7 +2834,7 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
     isEndNode: false,
     fields: [
       {
-        key: 'inputField',
+        key: 'input_field',
         label: 'Input Field',
         type: 'string',
         description: 'Field from input data to format (leave empty for direct input)',
@@ -2903,7 +2990,7 @@ export const seedNodes: Omit<NodeDefinition, 'id' | 'createdAt' | 'updatedAt'>[]
     isEndNode: false,
     fields: [
       {
-        key: 'inputField',
+        key: 'input_field',
         label: 'Input Field',
         type: 'string',
         description: 'Field from input data containing the date (leave empty for direct input)',

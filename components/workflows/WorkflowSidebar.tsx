@@ -60,7 +60,6 @@ const CATEGORY_MAPPING = {
 
 // Convert Firebase node definitions to sidebar categories
 const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] => {
-  console.log('🔄 Converting node definitions to categories. Input:', nodeDefinitions.length, 'nodes');
   
   // Group nodes by category
   const categoryMap = new Map<string, Array<{
@@ -82,14 +81,6 @@ const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] =>
     }
     
     // Log first node to see icon data
-    if (nodeDefinitions.indexOf(node) === 0) {
-      console.log('📌 Sample node data:', {
-        name: node.name,
-        type: node.type,
-        icon: node.icon,
-        category: node.category
-      });
-    }
     
     // Use backend icon emoji if available, otherwise use brand logo
     const iconDisplay = node.icon ? (
@@ -169,21 +160,15 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
         setIsLoading(true);
         setError(null);
         
-        console.log('🚀 Fetching nodes from /api/admin/nodes...');
         const response = await fetch('/api/admin/nodes');
-        console.log('🚀 Response status:', response.status, response.statusText);
         
         if (!response.ok) {
           throw new Error(`Failed to fetch nodes: ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log('✅ Sidebar received data:', data);
-        console.log('✅ Number of nodes:', data.nodes?.length || 0);
-        console.log('✅ First 3 nodes:', data.nodes?.slice(0, 3));
         
         const nodes = data.nodes || data.data || [];
-        console.log('✅ Setting nodeDefinitions with', nodes.length, 'nodes');
         setNodeDefinitions(nodes);
       } catch (err) {
         console.error('Error fetching node definitions:', err);
@@ -197,9 +182,7 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
   }, []);
 
   // Generate node categories from fetched data
-  console.log('🔄 Converting', nodeDefinitions.length, 'node definitions to categories...');
   const nodeCategories = getNodeCategories(nodeDefinitions);
-  console.log('🔄 Generated', nodeCategories.length, 'categories:', nodeCategories.map(c => `${c.name}(${c.nodes.length})`).join(', '));
 
   // Add CSS animation keyframes
   useEffect(() => {
@@ -293,7 +276,6 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
       return;
     }
     
-    console.log('Starting drag for:', node.name, 'type:', node.type);
     
     // Pass both display name and node type for proper handling
     event.dataTransfer.setData("application/reactflow", JSON.stringify({
