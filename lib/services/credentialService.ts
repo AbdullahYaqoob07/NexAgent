@@ -20,6 +20,7 @@ import {
   ApiKeyCredential 
 } from '@/lib/schemas/credential';
 import { encrypt, decrypt } from '@/lib/utils/encryption';
+import auditAdminService from '@/lib/api/audit-admin';
 
 const COLLECTION_NAME = 'credentials';
 
@@ -121,6 +122,40 @@ const convertTimestamps = (data: any): any => {
   return converted;
 };
 
+// Log audit event for credential operations
+const logCredentialAudit = async (
+  userId: string,
+  action: string,
+  credentialId: string,
+  credentialName: string,
+  platform: string,
+  ipAddress?: string,
+  userAgent?: string,
+  additionalData?: any
+) => {
+  try {
+    const auditData = {
+      action: `credential_${action.toLowerCase()}`,
+      userId,
+      resourceType: 'credential',
+      resourceId: credentialId,
+      details: {
+        credentialName,
+        platform,
+        ...additionalData
+      },
+      ipAddress,
+      userAgent,
+      severity: 'info',
+      success: true
+    };
+    
+    await auditAdminService.createAuditLog(auditData);
+  } catch (error) {
+    console.error('Failed to log credential audit event:', error);
+  }
+};
+
 export const credentialService = {
   // Create a new credential
   async create(userId: string, credentialData: CreateCredential): Promise<ServiceResponse<Credential>> {
@@ -154,6 +189,15 @@ export const credentialService = {
       // Return the created credential with decrypted data for immediate use
       const decryptedCredential = decryptCredentialData(validatedCredential);
       const result = { ...decryptedCredential, id: docRef.id };
+      
+      // Log audit event
+      await logCredentialAudit(
+        userId,
+        'created',
+        docRef.id,
+        credentialWithMetadata.name,
+        credentialWithMetadata.platform
+      );
       
       return {
         success: true,
@@ -274,6 +318,17 @@ export const credentialService = {
       const docRef = doc(db, COLLECTION_NAME, credentialId);
       await updateDoc(docRef, updateData);
       
+      // Log audit event
+      if (existing.success && existing.data) {
+        await logCredentialAudit(
+          userId,
+          'updated',
+          credentialId,
+          existing.data.name,
+          existing.data.platform
+        );
+      }
+      
       // Return updated credential
       return await this.getById(userId, credentialId);
     } catch (error) {
@@ -302,6 +357,17 @@ export const credentialService = {
         isActive: false,
         updatedAt: Timestamp.fromDate(new Date()),
       });
+      
+      // Log audit event
+      if (existing.success && existing.data) {
+        await logCredentialAudit(
+          userId,
+          'deleted',
+          credentialId,
+          existing.data.name,
+          existing.data.platform
+        );
+      }
       
       return {
         success: true,
@@ -333,6 +399,20 @@ export const credentialService = {
         lastUsed: Timestamp.fromDate(new Date()),
         updatedAt: Timestamp.fromDate(new Date()),
       });
+      
+      // Log audit event for credential usage
+      if (existing.success && existing.data) {
+        await logCredentialAudit(
+          userId,
+          'used',
+          credentialId,
+          existing.data.name,
+          existing.data.platform,
+          undefined,
+          undefined,
+          { usageType: 'workflow_execution' }
+        );
+      }
       
       return {
         success: true,
