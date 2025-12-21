@@ -4,14 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, Settings } from "lucide-react";
-import {
-  Menu,
-  X,
-  ChevronRight,
-} from "lucide-react";
+import { LogOut, User as UserIcon, Settings, AlertTriangle, MailCheck, X, Menu, ChevronRight } from "lucide-react";
 import Image from "next/image";
 
 interface DashboardLayoutProps {
@@ -35,8 +31,11 @@ const sidebarItems = [
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showVerificationBanner, setShowVerificationBanner] = useState(true);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const pathname = usePathname();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, sendVerificationEmail } = useAuth();
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -76,6 +75,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       return user.displayName.split(' ').map(n => n[0]).join('').toUpperCase();
     }
     return user.email?.charAt(0).toUpperCase() || 'U';
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendSuccess(false);
+    try {
+      await sendVerificationEmail();
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    } catch (error) {
+      console.error('Failed to resend verification email:', error);
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -237,6 +250,60 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           </div>
         </header>
+
+        {/* Email Verification Banner */}
+        {user && !user.emailVerified && showVerificationBanner && (
+          <div className="sticky top-[73px] z-10 bg-amber-500/10 border-b border-amber-500/20 backdrop-blur-sm">
+            <div className="px-4 lg:px-8 py-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-400 mb-1">
+                      Please verify your email address
+                    </p>
+                    <p className="text-xs text-amber-300/80">
+                      We've sent a verification link to <span className="font-semibold">{user.email}</span>. 
+                      Please check your inbox and click the link to verify your account.
+                    </p>
+                    {resendSuccess && (
+                      <p className="text-xs text-green-400 mt-2">
+                        ✓ Verification email sent successfully!
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    variant="outline"
+                    size="sm"
+                    className="bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500/50 text-xs h-8"
+                  >
+                    {resendLoading ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-amber-400/20 border-t-amber-400 rounded-full animate-spin mr-2" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <MailCheck className="w-3 h-3 mr-1.5" />
+                        Resend
+                      </>
+                    )}
+                  </Button>
+                  <button
+                    onClick={() => setShowVerificationBanner(false)}
+                    className="text-amber-400/60 hover:text-amber-400 transition-colors p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Page Content */}
         <main className="flex-1 relative z-10">{children}</main>

@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Mail, ArrowLeft, ArrowRight, Star, Check } from 'lucide-react';
+import { AlertCircle, Mail, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -140,7 +140,7 @@ export default function ResetPasswordPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-6"
+          className="text-center mb-4"
         >
           <Link href="/" className="inline-block">
             <Image
@@ -148,23 +148,10 @@ export default function ResetPasswordPage() {
               alt="NexAgent Logo"
               width={140}
               height={42}
-              className="h-10 w-auto mx-auto mb-3"
+              className="h-10 w-auto mx-auto mb-2"
               priority
             />
           </Link>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FF6900]/20 to-[#FF6900]/10 border border-[#FF6900]/30 rounded-full px-3 py-1 backdrop-blur-sm"
-          >
-            <div className="flex items-center gap-1">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="w-2.5 h-2.5 fill-[#FF6900] text-[#FF6900]" />
-              ))}
-            </div>
-            <span className="text-xs text-white/90 font-medium">Secure & trusted</span>
-          </motion.div>
         </motion.div>
 
         {/* Compact Premium Auth Card */}
@@ -177,14 +164,14 @@ export default function ResetPasswordPage() {
           {/* Gradient top border */}
           <div className="h-0.5 bg-gradient-to-r from-[#FF6900] to-[#FF8555]" />
           
-          <div className="p-6">
+          <div className="p-5">
             {/* Compact Header */}
-            <div className="text-center mb-6">
+            <div className="text-center mb-4">
               <motion.h1 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
-                className="text-2xl font-bold text-white mb-2"
+                className="text-xl font-bold text-white mb-1"
                 style={{ fontFamily: 'Poppins, sans-serif' }}
               >
                 Reset Password
@@ -193,7 +180,7 @@ export default function ResetPasswordPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
-                className="text-white/70 text-sm"
+                className="text-white/70 text-xs"
                 style={{ fontFamily: 'Poppins, sans-serif' }}
               >
                 Enter your email for a secure reset link
@@ -205,20 +192,20 @@ export default function ResetPasswordPage() {
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="flex items-center space-x-2 text-red-400 bg-red-400/10 border border-red-400/20 p-3 rounded-lg mb-4"
+                className="flex items-center space-x-2 text-red-400 bg-red-400/10 border border-red-400/20 p-2 rounded-lg mb-3"
               >
-                <AlertCircle size={16} className="flex-shrink-0" />
+                <AlertCircle size={14} className="flex-shrink-0" />
                 <span className="text-xs font-medium">{error}</span>
               </motion.div>
             )}
 
             {/* Compact Form */}
-            <form onSubmit={handleResetPassword} className="space-y-4">
+            <form onSubmit={handleResetPassword} className="space-y-3">
               <motion.div 
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
-                className="space-y-1.5"
+                className="space-y-1"
               >
                 <Label htmlFor="email" className="text-white font-medium text-xs" style={{ fontFamily: 'Poppins, sans-serif' }}>Email Address</Label>
                 <div className="relative group">
@@ -229,7 +216,7 @@ export default function ResetPasswordPage() {
                     placeholder="Enter your registered email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-11 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:border-[#FF6900] focus:bg-white/10 transition-all text-sm"
+                    className="pl-10 h-9 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/40 focus:border-[#FF6900] focus:bg-white/10 transition-all text-sm"
                     style={{ fontFamily: 'Poppins, sans-serif' }}
                     required
                   />
@@ -237,14 +224,15 @@ export default function ResetPasswordPage() {
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
+                className="pt-1"
               >
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-11 bg-gradient-to-r from-[#FF6900] to-[#FF8555] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full h-10 bg-[#FF6900] hover:bg-[#E55D00] hover:from-[#E55D00] hover:to-[#E66A33] text-white font-bold text-sm rounded-lg shadow-lg shadow-[#FF6900]/25 hover:shadow-[#FF6900]/40 transition-all duration-300 flex items-center justify-center gap-2"
                   style={{ fontFamily: 'Poppins, sans-serif' }}
                 >
                   {loading ? (
@@ -264,10 +252,10 @@ export default function ResetPasswordPage() {
 
             {/* Compact Sign In Link */}
             <motion.div 
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.9 }}
-              className="text-center mt-5 text-white/70 text-sm"
+              className="text-center mt-4 text-white/70 text-sm"
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
               Remember your password?{' '}
@@ -278,26 +266,6 @@ export default function ResetPasswordPage() {
                 Sign in here
               </Link>
             </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Compact Trust Indicators */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 1.0 }}
-          className="text-center mt-4 text-white/60 text-xs"
-          style={{ fontFamily: 'Poppins, sans-serif' }}
-        >
-          <div className="flex items-center justify-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-[#FF6900] rounded-full" />
-              Secure Recovery
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 bg-[#FF6900] rounded-full" />
-              Encrypted Process
-            </div>
           </div>
         </motion.div>
       </div>
