@@ -29,8 +29,21 @@ export function WorkflowWalkthrough({ steps, onComplete, onSkip }: WorkflowWalkt
 
   const updateHighlightPosition = () => {
     const step = steps[currentStep];
-    if (!step?.targetRef.current) {
-      setHighlightPosition(null);
+    if (!step?.targetRef?.current) {
+      // Try again in a moment if element is not ready
+      setTimeout(() => {
+        if (step?.targetRef?.current) {
+          const element = step.targetRef.current;
+          const rect = element.getBoundingClientRect();
+          
+          setHighlightPosition({
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          });
+        }
+      }, 50);
       return;
     }
 
@@ -46,7 +59,10 @@ export function WorkflowWalkthrough({ steps, onComplete, onSkip }: WorkflowWalkt
   };
 
   useEffect(() => {
-    updateHighlightPosition();
+    // Add a small delay to ensure DOM elements are fully rendered
+    const timer = setTimeout(() => {
+      updateHighlightPosition();
+    }, 50);
     
     const handleResize = () => updateHighlightPosition();
     const handleScroll = () => updateHighlightPosition();
@@ -58,6 +74,7 @@ export function WorkflowWalkthrough({ steps, onComplete, onSkip }: WorkflowWalkt
     const interval = setInterval(updateHighlightPosition, 100);
     
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll, true);
       clearInterval(interval);
@@ -81,6 +98,14 @@ export function WorkflowWalkthrough({ steps, onComplete, onSkip }: WorkflowWalkt
   const currentStepData = steps[currentStep];
 
   if (!currentStepData) return null;
+
+  // Force re-render if highlight position is not set after a delay
+  useEffect(() => {
+    if (!highlightPosition && steps[currentStep]?.targetRef?.current) {
+      const timer = setTimeout(updateHighlightPosition, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightPosition, currentStep, steps]);
 
   return (
     <>
@@ -158,15 +183,18 @@ export function WorkflowWalkthrough({ steps, onComplete, onSkip }: WorkflowWalkt
       )}
 
       {/* Info Card - Always visible */}
-      {highlightPosition && (
+      {(highlightPosition || steps[currentStep]?.targetRef?.current) && (
         <div
           className="fixed z-[10000] bg-zinc-900 border-2 border-[#FF6900] rounded-xl shadow-2xl p-6 w-full max-w-md pointer-events-auto"
           style={{
-            top: highlightPosition.top + highlightPosition.height + 20 > window.innerHeight - 350
-              ? highlightPosition.top - 350 // Show above if not enough space below
-              : highlightPosition.top + highlightPosition.height + 20,
-            left: Math.max(20, Math.min(highlightPosition.left, window.innerWidth - 440)),
+            top: highlightPosition ? 
+              (highlightPosition.top + highlightPosition.height + 20 > window.innerHeight - 350
+                ? Math.max(20, highlightPosition.top - 350) // Show above if not enough space below
+                : Math.max(20, highlightPosition.top + highlightPosition.height + 20))
+              : 100, // Fallback position if highlightPosition is null
+            left: highlightPosition ? Math.max(20, Math.min(highlightPosition.left, window.innerWidth - 440)) : '50%',
             right: 'auto',
+            transform: highlightPosition ? 'none' : 'translateX(-50%)', // Center horizontally if using fallback
           }}
         >
           {/* Header */}
