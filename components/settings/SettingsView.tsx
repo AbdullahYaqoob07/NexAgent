@@ -1484,30 +1484,6 @@ function AdvancedTab({
           </div>
         </div>
       </div>
-
-      {/* MFA Setup Dialog - Always render, control visibility with open prop */}
-      <MFASetup
-        key={`mfa-setup-${mfaSetupOpen}`}
-        open={mfaSetupOpen}
-        onClose={() => {
-          setMfaSetupOpen(false);
-          // Refresh profile data to get updated MFA status
-          if (profileData) {
-            setMfaEnabled(profileData.security?.twoFactorEnabled ?? false);
-          }
-        }}
-        onComplete={async () => {
-          // MFA is already enabled in backend after verification
-          // Refresh profile to get updated state
-          if (refreshProfile) {
-            refreshProfile();
-          }
-          // Update state immediately and let useEffect sync with profileData
-          setMfaEnabled(true);
-          setMfaSetupOpen(false);
-          addToast('2FA enabled successfully', 'success');
-        }}
-      />
     </div>
   );
 }
