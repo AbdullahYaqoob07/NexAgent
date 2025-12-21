@@ -20,7 +20,13 @@ class FirebaseService:
                 # Get credentials from environment
                 firebase_creds = get_firebase_credentials()
                 cred = credentials.Certificate(firebase_creds)
-                self.app = firebase_admin.initialize_app(cred)
+                
+                # Initialize app with storage bucket if available
+                firebase_options = {}
+                if hasattr(settings, 'FIREBASE_STORAGE_BUCKET') and settings.FIREBASE_STORAGE_BUCKET:
+                    firebase_options['storageBucket'] = settings.FIREBASE_STORAGE_BUCKET
+                
+                self.app = firebase_admin.initialize_app(cred, firebase_options)
                 logger.info("Firebase Admin SDK initialized successfully")
             else:
                 self.app = firebase_admin.get_app()

@@ -5,7 +5,7 @@ Backup API endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Dict, Any, List
 from app.services.backup_service import backup_service
-from app.core.auth_dependency import get_current_user_dependency
+from app.core.auth_dependency import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/backup", tags=["backup"])
 
 
 @router.post("/create", response_model=Dict[str, Any])
-async def create_backup(current_user: dict = Depends(get_current_user_dependency)):
+async def create_backup(current_user: dict = Depends(get_current_user)):
     """
     Manually trigger a backup for the current user
     """
@@ -46,7 +46,7 @@ async def create_backup(current_user: dict = Depends(get_current_user_dependency
 @router.get("/history", response_model=Dict[str, Any])
 async def get_backup_history(
     limit: int = 10,
-    current_user: dict = Depends(get_current_user_dependency)
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Get backup history for the current user
@@ -69,7 +69,7 @@ async def get_backup_history(
 
 
 @router.get("/settings", response_model=Dict[str, Any])
-async def get_backup_settings(current_user: dict = Depends(get_current_user_dependency)):
+async def get_backup_settings(current_user: dict = Depends(get_current_user)):
     """
     Get backup settings for the current user
     """
@@ -93,7 +93,7 @@ async def get_backup_settings(current_user: dict = Depends(get_current_user_depe
 async def update_backup_settings(
     backup_enabled: bool = None,
     backup_frequency: str = None,
-    current_user: dict = Depends(get_current_user_dependency)
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Update backup settings for the current user

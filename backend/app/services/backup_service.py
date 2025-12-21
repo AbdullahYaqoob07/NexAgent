@@ -17,6 +17,7 @@ class BackupService:
     def __init__(self):
         self.db = firestore.client()
         try:
+            # Try to get the default bucket, but don't fail if not configured
             self.bucket = storage.bucket()
         except Exception as e:
             logger.warning(f"Firebase Storage bucket not initialized: {str(e)}")
