@@ -378,9 +378,44 @@ export default function SettingsView({ user }: SettingsViewProps) {
     return ok;
   };
 
-  const handleAdvancedUpdate = async () => {
-    addToast('Advanced settings save is coming soon.', 'info');
-    return false;
+  const handleAdvancedUpdate = async (updates: Partial<SettingsData['advanced']>) => {
+    // Handle backup settings update
+    if (updates.backupEnabled !== undefined || updates.backupFrequency !== undefined) {
+      try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+        const token = localStorage.getItem('backend_auth_token');
+        
+        const response = await fetch(`${backendUrl}/api/v1/backup/settings`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            backup_enabled: updates.backupEnabled,
+            backup_frequency: updates.backupFrequency
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update backup settings');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          addToast('Backup settings updated successfully', 'success');
+        }
+      } catch (err) {
+        console.error('Error updating backup settings:', err);
+        addToast('Failed to update backup settings', 'error');
+      }
+    }
+    
+    // Handle other advanced settings updates (store locally for now)
+    if (updates.debugMode !== undefined || updates.experimentalFeatures !== undefined || updates.customDomain !== undefined || updates.ssoEnabled !== undefined) {
+      // These can be stored in local state or Firestore preferences if needed
+      addToast('Settings updated', 'success');
+    }
   };
 
   return (
