@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useUserProfile } from '@/lib/useUserProfile';
+import { MFASetup } from '@/components/mfa/MFASetup';
 import { 
   Settings,
   Building2,
@@ -164,8 +165,18 @@ interface SettingsViewProps {
 }
 
 export default function SettingsView({ user }: SettingsViewProps) {
-  const { profileData, loading, updateWorkspace, updateAPIKey, removeAPIKey, updateIntegration, updatePreferences, updateSecurity } = useUserProfile();
+  const { profileData, loading, updateWorkspace, updateAPIKey, removeAPIKey, updateIntegration, updatePreferences, updateSecurity, refreshProfile } = useUserProfile();
   const [toasts, setToasts] = useState<Array<{id: string, message: string, type: 'success' | 'error' | 'info'}>>([]);
+  const [activeTab, setActiveTab] = useState<'workspace' | 'integrations' | 'team' | 'security' | 'notifications' | 'advanced'>('workspace');
+  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
+  // MFA setup state - must be before early return
+  const [mfaSetupOpen, setMfaSetupOpen] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+
+  useEffect(() => {
+    setMfaEnabled(profileData?.security?.twoFactorEnabled ?? false);
+  }, [profileData]);
+
   
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now().toString();
@@ -174,9 +185,6 @@ export default function SettingsView({ user }: SettingsViewProps) {
       setToasts(prev => prev.filter(toast => toast.id !== id));
     }, 3000);
   };
-
-  const [activeTab, setActiveTab] = useState<'workspace' | 'integrations' | 'team' | 'security' | 'notifications' | 'advanced'>('workspace');
-  const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set());
 
   // Show loading state
   if (loading) {
@@ -301,9 +309,35 @@ export default function SettingsView({ user }: SettingsViewProps) {
   const handleSecurityUpdate = async (updates: Partial<SettingsData['security']>) => {
     let ok = true;
     if (Object.prototype.hasOwnProperty.call(updates, 'twoFactorRequired')) {
-      const res = await updateSecurity({ twoFactorEnabled: !!updates.twoFactorRequired });
-      ok = !!res && ok;
-      addToast(`2FA ${updates.twoFactorRequired ? 'enabled' : 'disabled'}`, res ? 'success' : 'error');
+      if (updates.twoFactorRequired && !mfaEnabled) {
+        // Open MFA setup dialog
+        setMfaSetupOpen(true);
+      } else if (!updates.twoFactorRequired && mfaEnabled) {
+        // Disable MFA
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+          const token = localStorage.getItem('backend_auth_token');
+          
+          const response = await fetch(`${backendUrl}/api/v1/auth/mfa/disable`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            await updateSecurity({ twoFactorEnabled: false });
+            setMfaEnabled(false);
+            addToast('2FA disabled', 'success');
+          } else {
+            throw new Error('Failed to disable MFA');
+          }
+        } catch (err) {
+          addToast('Failed to disable 2FA', 'error');
+          ok = false;
+        }
+      }
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'auditLogging')) {
       const res = await updateWorkspace({ enableAnalytics: !!updates.auditLogging });
@@ -432,6 +466,10 @@ export default function SettingsView({ user }: SettingsViewProps) {
             settings={settings.security}
             onUpdate={handleSecurityUpdate}
             addToast={addToast}
+            mfaEnabled={mfaEnabled}
+            onMfaSetupOpen={() => {
+              setMfaSetupOpen(true);
+            }}
           />
         )}
         
@@ -472,6 +510,30 @@ export default function SettingsView({ user }: SettingsViewProps) {
           </div>
         ))}
       </div>
+
+      {/* MFA Setup Dialog - Always render, control visibility with open prop */}
+      <MFASetup
+        key={`mfa-setup-${mfaSetupOpen}`}
+        open={mfaSetupOpen}
+        onClose={() => {
+          setMfaSetupOpen(false);
+          // Refresh profile data to get updated MFA status
+          if (profileData) {
+            setMfaEnabled(profileData.security?.twoFactorEnabled ?? false);
+          }
+        }}
+        onComplete={async () => {
+          // MFA is already enabled in backend after verification
+          // Refresh profile to get updated state
+          if (refreshProfile) {
+            refreshProfile();
+          }
+          // Update state immediately and let useEffect sync with profileData
+          setMfaEnabled(true);
+          setMfaSetupOpen(false);
+          addToast('2FA enabled successfully', 'success');
+        }}
+      />
     </div>
   );
 }
@@ -963,11 +1025,15 @@ function TeamTab({
 function SecurityTab({ 
   settings, 
   onUpdate, 
-  addToast 
+  addToast,
+  mfaEnabled,
+  onMfaSetupOpen
 }: { 
   settings: SettingsData['security'];
   onUpdate: (updates: Partial<SettingsData['security']>) => void;
   addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  mfaEnabled: boolean;
+  onMfaSetupOpen: () => void;
 }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -975,18 +1041,23 @@ function SecurityTab({
       <div className="bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
         <h3 className="text-xl font-semibold text-white mb-6">Authentication & Access</h3>
         <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg" style={{ pointerEvents: 'auto' }}>
             <div>
-              <h4 className="text-white font-medium">Require 2FA for all users</h4>
-              <p className="text-white/60 text-sm">Enforce two-factor authentication</p>
+              <h4 className="text-white font-medium">Require 2FA when signing in</h4>
+              <p className="text-white/60 text-sm">Enable two-factor authentication for your account</p>
             </div>
-            <ToggleSwitch
-              enabled={settings.twoFactorRequired}
-              onToggle={(enabled) => {
-                onUpdate({ twoFactorRequired: enabled });
-                addToast(`2FA requirement ${enabled ? 'enabled' : 'disabled'}`, 'success');
-              }}
-            />
+            <div style={{ pointerEvents: 'auto', zIndex: 10 }}>
+              <ToggleSwitch
+                enabled={mfaEnabled}
+                onToggle={(enabled) => {
+                  if (enabled && !mfaEnabled) {
+                    onMfaSetupOpen();
+                  } else if (!enabled && mfaEnabled) {
+                    onUpdate({ twoFactorRequired: false });
+                  }
+                }}
+              />
+            </div>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -1413,6 +1484,30 @@ function AdvancedTab({
           </div>
         </div>
       </div>
+
+      {/* MFA Setup Dialog - Always render, control visibility with open prop */}
+      <MFASetup
+        key={`mfa-setup-${mfaSetupOpen}`}
+        open={mfaSetupOpen}
+        onClose={() => {
+          setMfaSetupOpen(false);
+          // Refresh profile data to get updated MFA status
+          if (profileData) {
+            setMfaEnabled(profileData.security?.twoFactorEnabled ?? false);
+          }
+        }}
+        onComplete={async () => {
+          // MFA is already enabled in backend after verification
+          // Refresh profile to get updated state
+          if (refreshProfile) {
+            refreshProfile();
+          }
+          // Update state immediately and let useEffect sync with profileData
+          setMfaEnabled(true);
+          setMfaSetupOpen(false);
+          addToast('2FA enabled successfully', 'success');
+        }}
+      />
     </div>
   );
 }
@@ -1426,10 +1521,16 @@ function ToggleSwitch({
 }) {
   return (
     <button
-      onClick={() => onToggle(!enabled)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF6900]/50 ${
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle(!enabled);
+      }}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#FF6900]/50 cursor-pointer ${
         enabled ? 'bg-[#FF6900]' : 'bg-white/20'
       }`}
+      style={{ zIndex: 10 }}
     >
       <span
         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

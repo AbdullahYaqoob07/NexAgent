@@ -70,3 +70,31 @@ class TokenVerifyRequest(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class MFAVerifyRequest(BaseModel):
+    code: str
+
+
+class MFASetupResponse(BaseModel):
+    success: bool
+    qr_code: Optional[str] = None
+    manual_entry_key: Optional[str] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+class MFAVerifySetupRequest(BaseModel):
+    code: str
+
+
+class MFAVerifySetupResponse(BaseModel):
+    success: bool
+    backup_codes: Optional[list[str]] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+class MFAVerifyLoginRequest(BaseModel):
+    code: str
+    uid: str  # User ID for login verification

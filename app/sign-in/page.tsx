@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { MFAVerify } from '@/components/mfa/MFAVerify';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -23,10 +24,29 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showVerificationWarning, setShowVerificationWarning] = useState(false);
+  const [showMFA, setShowMFA] = useState(false);
+  const [mfaUid, setMfaUid] = useState<string | null>(null);
 
   // If already authenticated (Firebase or backend), don't show sign-in at all
+  // BUT: Don't redirect if MFA is required (showMFA will be true)
   useEffect(() => {
+    // Don't redirect if MFA verification is in progress
+    if (showMFA) {
+      console.log('⏸️ MFA verification in progress - preventing auto-redirect');
+      return;
+    }
+    
+    // Also check if there's a session token - if not, user might be in MFA flow
+    const hasSessionToken = typeof window !== 'undefined' && localStorage.getItem('backend_session_token');
+    
     if (!authLoading && !backendLoading && (firebaseUser || backendAuthenticated)) {
+      // If user is authenticated but has no session token, they might be in MFA flow
+      // Don't redirect in that case
+      if (!hasSessionToken && firebaseUser) {
+        console.log('⏸️ User authenticated but no session token - might be in MFA flow, preventing redirect');
+        return;
+      }
+      
       // Prefer hard-coded admin email for redirect decision to avoid races
       const email = firebaseUser?.email;
       let redirect = email === 'admin@gmail.com' ? '/admin321' : '/dashboard';
@@ -43,9 +63,10 @@ export default function SignInPage() {
         }
       }
 
+      console.log('🔄 Auto-redirecting authenticated user to:', redirect);
       router.replace(redirect);
     }
-  }, [authLoading, backendLoading, firebaseUser, backendAuthenticated, router]);
+  }, [authLoading, backendLoading, firebaseUser, backendAuthenticated, router, showMFA]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +75,24 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const authUser = await signIn(email, password);
+      const authUser = await signIn(email, password) as any;
+      
+      console.log('🔍 Sign-in result:', { 
+        hasUser: !!authUser, 
+        requiresMFA: authUser?.requiresMFA,
+        uid: authUser?.uid 
+      });
+      
+      // Check if MFA is required
+      if (authUser?.requiresMFA) {
+        console.log('🔐 MFA required - showing MFA verification step');
+        setMfaUid(authUser.uid);
+        setShowMFA(true);
+        setLoading(false);
+        return;
+      }
+      
+      console.log('✅ No MFA required - proceeding with normal login');
       
       // Check if email is verified
       if (authUser && !authUser.emailVerified) {
@@ -220,8 +258,56 @@ export default function SignInPage() {
               </motion.div>
             )}
 
-            {/* Compact Form */}
-            <form onSubmit={handleEmailSignIn} className="space-y-4">
+            {/* MFA Verification Step */}
+            {showMFA && mfaUid ? (
+              <div className="space-y-4">
+                <MFAVerify
+                  uid={mfaUid}
+                  onVerify={async (code: string) => {
+                    try {
+                      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+                      const response = await fetch(`${backendUrl}/api/v1/auth/mfa/verify-login`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          uid: mfaUid,
+                          code: code
+                        })
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Invalid verification code');
+                      }
+
+                      const data = await response.json();
+                      
+                      // Store session token if provided
+                      if (data.access_token) {
+                        try {
+                          localStorage.setItem('backend_session_token', data.access_token);
+                        } catch {}
+                      }
+                      
+                      // MFA verified, complete login
+                      setShowMFA(false);
+                      
+                      // Use redirect from backend metadata
+                      const redirectTo = data.metadata?.redirect_to || (email === 'admin@gmail.com' ? '/admin321' : '/dashboard');
+                      router.push(redirectTo);
+                    } catch (err: any) {
+                      setError(err.message || 'Invalid verification code');
+                    }
+                  }}
+                  error={error}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Compact Form */}
+                <form onSubmit={handleEmailSignIn} className="space-y-4">
               <motion.div 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -313,10 +399,10 @@ export default function SignInPage() {
                   )}
                 </Button>
               </motion.div>
-            </form>
+                </form>
 
-            {/* Compact Divider */}
-            <motion.div 
+                {/* Compact Divider */}
+                <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 1.1 }}
@@ -364,6 +450,8 @@ export default function SignInPage() {
                 Continue with Google
               </Button>
             </motion.div>
+              </>
+            )}
 
             {/* Compact Sign Up Link */}
             <motion.div 

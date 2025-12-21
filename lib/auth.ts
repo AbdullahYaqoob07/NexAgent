@@ -122,8 +122,98 @@ class FirebaseAuthService {
    */
   async signIn(email: string, password: string): Promise<AuthUser> {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Check account lockout status before attempting sign-in
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+      try {
+        const lockoutCheck = await fetch(`${backendUrl}/api/v1/auth/check-lockout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: '' // Not needed for lockout check
+          })
+        });
+
+        if (lockoutCheck.ok) {
+          const lockoutData = await lockoutCheck.json();
+          if (lockoutData.isLocked) {
+            const lockedUntil = lockoutData.lockedUntil;
+            // lockedUntil is a timestamp in seconds, convert to milliseconds for Date.now() comparison
+            const minutesRemaining = lockedUntil 
+              ? Math.max(1, Math.ceil((lockedUntil * 1000 - Date.now()) / 60000))
+              : 30;
+            throw new Error(`Account is locked due to too many failed login attempts. Please try again in ${minutesRemaining} minute(s).`);
+          }
+        }
+      } catch (lockoutError: any) {
+        // If lockout check fails, still throw the error if it's a lockout error
+        if (lockoutError.message && lockoutError.message.includes('locked')) {
+          throw lockoutError;
+        }
+        // Otherwise, log warning but continue (backend might be unavailable)
+        console.warn('⚠️ Lockout check failed, proceeding with sign-in attempt:', lockoutError);
+      }
+
+      // Attempt Firebase sign-in (will fail if account is disabled)
+      let userCredential;
+      let firebaseError: any = null;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
+      } catch (error: any) {
+        firebaseError = error;
+        // If account is disabled, check lockout status and show appropriate message
+        if (error?.code === 'auth/user-disabled') {
+          try {
+            const lockoutCheck = await fetch(`${backendUrl}/api/v1/auth/check-lockout`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: email,
+                password: ''
+              })
+            });
+            
+            if (lockoutCheck.ok) {
+              const lockoutData = await lockoutCheck.json();
+              if (lockoutData.isLocked && lockoutData.lockedUntil) {
+                // lockedUntil is a timestamp in seconds, convert to milliseconds for Date.now() comparison
+                const minutesRemaining = Math.max(1, Math.ceil((lockoutData.lockedUntil * 1000 - Date.now()) / 60000));
+                throw new Error(`Account is locked due to too many failed login attempts. Please try again in ${minutesRemaining} minute(s).`);
+              }
+            }
+          } catch (lockoutError: any) {
+            // If we got a lockout error message, throw it; otherwise throw generic disabled message
+            if (lockoutError.message && lockoutError.message.includes('locked')) {
+              throw lockoutError;
+            }
+          }
+          throw new Error('This account has been temporarily locked due to too many failed login attempts. Please try again later.');
+        }
+        // For other errors, we'll handle them in the outer catch block
+        throw error;
+      }
+      
       console.log('✅ User signed in successfully:', userCredential.user.email);
+      
+      // Reset failed login attempts on successful sign-in
+      try {
+        await fetch(`${backendUrl}/api/v1/auth/reset-failed-attempts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: email,
+            password: '' // Not needed for reset
+          })
+        });
+      } catch (resetError) {
+        console.warn('⚠️ Failed to reset failed attempts:', resetError);
+      }
       
       // Get ID token and verify with backend
       try {
@@ -152,6 +242,28 @@ class FirebaseAuthService {
         
         if (response.ok) {
           const data = await response.json();
+          
+          console.log('🔍 Backend verify-token response:', {
+            requires_mfa: data.metadata?.requires_mfa,
+            metadata: data.metadata
+          });
+          
+          // Check if MFA is required
+          if (data.metadata?.requires_mfa) {
+            console.log('🔐 MFA is required - returning user with requiresMFA flag');
+            // IMPORTANT: Don't store session token or set user as fully authenticated yet
+            // The user is only partially authenticated until MFA is verified
+            // Return user with MFA flag - frontend will handle verification
+            const authUser = this.transformUser(userCredential.user);
+            // Clear any stored tokens since MFA is not verified yet
+            try { 
+              localStorage.removeItem('backend_session_token');
+              localStorage.removeItem('backend_auth_token');
+            } catch {}
+            return { ...authUser, requiresMFA: true, uid: userCredential.user.uid } as any;
+          }
+          
+          console.log('✅ MFA not required - proceeding with normal login');
           
           // Check if user is admin and handle redirection
           if (data.metadata?.is_admin) {
@@ -185,7 +297,104 @@ class FirebaseAuthService {
       return this.transformUser(userCredential.user);
     } catch (error: any) {
       console.error('❌ Sign in error:', error);
-      throw new Error(this.getErrorMessage(error.code));
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      
+      // Extract error code - Firebase errors can have code in different places
+      const errorCode = error?.code || 
+                       (error?.message?.includes('auth/') ? error.message.match(/auth\/[^\s]+/)?.[0] : null) ||
+                       (error?.message?.toLowerCase().includes('password') ? 'auth/wrong-password' : null) ||
+                       (error?.message?.toLowerCase().includes('invalid') ? 'auth/invalid-credential' : null);
+      
+      console.log('🔍 Detected error code:', errorCode);
+      
+      // Record failed login attempt for authentication errors (but not network errors or user-disabled)
+      // User-disabled means account is already locked, so don't record again
+      // Record for ANY auth error that's not user-disabled, network, or too-many-requests
+      const isAuthError = errorCode && errorCode.startsWith('auth/');
+      const shouldRecordFailure = isAuthError && 
+        errorCode !== 'auth/user-disabled' && 
+        errorCode !== 'auth/network-request-failed' &&
+        errorCode !== 'auth/too-many-requests';
+      
+      if (shouldRecordFailure) {
+        console.log('📝 Recording failed login attempt for:', email, 'Error code:', errorCode);
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+          console.log('📝 Calling backend:', `${backendUrl}/api/v1/auth/record-failed-attempt`);
+          
+          const failedAttemptResponse = await fetch(`${backendUrl}/api/v1/auth/record-failed-attempt`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: email,
+              password: '' // Not needed for recording failure
+            })
+          });
+
+          console.log('📝 Failed attempt response status:', failedAttemptResponse.status);
+          
+          if (failedAttemptResponse.ok) {
+            const attemptData = await failedAttemptResponse.json();
+            console.log('📝 Failed attempt data:', JSON.stringify(attemptData, null, 2));
+            
+            if (attemptData.isLocked) {
+              const lockedUntil = attemptData.lockedUntil;
+              // lockedUntil is a timestamp in seconds, convert to milliseconds for Date.now() comparison
+              const minutesRemaining = lockedUntil 
+                ? Math.max(1, Math.ceil((lockedUntil * 1000 - Date.now()) / 60000))
+                : 30;
+              // Throw lockout error - this will be caught and displayed
+              throw new Error(`Account is locked due to too many failed login attempts. Please try again in ${minutesRemaining} minute(s).`);
+            } else if (attemptData.remainingAttempts !== undefined && attemptData.remainingAttempts < 5) {
+              // Show remaining attempts in error message
+              const remaining = attemptData.remainingAttempts;
+              const finalErrorCode = errorCode || 'auth/wrong-password';
+              const errorMsg = this.getErrorMessage(finalErrorCode);
+              // Throw error with remaining attempts - this will be caught and displayed
+              throw new Error(`${errorMsg} ${remaining} attempt(s) remaining before account lockout.`);
+            }
+          } else {
+            const errorText = await failedAttemptResponse.text();
+            console.error('❌ Failed to record failed attempt. Status:', failedAttemptResponse.status);
+            console.error('❌ Response:', errorText);
+          }
+        } catch (recordError: any) {
+          console.error('⚠️ Failed to record failed attempt:', recordError);
+          console.error('⚠️ Record error details:', recordError.message);
+          console.error('⚠️ Record error stack:', recordError.stack);
+          // If we threw a specific error (lockout or remaining attempts), re-throw it
+          if (recordError.message && (
+            recordError.message.includes('locked') || 
+            recordError.message.includes('remaining') ||
+            recordError.message.includes('attempt(s)')
+          )) {
+            throw recordError;
+          }
+        }
+      } else {
+        console.log('⏭️ Skipping failed attempt recording. Error code:', errorCode, 'isAuthError:', isAuthError);
+      }
+      
+      // Check if error message already contains lockout info (from lockout check at the start or from record attempt)
+      // This preserves custom error messages like lockout messages
+      if (error?.message && (
+        error.message.includes('locked') || 
+        error.message.includes('too many failed') ||
+        error.message.includes('try again in') ||
+        error.message.includes('remaining') ||
+        error.message.includes('attempt(s)')
+      )) {
+        // Preserve the lockout/remaining attempts error message
+        throw new Error(error.message);
+      }
+      
+      // Use errorCode if it was set, otherwise get it from error object
+      const finalErrorCode = errorCode || 'auth/unknown-error';
+      throw new Error(this.getErrorMessage(finalErrorCode));
     }
   }
 
@@ -433,7 +642,7 @@ class FirebaseAuthService {
       case 'auth/requires-recent-login':
         return 'Please sign in again to complete this action.';
       case 'auth/user-disabled':
-        return 'This account has been disabled. Please contact support.';
+        return 'This account has been temporarily locked due to too many failed login attempts. Please try again later.';
       case 'auth/operation-not-allowed':
         return 'This sign-in method is not enabled. Please contact support.';
       default:

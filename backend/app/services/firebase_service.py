@@ -155,7 +155,11 @@ class FirebaseService:
                     'lastPasswordChange': firestore.SERVER_TIMESTAMP,
                     'sessionTimeout': 604800,  # 1 week in seconds
                     'ipWhitelist': [],
-                    'loginNotifications': True
+                    'loginNotifications': True,
+                    # Account lockout settings
+                    'failedLoginAttempts': 0,
+                    'accountLockedUntil': None,
+                    'lastFailedLoginAttempt': None
                 },
                 
                 # Onboarding progress
@@ -457,6 +461,237 @@ class FirebaseService:
             
         except Exception as e:
             logger.error(f"Failed to initialize admin user: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def check_account_lockout(self, email: str) -> Dict[str, Any]:
+        """Check if account is locked and return lockout status"""
+        try:
+            user = await self.get_user_by_email(email)
+            if not user:
+                # Don't reveal if user exists for security
+                return {
+                    'success': True,
+                    'isLocked': False,
+                    'failedAttempts': 0,
+                    'lockedUntil': None
+                }
+            
+            # Check if account is disabled in Firebase Auth (this indicates it's locked)
+            if user.get('disabled', False):
+                # Account is disabled, check Firestore for lockout details
+                user_doc = self.db.collection('users').document(user['uid']).get()
+                if user_doc.exists:
+                    user_data = user_doc.to_dict()
+                    security = user_data.get('security', {})
+                    locked_until = security.get('accountLockedUntil')
+                    
+                    # Check if lockout has expired
+                    if locked_until:
+                        locked_until_timestamp = locked_until.timestamp() if hasattr(locked_until, 'timestamp') else locked_until
+                        current_time = datetime.now().timestamp()
+                        if locked_until_timestamp > current_time:
+                            return {
+                                'success': True,
+                                'isLocked': True,
+                                'failedAttempts': 5,
+                                'lockedUntil': locked_until_timestamp,
+                                'remainingAttempts': 0
+                            }
+                        else:
+                            # Lockout expired, reset it and re-enable account
+                            self.db.collection('users').document(user['uid']).update({
+                                'security.failedLoginAttempts': 0,
+                                'security.accountLockedUntil': None,
+                                'security.lastFailedLoginAttempt': None,
+                                'updatedAt': firestore.SERVER_TIMESTAMP
+                            })
+                            try:
+                                auth.update_user(user['uid'], disabled=False)
+                                logger.info(f"Account unlocked and re-enabled in Firebase Auth for {email}")
+                            except Exception as enable_error:
+                                logger.error(f"Failed to re-enable Firebase Auth account: {str(enable_error)}")
+                            return {
+                                'success': True,
+                                'isLocked': False,
+                                'failedAttempts': 0,
+                                'lockedUntil': None,
+                                'remainingAttempts': 5
+                            }
+                
+                # Account is disabled but no lockout info in Firestore - treat as locked
+                return {
+                    'success': True,
+                    'isLocked': True,
+                    'failedAttempts': 5,
+                    'lockedUntil': None,
+                    'remainingAttempts': 0
+                }
+            
+            # Get user document from Firestore
+            user_doc = self.db.collection('users').document(user['uid']).get()
+            if not user_doc.exists:
+                return {
+                    'success': True,
+                    'isLocked': False,
+                    'failedAttempts': 0,
+                    'lockedUntil': None
+                }
+            
+            user_data = user_doc.to_dict()
+            security = user_data.get('security', {})
+            failed_attempts = security.get('failedLoginAttempts', 0)
+            locked_until = security.get('accountLockedUntil')
+            
+            # Check if lockout has expired
+            is_locked = False
+            if locked_until:
+                locked_until_timestamp = locked_until.timestamp() if hasattr(locked_until, 'timestamp') else locked_until
+                current_time = datetime.now().timestamp()
+                if locked_until_timestamp > current_time:
+                    is_locked = True
+                    # Make sure account is disabled in Firebase Auth
+                    try:
+                        if not user.get('disabled', False):
+                            auth.update_user(user['uid'], disabled=True)
+                            logger.info(f"Disabled Firebase Auth account for {email} due to lockout")
+                    except Exception as disable_error:
+                        logger.error(f"Failed to disable Firebase Auth account: {str(disable_error)}")
+                else:
+                    # Lockout expired, reset it and re-enable account
+                    self.db.collection('users').document(user['uid']).update({
+                        'security.failedLoginAttempts': 0,
+                        'security.accountLockedUntil': None,
+                        'security.lastFailedLoginAttempt': None,
+                        'updatedAt': firestore.SERVER_TIMESTAMP
+                    })
+                    # Re-enable the Firebase Auth account
+                    try:
+                        auth.update_user(user['uid'], disabled=False)
+                        logger.info(f"Account unlocked and re-enabled in Firebase Auth for {email}")
+                    except Exception as enable_error:
+                        logger.error(f"Failed to re-enable Firebase Auth account: {str(enable_error)}")
+                    failed_attempts = 0
+                    locked_until = None
+            
+            return {
+                'success': True,
+                'isLocked': is_locked,
+                'failedAttempts': failed_attempts,
+                'lockedUntil': locked_until.timestamp() if locked_until and hasattr(locked_until, 'timestamp') else (locked_until if locked_until else None),
+                'remainingAttempts': max(0, 5 - failed_attempts)
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to check account lockout: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def record_failed_login_attempt(self, email: str) -> Dict[str, Any]:
+        """Record a failed login attempt and lock account if threshold reached"""
+        try:
+            logger.info(f"📝 Recording failed login attempt for email: {email}")
+            user = await self.get_user_by_email(email)
+            if not user:
+                # Don't reveal if user exists for security
+                logger.warning(f"⚠️ User not found for email: {email}")
+                return {'success': True, 'message': 'Failed attempt recorded'}
+            
+            logger.info(f"✅ Found user: {user['uid']}")
+            user_doc_ref = self.db.collection('users').document(user['uid'])
+            user_doc = user_doc_ref.get()
+            
+            if not user_doc.exists:
+                logger.warning(f"⚠️ User document not found in Firestore for UID: {user['uid']}")
+                return {'success': True, 'message': 'Failed attempt recorded'}
+            
+            user_data = user_doc.to_dict()
+            security = user_data.get('security', {})
+            current_attempts = security.get('failedLoginAttempts', 0)
+            failed_attempts = current_attempts + 1
+            logger.info(f"📊 Current failed attempts: {current_attempts}, New count: {failed_attempts}")
+            
+            # Lockout duration: 30 minutes (1800 seconds)
+            lockout_duration_seconds = 1800
+            locked_until_timestamp = None
+            
+            # Update user document
+            from datetime import timedelta
+            update_data = {
+                'security.failedLoginAttempts': failed_attempts,
+                'security.lastFailedLoginAttempt': firestore.SERVER_TIMESTAMP,
+                'updatedAt': firestore.SERVER_TIMESTAMP
+            }
+            
+            if failed_attempts >= 5:
+                # Lock account for 30 minutes
+                locked_until_datetime = datetime.now() + timedelta(seconds=lockout_duration_seconds)
+                locked_until_timestamp = locked_until_datetime.timestamp()
+                # Store datetime object in Firestore (it will be converted automatically)
+                update_data['security.accountLockedUntil'] = locked_until_datetime
+                
+                # Actually disable the Firebase Auth account
+                try:
+                    auth.update_user(user['uid'], disabled=True)
+                    logger.warning(f"Account locked and disabled in Firebase Auth for {email} after {failed_attempts} failed attempts")
+                except Exception as disable_error:
+                    logger.error(f"Failed to disable Firebase Auth account: {str(disable_error)}")
+            
+            logger.info(f"📝 Updating Firestore with: {update_data}")
+            user_doc_ref.update(update_data)
+            logger.info(f"✅ Successfully updated failed attempts to {failed_attempts} for {email}")
+            
+            return {
+                'success': True,
+                'failedAttempts': failed_attempts,
+                'isLocked': failed_attempts >= 5,
+                'lockedUntil': locked_until_timestamp,
+                'remainingAttempts': max(0, 5 - failed_attempts)
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to record failed login attempt: {str(e)}")
+            logger.error(f"❌ Exception type: {type(e).__name__}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            return {'success': False, 'error': str(e)}
+    
+    async def reset_failed_login_attempts(self, email: str) -> Dict[str, Any]:
+        """Reset failed login attempts counter on successful login"""
+        try:
+            user = await self.get_user_by_email(email)
+            if not user:
+                return {'success': True, 'message': 'Attempts reset'}
+            
+            user_doc_ref = self.db.collection('users').document(user['uid'])
+            user_doc = user_doc_ref.get()
+            
+            if not user_doc.exists:
+                return {'success': True, 'message': 'Attempts reset'}
+            
+            user_data = user_doc.to_dict()
+            security = user_data.get('security', {})
+            failed_attempts = security.get('failedLoginAttempts', 0)
+            
+            # Only update if there were failed attempts or account was locked
+            if failed_attempts > 0 or security.get('accountLockedUntil'):
+                user_doc_ref.update({
+                    'security.failedLoginAttempts': 0,
+                    'security.accountLockedUntil': None,
+                    'security.lastFailedLoginAttempt': None,
+                    'updatedAt': firestore.SERVER_TIMESTAMP
+                })
+                # Re-enable the Firebase Auth account if it was disabled
+                try:
+                    if user.get('disabled', False):
+                        auth.update_user(user['uid'], disabled=False)
+                        logger.info(f"Re-enabled Firebase Auth account for {email}")
+                except Exception as enable_error:
+                    logger.error(f"Failed to re-enable Firebase Auth account: {str(enable_error)}")
+                logger.info(f"Reset failed login attempts for {email}")
+            
+            return {'success': True, 'message': 'Failed attempts reset'}
+            
+        except Exception as e:
+            logger.error(f"Failed to reset failed login attempts: {str(e)}")
             return {'success': False, 'error': str(e)}
 
 # Create global instance

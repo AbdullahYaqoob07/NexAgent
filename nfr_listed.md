@@ -6,10 +6,7 @@ The system shall maintain 99.5% uptime during business hours (8 AM - 6 PM local 
 
 **Status:** IMPLEMENTED
 **Implementation Details:** System tracks uptime metrics with current showing 99.95% uptime. Admin dashboard displays uptime statistics and incident history. Backend analytics service monitors system health and availability. System calculates uptime percentages and tracks downtime incidents. SLA commitments are defined (99.99% in marketing materials).
-The system shall support up to 10,000 concurrent users and execute up to 100,000 workflows per hour without performance degradation.
 
-**Status:** PARTIALLY PLANNED
-**Implementation Details:** Landing page mentions "10,000+ Enterprise Customers" suggesting scale. Performance testing documentation mentions 10,000 concurrent users target. System architecture designed for scalability but not fully tested at this scale. Load testing requirements documented but implementation status unclear.
 The system shall encrypt all data in transit using TLS 1.3 and at rest using AES-256 encryption. User credentials and API keys shall be hashed using bcrypt with minimum 12 rounds.
 
 **Status:** IMPLEMENTED

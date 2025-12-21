@@ -8,10 +8,16 @@ from app.models.auth_models import (
     ErrorResponse,
     SuccessResponse,
     UserResponse,
-    TokenVerifyRequest
+    TokenVerifyRequest,
+    MFAVerifyRequest,
+    MFASetupResponse,
+    MFAVerifySetupRequest,
+    MFAVerifySetupResponse,
+    MFAVerifyLoginRequest
 )
 from app.services.firebase_service import firebase_service
 from app.services.session_service import session_service
+from app.services.mfa_service import mfa_service
 from typing import Dict, Any
 import logging
 
@@ -200,7 +206,37 @@ async def verify_token(request: TokenVerifyRequest, req: Request):
                 detail="User not found"
             )
         
-        # Create session (invalidates old sessions from other devices)
+        # Check MFA status FIRST - before creating session
+        mfa_status = await mfa_service.get_mfa_status(user['uid'])
+        requires_mfa = mfa_status.get('success') and mfa_status.get('enabled', False)
+        
+        logger.info(f"MFA check for user {user['uid']}: status={mfa_status}, requires_mfa={requires_mfa}")
+        
+        # If MFA is required, don't create session yet - return requires_mfa flag
+        if requires_mfa:
+            logger.info(f"MFA required for user {user['uid']} - returning requires_mfa flag without creating session")
+            metadata = {
+                'is_admin': is_admin,
+                'admin_role': admin_result.get('admin_role') if is_admin else None,
+                'permissions': admin_result.get('permissions') if is_admin else None,
+                'redirect_to': '/admin321' if is_admin else '/dashboard',
+                'requires_mfa': True
+            }
+            
+            return AuthResponse(
+                success=True,
+                message="MFA verification required",
+                user=UserResponse(
+                    uid=user['uid'],
+                    email=user['email'],
+                    display_name=user['displayName'],
+                    email_verified=user['emailVerified']
+                ),
+                access_token=None,  # No session token until MFA is verified
+                metadata=metadata
+            )
+        
+        # MFA not required - create session normally
         device_info = req.headers.get('user-agent', 'Unknown')
         ip_address = req.client.host if req.client else None
         
@@ -218,12 +254,14 @@ async def verify_token(request: TokenVerifyRequest, req: Request):
                 'is_admin': True,
                 'admin_role': admin_result['admin_role'],
                 'permissions': admin_result['permissions'],
-                'redirect_to': '/admin321'  # Redirect admin users
+                'redirect_to': '/admin321',  # Redirect admin users
+                'requires_mfa': False
             }
         else:
             metadata = {
                 'is_admin': False,
-                'redirect_to': '/dashboard'  # Redirect regular users
+                'redirect_to': '/dashboard',  # Redirect regular users
+                'requires_mfa': False
             }
         
         message = "Admin session created successfully" if is_admin else "Token verified successfully. Session created (1 week validity)."
@@ -437,7 +475,106 @@ async def verify_admin_token(request: TokenVerifyRequest):
         )
 
 
-# Dependency to get current user from token
+@router.post("/check-lockout")
+async def check_lockout(request: SignInRequest):
+    """
+    Check if account is locked before attempting sign-in
+    
+    - **email**: User's email address
+    """
+    try:
+        result = await firebase_service.check_account_lockout(request.email)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to check account lockout status"
+            )
+        
+        return {
+            "success": True,
+            "isLocked": result['isLocked'],
+            "failedAttempts": result['failedAttempts'],
+            "lockedUntil": result['lockedUntil'],
+            "remainingAttempts": result.get('remainingAttempts', max(0, 5 - result['failedAttempts']))
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Check lockout error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to check account lockout"
+        )
+
+
+@router.post("/record-failed-attempt")
+async def record_failed_attempt(request: SignInRequest):
+    """
+    Record a failed login attempt
+    
+    - **email**: User's email address
+    """
+    try:
+        result = await firebase_service.record_failed_login_attempt(request.email)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to record failed attempt"
+            )
+        
+        return {
+            "success": True,
+            "failedAttempts": result['failedAttempts'],
+            "isLocked": result['isLocked'],
+            "lockedUntil": result.get('lockedUntil'),
+            "remainingAttempts": result.get('remainingAttempts', max(0, 5 - result['failedAttempts']))
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Record failed attempt error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to record failed attempt"
+        )
+
+
+@router.post("/reset-failed-attempts")
+async def reset_failed_attempts(request: SignInRequest):
+    """
+    Reset failed login attempts on successful login
+    
+    - **email**: User's email address
+    """
+    try:
+        result = await firebase_service.reset_failed_login_attempts(request.email)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to reset failed attempts"
+            )
+        
+        return {
+            "success": True,
+            "message": result.get('message', 'Failed attempts reset')
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Reset failed attempts error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reset failed attempts"
+        )
+
+
+# Dependency to get current user from token (defined before MFA endpoints)
 async def get_current_user_dependency(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
     """
     Dependency to get current user from Authorization token
@@ -461,4 +598,239 @@ async def get_current_user_dependency(credentials: HTTPAuthorizationCredentials 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed"
+        )
+
+
+@router.post("/mfa/setup", response_model=MFASetupResponse)
+async def setup_mfa(current_user: Dict[str, Any] = Depends(get_current_user_dependency)):
+    """
+    Setup MFA for the current user - generates secret and QR code
+    
+    Requires authentication
+    """
+    try:
+        uid = current_user['uid']
+        email = current_user.get('email', '')
+        
+        result = await mfa_service.setup_mfa(uid, email)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get('error', 'Failed to setup MFA')
+            )
+        
+        return MFASetupResponse(
+            success=True,
+            qr_code=result['qr_code'],
+            manual_entry_key=result['manual_entry_key'],
+            message="Scan the QR code with your authenticator app"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA setup error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to setup MFA"
+        )
+
+
+@router.post("/mfa/verify-setup", response_model=MFAVerifySetupResponse)
+async def verify_mfa_setup(
+    request: MFAVerifySetupRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user_dependency)
+):
+    """
+    Verify MFA setup by checking the code from authenticator app
+    
+    Requires authentication
+    """
+    try:
+        uid = current_user['uid']
+        
+        result = await mfa_service.verify_mfa_setup(uid, request.code)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.get('error', 'Invalid verification code')
+            )
+        
+        return MFAVerifySetupResponse(
+            success=True,
+            backup_codes=result['backup_codes'],
+            message="MFA enabled successfully. Please save your backup codes."
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA verify setup error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to verify MFA setup"
+        )
+
+
+@router.post("/mfa/verify-login", response_model=AuthResponse)
+async def verify_mfa_login(request: MFAVerifyLoginRequest, req: Request):
+    """
+    Verify MFA code during login and create session if successful
+    """
+    try:
+        # Verify MFA code
+        result = await mfa_service.verify_mfa_login(request.uid, request.code)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=result.get('error', 'Invalid MFA code')
+            )
+        
+        # MFA verified - now create session
+        user = await firebase_service.get_user_by_uid(request.uid)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Check admin status by checking Firestore admins collection
+        try:
+            admin_doc = firebase_service.db.collection('admins').document(request.uid).get()
+            is_admin = admin_doc.exists if admin_doc else False
+            
+            admin_role = None
+            permissions = []
+            if is_admin:
+                admin_data = admin_doc.to_dict()
+                admin_role = admin_data.get('role', 'admin')
+                permissions = admin_data.get('permissions', [])
+        except Exception as e:
+            logger.warning(f"Failed to check admin status for {request.uid}: {str(e)}")
+            is_admin = False
+            admin_role = None
+            permissions = []
+        
+        # Create session
+        device_info = req.headers.get('user-agent', 'Unknown')
+        ip_address = req.client.host if req.client else None
+        
+        session_token = await session_service.create_session(
+            uid=user['uid'],
+            email=user['email'],
+            device_info=device_info,
+            ip_address=ip_address
+        )
+        
+        # Prepare metadata
+        metadata = {}
+        if is_admin:
+            metadata = {
+                'is_admin': True,
+                'admin_role': admin_role,
+                'permissions': permissions,
+                'redirect_to': '/admin321',
+                'requires_mfa': False
+            }
+        else:
+            metadata = {
+                'is_admin': False,
+                'redirect_to': '/dashboard',
+                'requires_mfa': False
+            }
+        
+        message = "MFA verified. Session created successfully."
+        
+        return AuthResponse(
+            success=True,
+            message=message,
+            user=UserResponse(
+                uid=user['uid'],
+                email=user['email'],
+                display_name=user['displayName'],
+                email_verified=user['emailVerified']
+            ),
+            access_token=session_token,
+            metadata=metadata
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA verify login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to verify MFA code"
+        )
+
+
+@router.post("/mfa/disable", response_model=SuccessResponse)
+async def disable_mfa(current_user: Dict[str, Any] = Depends(get_current_user_dependency)):
+    """
+    Disable MFA for the current user
+    
+    Requires authentication
+    """
+    try:
+        uid = current_user['uid']
+        
+        result = await mfa_service.disable_mfa(uid)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get('error', 'Failed to disable MFA')
+            )
+        
+        return SuccessResponse(
+            success=True,
+            message="MFA disabled successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"MFA disable error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to disable MFA"
+        )
+
+
+@router.get("/mfa/status")
+async def get_mfa_status(current_user: Dict[str, Any] = Depends(get_current_user_dependency)):
+    """
+    Get MFA status for the current user
+    
+    Requires authentication
+    """
+    try:
+        uid = current_user['uid']
+        
+        result = await mfa_service.get_mfa_status(uid)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.get('error', 'Failed to get MFA status')
+            )
+        
+        return {
+            "success": True,
+            "enabled": result['enabled'],
+            "method": result['method'],
+            "setup_in_progress": result['setup_in_progress'],
+            "backup_codes_count": result['backup_codes_count']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get MFA status error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get MFA status"
         )
