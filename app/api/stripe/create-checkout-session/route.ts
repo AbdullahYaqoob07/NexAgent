@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = new Stripe(secretKey, {
-      apiVersion: '2024-10-28.acacia',
+      apiVersion: '2025-10-29.clover',
     });
 
     const { nexaId, nexaName, price } = await request.json();

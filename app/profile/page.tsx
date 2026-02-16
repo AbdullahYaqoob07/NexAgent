@@ -25,8 +25,8 @@ export default function ProfilePageWrapper() {
     lastName: user?.displayName?.split(' ').slice(1).join(' ') || '',
     username: user?.displayName || '',
     profileImageUrl: user?.photoURL || '',
-    createdAt: user?.metadata?.creationTime ? new Date(user.metadata.creationTime).getTime() : 0,
-    lastSignInAt: user?.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).getTime() : 0,
+    createdAt: (user as any)?.metadata?.creationTime ? new Date((user as any).metadata.creationTime).getTime() : 0,
+    lastSignInAt: (user as any)?.metadata?.lastSignInTime ? new Date((user as any).metadata.lastSignInTime).getTime() : 0,
     emailVerified: user?.emailVerified || false,
     phoneVerified: false
   };

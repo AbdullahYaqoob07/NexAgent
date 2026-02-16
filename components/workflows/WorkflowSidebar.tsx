@@ -28,9 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getBrandLogo } from "@/lib/workflow/utils/BrandLogoMapping";
-import { NodeDefinition } from "@/lib/schemas/node";
-import UnifiedNodeIcon from "./../icons/UnifiedNodeIcon";
+import { HARDCODED_NODES, getAllCategories, searchNodes, type NodeDef } from "@/lib/workflow/NodeRegistry";
 
 interface NodeCategory {
   name: string;
@@ -58,8 +56,8 @@ const CATEGORY_MAPPING = {
   "Fork": { icon: <GitFork className="w-4 h-4" />, order: 7 }
 } as const;
 
-// Convert Firebase node definitions to sidebar categories
-const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] => {
+// Convert hardcoded node definitions to sidebar categories
+const getNodeCategories = (nodeDefinitions: NodeDef[]): NodeCategory[] => {
   
   // Group nodes by category
   const categoryMap = new Map<string, Array<{
@@ -73,20 +71,14 @@ const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] =>
   }>>();
 
   nodeDefinitions.forEach(node => {
-    if (!node.isActive) return; // Skip inactive nodes
-    
     const category = node.category;
     if (!categoryMap.has(category)) {
       categoryMap.set(category, []);
     }
     
-    // Log first node to see icon data
-    
-    // Use backend icon emoji if available, otherwise use brand logo
-    const iconDisplay = node.icon ? (
+    // Use emoji icon from hardcoded registry
+    const iconDisplay = (
       <span className="text-2xl" title={`Icon: ${node.icon}`}>{node.icon}</span>
-    ) : (
-      getBrandLogoComponent(node.type)
     );
     
     categoryMap.get(category)!.push({
@@ -96,7 +88,7 @@ const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] =>
       description: node.description,
       icon: iconDisplay,
       category: node.category,
-      isStartNode: node.isStartNode || false
+      isStartNode: node.isStartNode
     });
   });
 
@@ -122,19 +114,6 @@ const getNodeCategories = (nodeDefinitions: NodeDefinition[]): NodeCategory[] =>
   });
 };
 
-// Get brand logo component for node preview
-const getBrandLogoComponent = (nodeName: string) => {
-  const LogoComponent = getBrandLogo(nodeName);
-  
-  // Special handling for CustomForkLogo in sidebar preview
-  if (nodeName === 'Custom') {
-    const CustomComponent = LogoComponent as any;
-    return <CustomComponent size={40} outputCount={5} />;
-  }
-  
-  return <LogoComponent size={40} />;
-};
-
 interface WorkflowSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -149,40 +128,14 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["Triggers"]);
   const [isBlinking, setIsBlinking] = useState(false);
-  const [nodeDefinitions, setNodeDefinitions] = useState<NodeDefinition[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Fetch node definitions from Firebase
+  // Use hardcoded nodes instead of fetching from Firebase
   useEffect(() => {
-    const fetchNodeDefinitions = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const response = await fetch('/api/admin/nodes');
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch nodes: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        const nodes = data.nodes || data.data || [];
-        setNodeDefinitions(nodes);
-      } catch (err) {
-        console.error('Error fetching node definitions:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load nodes');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchNodeDefinitions();
+    // Nothing to do - nodes are already hardcoded in HARDCODED_NODES
   }, []);
 
-  // Generate node categories from fetched data
-  const nodeCategories = getNodeCategories(nodeDefinitions);
+  // Generate node categories from hardcoded data
+  const nodeCategories = getNodeCategories(HARDCODED_NODES);
 
   // Add CSS animation keyframes
   useEffect(() => {
@@ -335,28 +288,9 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
 
           {/* Node Categories */}
           <div className="flex-1 overflow-y-auto">
-            {isLoading ? (
-              <div className="p-4 text-center text-zinc-400">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-zinc-400 mx-auto mb-2"></div>
-                Loading nodes...
-              </div>
-            ) : error ? (
-              <div className="p-4 text-center text-red-400">
-                <p className="text-sm mb-2">Failed to load nodes</p>
-                <p className="text-xs text-zinc-500">{error}</p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="mt-2 text-xs"
-                  onClick={() => window.location.reload()}
-                >
-                  Retry
-                </Button>
-              </div>
-            ) : nodeCategories.length === 0 ? (
+            {nodeCategories.length === 0 ? (
               <div className="p-4 text-center text-zinc-400">
                 <p className="text-sm mb-2">No nodes available</p>
-                <p className="text-xs text-zinc-500">Visit the admin panel to add nodes</p>
               </div>
             ) : (
               nodeCategories.map((category) => (

@@ -12,6 +12,7 @@ from app.api.v1.integrations import router as integration_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.backup import router as backup_router
+from app.api.v1.telegram import router as telegram_router
 from app.api.routes.billing import router as billing_router
 import logging
 import uvicorn
@@ -119,6 +120,7 @@ app.include_router(integration_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(analytics_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(audit_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(backup_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(telegram_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(billing_router)
 
 

@@ -245,6 +245,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
+    console.log('Creating new node:', { nodeType, nodeName, nodeData });
     const newNode: WorkflowNode = {
       id: `node_${Date.now()}`,
       type: nodeType,
@@ -267,8 +268,11 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
   };
 
   const handleNodeClick = (nodeId: string) => {
+    console.log('handleNodeClick called with:', nodeId);
     const clickedNode = nodes.find(n => n.id === nodeId);
+    console.log('Node clicked:', { nodeId, clickedNode });
     if (clickedNode) {
+      console.log('Creating workflow node for modal:', clickedNode);
       // Create WorkflowNodeType object for the modal
       const workflowNode: WorkflowNodeType = {
         id: clickedNode.id,
@@ -286,9 +290,15 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         }
       };
       
+      console.log('Setting selected node for config:', workflowNode);
       setSelectedNodeForConfig(workflowNode);
+      console.log('Setting config modal open:', true);
       setIsConfigModalOpen(true);
+      console.log('Config modal state set');
+    } else {
+      console.log('Clicked node not found');
     }
+    console.log('Calling onNodeSelect with:', selectedNode === nodeId ? null : nodeId);
     onNodeSelect(selectedNode === nodeId ? null : nodeId);
   };
 

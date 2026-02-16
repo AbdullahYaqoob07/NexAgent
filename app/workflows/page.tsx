@@ -34,7 +34,7 @@ export default function WorkflowsPage() {
         const response = await workflowService.listWorkflows({ page: 1, pageSize: 50 });
         console.log('✅ Workflows response:', response);
         if (!response.success) {
-          throw new Error(response.message || 'Failed to load workflows');
+          throw new Error((response as any).message || 'Failed to load workflows');
         }
         return response;
       } catch (err: any) {

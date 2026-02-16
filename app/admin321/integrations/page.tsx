@@ -204,8 +204,7 @@ export default function IntegrationsPage() {
     if (!connectionStats) return [];
     return [
       { name: "Active", value: connectionStats.activeConnections, fill: "#10B981" },
-      { name: "Expired", value: connectionStats.expiredConnections, fill: "#F59E0B" },
-      { name: "Error", value: connectionStats.errorConnections, fill: "#EF4444" },
+      { name: "Failed", value: connectionStats.failedConnections, fill: "#EF4444" },
     ].filter(item => item.value > 0);
   }, [connectionStats]);
 
@@ -283,7 +282,7 @@ export default function IntegrationsPage() {
         />
         <KPICard
           title="Issues"
-          value={((connectionStats?.expiredConnections || 0) + (connectionStats?.errorConnections || 0)).toString()}
+          value={(connectionStats?.failedConnections || 0).toString()}
           icon={<AlertTriangle className="w-4 h-4" />}
           color="text-red-400"
         />
@@ -581,7 +580,7 @@ export default function IntegrationsPage() {
                     <TableRow key={connection.id}>
                       <TableCell>
                         <div>
-                          <div className="font-medium text-white/90">{connection.name}</div>
+                          <div className="font-medium text-white/90">{connection.userName || 'User'}</div>
                           <div className="text-xs text-white/50">{connection.id}</div>
                         </div>
                       </TableCell>
@@ -593,7 +592,7 @@ export default function IntegrationsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="border-white/30 text-white/70">
-                          {connection.authType}
+                          {connection.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -604,7 +603,7 @@ export default function IntegrationsPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-white/70 text-sm">
-                          {connection.lastTested ? new Date(connection.lastTested).toLocaleString() : "Never"}
+                          {connection.lastSync ? new Date(connection.lastSync).toLocaleString() : "Never"}
                         </div>
                       </TableCell>
                       <TableCell>
