@@ -46,6 +46,7 @@ import { TimerNode } from './nodes/TimerNode';
 import { StringManipulationNode } from './nodes/StringManipulationNode';
 import { NumberFormatterNode } from './nodes/NumberFormatterNode';
 import { DateFormatterNode } from './nodes/DateFormatterNode';
+import { StopperNode } from './nodes/StopperNode';
 
 /**
  * Central mapping registry for sidebar node types to engine node classes
@@ -58,7 +59,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'OnClickExecuteTriggerNode',
     nodeClass: OnClickExecuteTriggerNode,
     category: 'trigger',
-    aliases: ['On Clicking Execute', 'Manual', 'On Click Execute']
+    aliases: ['On Clicking Execute', 'Manual', 'On Click Execute', 'ManualTrigger']
   },
   {
     sidebarType: 'Schedule',
@@ -328,6 +329,15 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'CustomForkNode',
     nodeClass: CustomForkNode,
     category: 'fork'
+  },
+
+  // Utility
+  {
+    sidebarType: 'Stopper',
+    engineType: 'StopperNode',
+    nodeClass: StopperNode,
+    category: 'logic',
+    aliases: ['Stop', 'End']
   }
 ];
 

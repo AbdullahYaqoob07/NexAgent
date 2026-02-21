@@ -5,6 +5,8 @@
 
 import { replaceVariables, type VariableContext } from './utils/variableReplacer';
 import type { TelegramSendConfig } from './nodes/telegram/schema';
+import { executeDelayNode, type DelayNodeConfig } from '@/src/workflows/delay';
+import { executeStopperNode, type StopperNodeConfig } from '@/src/workflows/stopper';
 
 export interface WorkflowNode {
   id: string;
@@ -61,15 +63,20 @@ export class WorkflowExecutor {
     this.context.nodes = {};
     this.context.variables = {};
 
+    // Separate Stopper nodes from regular nodes
+    const stopperNodes = nodes.filter((n) => n.type === 'Stopper');
+    const regularNodes = nodes.filter((n) => n.type !== 'Stopper');
+
     // Topological sort to execute nodes in order
-    const executionOrder = this.topologicalSort(nodes, edges);
+    const executionOrder = this.topologicalSort(regularNodes, edges);
     const results: ExecutionResult[] = [];
     const errors: string[] = [];
 
     console.log(`🚀 Starting workflow execution. Order: ${executionOrder.join(' → ')}`);
 
+    // Execute regular nodes
     for (const nodeId of executionOrder) {
-      const node = nodes.find((n) => n.id === nodeId);
+      const node = regularNodes.find((n) => n.id === nodeId);
       if (!node) {
         errors.push(`Node ${nodeId} not found`);
         continue;
@@ -115,6 +122,37 @@ export class WorkflowExecutor {
 
     const totalTime = Date.now() - this.startTime;
 
+    // Execute Stopper node (if any) to summarize workflow
+    for (const stopperNode of stopperNodes) {
+      try {
+        console.log(`⏳ Executing Stopper node: ${stopperNode.id}`);
+
+        const result = await this.executeStopper(
+          stopperNode,
+          errors.length === 0 ? 'success' : 'error',
+          totalTime,
+          errors,
+          regularNodes.length,
+          results.filter((r) => !r.success).length
+        );
+
+        results.push(result);
+        console.log(`✅ Stopper node ${stopperNode.id} executed`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Stopper node error:`, errorMessage);
+
+        results.push({
+          success: false,
+          nodeId: stopperNode.id,
+          nodeType: stopperNode.type,
+          output: { error: errorMessage },
+          error: errorMessage,
+          executedAt: new Date().toISOString(),
+        });
+      }
+    }
+
     console.log(`\n🏁 Workflow execution complete in ${totalTime}ms`);
     console.log(`Results: ${results.length} nodes, ${errors.length} errors`);
 
@@ -146,6 +184,9 @@ export class WorkflowExecutor {
           executedAt,
         };
 
+      case 'Delay':
+        return await this.executeDelay(node, executedAt);
+
       case 'TelegramSend':
         return await this.executeTelegramSend(node, executedAt);
 
@@ -172,8 +213,86 @@ export class WorkflowExecutor {
           executedAt,
         };
 
+      case 'Stopper':
+        // Stopper nodes are handled separately in executeWorkflow
+        return {
+          success: true,
+          nodeId: node.id,
+          nodeType: node.type,
+          output: {
+            success: true,
+            message: 'Stopper node executed',
+            timestamp: executedAt,
+          },
+          executedAt,
+        };
+
+      case 'Scheduling':
+        return {
+          success: true,
+          nodeId: node.id,
+          nodeType: node.type,
+          output: {
+            success: true,
+            frequency: node.config.frequency || 'Not set',
+            timezone: node.config.timezone || 'UTC',
+            timestamp: executedAt,
+          },
+          executedAt,
+        };
+
+      case 'Webhook':
+        return {
+          success: true,
+          nodeId: node.id,
+          nodeType: node.type,
+          output: {
+            success: true,
+            method: node.config.method || 'POST',
+            path: node.config.path || 'webhook',
+            timestamp: executedAt,
+          },
+          executedAt,
+        };
+
+      case 'Conditional':
+      case 'Loop':
+      case 'DataFormatter':
+      case 'JSONParser':
+      case 'EmailSend':
+      case 'SlackMessage':
+      case 'HTTPRequest':
+      case 'OpenAI':
+      case 'ClaudeAI':
+      case 'GoogleSheets':
+      case 'GoogleDrive':
+      case 'Stripe':
+        // Placeholder for nodes that need backend implementation
+        return {
+          success: true,
+          nodeId: node.id,
+          nodeType: node.type,
+          output: {
+            success: true,
+            message: `${node.type} node executed (implementation pending)`,
+            timestamp: executedAt,
+          },
+          executedAt,
+        };
+
       default:
-        throw new Error(`Unknown node type: ${node.type}`);
+        console.warn(`⚠️ Unknown node type: ${node.type}. This may cause unexpected behavior.`);
+        return {
+          success: false,
+          nodeId: node.id,
+          nodeType: node.type,
+          output: {
+            success: false,
+            error: `Unknown node type: ${node.type}`,
+          },
+          error: `Unknown node type: ${node.type}`,
+          executedAt,
+        };
     }
   }
 
@@ -245,6 +364,118 @@ export class WorkflowExecutor {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`  ❌ Telegram execution error:`, errorMessage);
+
+      return {
+        success: false,
+        nodeId: node.id,
+        nodeType: node.type,
+        output: {
+          success: false,
+          error: errorMessage,
+        },
+        error: errorMessage,
+        executedAt,
+      };
+    }
+  }
+
+  /**
+   * Execute Delay node
+   */
+  private async executeDelay(
+    node: WorkflowNode,
+    executedAt: string
+  ): Promise<ExecutionResult> {
+    const config = node.config as DelayNodeConfig;
+
+    try {
+      console.log(
+        `  ⏳ Delay: Waiting for ${config.duration}${config.unit}`
+      );
+
+      // Get the input data from context (pass-through from previous node)
+      const inputData = this.context.nodes ? Object.values(this.context.nodes).pop() : null;
+
+      // Execute the delay
+      const result = await executeDelayNode({
+        config: {
+          duration: config.duration || 0,
+          unit: config.unit || 'ms',
+        },
+        inputData: inputData,
+        onProgress: (elapsed, total) => {
+          const percent = Math.round((elapsed / total) * 100);
+          console.log(`    ⏱️ Progress: ${percent}% (${elapsed}/${total}ms)`);
+        },
+      });
+
+      console.log(
+        `  ✅ Delay completed! Waited ${result.delayDuration}ms`
+      );
+
+      return {
+        success: true,
+        nodeId: node.id,
+        nodeType: node.type,
+        output: result,
+        executedAt,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`  ❌ Delay execution error:`, errorMessage);
+
+      return {
+        success: false,
+        nodeId: node.id,
+        nodeType: node.type,
+        output: {
+          success: false,
+          error: errorMessage,
+        },
+        error: errorMessage,
+        executedAt,
+      };
+    }
+  }
+
+  /**
+   * Execute Stopper node - marks end of workflow and logs summary
+   */
+  private async executeStopper(
+    node: WorkflowNode,
+    workflowStatus: 'success' | 'error',
+    workflowDuration: number,
+    workflowErrors: string[],
+    totalNodeCount: number,
+    failedNodeCount: number
+  ): Promise<ExecutionResult> {
+    const config = node.config as StopperNodeConfig;
+    const executedAt = new Date().toISOString();
+
+    try {
+      // Execute stopper
+      const result = await executeStopperNode({
+        config: {
+          logLevel: config.logLevel || 'info',
+          customMessage: config.customMessage,
+        },
+        workflowStatus,
+        workflowDuration,
+        workflowErrors,
+        completedNodeCount: totalNodeCount - failedNodeCount,
+        failedNodeCount,
+      });
+
+      return {
+        success: workflowStatus === 'success',
+        nodeId: node.id,
+        nodeType: node.type,
+        output: result,
+        executedAt,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`  ❌ Stopper execution error:`, errorMessage);
 
       return {
         success: false,

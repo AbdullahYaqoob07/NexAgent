@@ -23,6 +23,9 @@ export { JSONParserNode } from './jsonparser/jsonparsernode';
 export { LoggerNode } from './logger/loggernode';
 export { LoggerConfigurationModal } from './logger/loggerconfigurationmodal';
 
+// Utility
+export { StopperNode } from './stopper/stoppernode';
+
 // Integrations
 export { GoogleSheetsNode } from './googlesheets/googlesheetsnode';
 export { GoogleDriveNode } from './googledrive/googledrivenode';
@@ -31,3 +34,32 @@ export { StripeNode } from './stripe/stripenode';
 // AI/ML
 export { OpenAINode } from './openai/openainode';
 export { ClaudeAINode } from './claudeai/claudeainode';
+
+// ─── Node Executors ───────────────────────────────────────────────────────────
+
+// Delay executor and types
+export {
+  executeDelayNode,
+  resolveDelayMs,
+  DelayError,
+  DELAY_LIMITS,
+  UNIT_TO_MS,
+} from './delay';
+export type {
+  DelayNodeConfig,
+  DelayNodeOutput,
+  DelayExecutorOptions,
+  DelayProgressCallback,
+  TimeUnit,
+} from './delay';
+
+// Stopper executor and types
+export {
+  executeStopperNode,
+  StopperError,
+} from './stopper';
+export type {
+  StopperNodeConfig,
+  StopperNodeOutput,
+  StopperExecutorOptions,
+} from './stopper';

@@ -53,7 +53,8 @@ const CATEGORY_MAPPING = {
   "AI/ML": { icon: <Bot className="w-4 h-4" />, order: 4 },
   "Communication": { icon: <MessageSquare className="w-4 h-4" />, order: 5 },
   "Ecommerce": { icon: <ShoppingCart className="w-4 h-4" />, order: 6 },
-  "Fork": { icon: <GitFork className="w-4 h-4" />, order: 7 }
+  "Fork": { icon: <GitFork className="w-4 h-4" />, order: 7 },
+  "Utility": { icon: <Layers className="w-4 h-4" />, order: 8 }
 } as const;
 
 // Convert hardcoded node definitions to sidebar categories

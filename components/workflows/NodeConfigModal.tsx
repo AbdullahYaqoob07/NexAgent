@@ -367,7 +367,7 @@ export default function NodeConfigModal({
   const [isLoadingNodeData, setIsLoadingNodeData] = useState(false);
 
   useEffect(() => {
-    console.log('NodeConfigModal useEffect triggered:', { node });
+    console.log('NodeConfigModal useEffect triggered:', { nodeId: node?.id });
     if (node) {
       console.log('NodeConfigModal received node:', node);
       const initial = node.config || {};
@@ -387,7 +387,7 @@ export default function NodeConfigModal({
     } else {
       console.log('Node is null in useEffect');
     }
-  }, [node, providedNodes]);
+  }, [node?.id]);
   
   useEffect(() => {
     if (isOpen) {

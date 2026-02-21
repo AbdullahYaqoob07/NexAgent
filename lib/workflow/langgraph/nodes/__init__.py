@@ -1,52 +1,44 @@
 """
-Node Executors Package
-All node executors are registered here
+Node Executors Package - Only 20 core implemented node executors
 """
 try:
     from .base import BaseNodeExecutor
+    
+    # Triggers (3)
     from .triggers import (
         ScheduleTriggerExecutor,
         WebhookTriggerExecutor,
         ManualTriggerExecutor
     )
+    
+    # Actions (4)
     from .actions import (
         LoggerExecutor,
-        VariableSetterExecutor,
-        LoggerExecutor,
-        VariableSetterExecutor,
         HttpRequestExecutor,
         EmailExecutor,
         SlackExecutor,
-        DatabaseExecutor
     )
+    
+    # Logic (4)
     from .logic import (
-        TimerExecutor,
-        CounterExecutor,
-        BooleanExecutor,
-        TimerExecutor,
-        CounterExecutor,
-        BooleanExecutor,
         IfConditionExecutor,
-        SwitchExecutor,
         LoopExecutor,
-        MergeExecutor,
-        DelayExecutor
+        DelayExecutor,
+        StopperExecutor
     )
+    
+    # AI/ML (2)
     from .ai_ml import (
         OpenAIExecutor,
-        TextAnalysisExecutor,
-        ImageProcessingExecutor,
-        DataTransformExecutor
+        # ClaudeAIExecutor,  # TODO: Implement
     )
+    
+    # Data (2)
     from .data import (
-        StringManipulationExecutor,
-        NumberFormatterExecutor,
         DateFormatterExecutor,
         JsonParseExecutor,
-        XmlParseExecutor,
-        CsvParseExecutor,
-        DataFilterExecutor
     )
+    
 except ImportError as e:
     # Handle import errors gracefully
     import logging
@@ -58,70 +50,36 @@ except ImportError as e:
     WebhookTriggerExecutor = None
     ManualTriggerExecutor = None
     LoggerExecutor = None
-    VariableSetterExecutor = None
     HttpRequestExecutor = None
     EmailExecutor = None
     SlackExecutor = None
-    DatabaseExecutor = None
-    TimerExecutor = None
-    CounterExecutor = None
-    BooleanExecutor = None
     IfConditionExecutor = None
-    SwitchExecutor = None
     LoopExecutor = None
-    MergeExecutor = None
     DelayExecutor = None
+    StopperExecutor = None
     OpenAIExecutor = None
-    TextAnalysisExecutor = None
-    ImageProcessingExecutor = None
-    DataTransformExecutor = None
-    StringManipulationExecutor = None
-    NumberFormatterExecutor = None
     DateFormatterExecutor = None
     JsonParseExecutor = None
-    XmlParseExecutor = None
-    CsvParseExecutor = None
-    DataFilterExecutor = None
 
 __all__ = [
     "BaseNodeExecutor",
-    # Triggers
+    # Triggers (3)
     "ScheduleTriggerExecutor",
     "WebhookTriggerExecutor",
     "ManualTriggerExecutor",
-    # Actions
+    # Actions (4)
     "LoggerExecutor",
-    "VariableSetterExecutor",
-    "LoggerExecutor",
-    "VariableSetterExecutor",
     "HttpRequestExecutor",
     "EmailExecutor",
     "SlackExecutor",
-    "DatabaseExecutor",
-    # Logic
-    "TimerExecutor",
-    "CounterExecutor",
-    "BooleanExecutor",
-    "TimerExecutor",
-    "CounterExecutor",
-    "BooleanExecutor",
+    # Logic (4)
     "IfConditionExecutor",
-    "SwitchExecutor",
     "LoopExecutor",
-    "MergeExecutor",
     "DelayExecutor",
-    # AI/ML
+    "StopperExecutor",
+    # AI/ML (2)
     "OpenAIExecutor",
-    "TextAnalysisExecutor",
-    "ImageProcessingExecutor",
-    "DataTransformExecutor",
-    # Data
-    "StringManipulationExecutor",
-    "NumberFormatterExecutor",
+    # Data (2)
     "DateFormatterExecutor",
     "JsonParseExecutor",
-    "XmlParseExecutor",
-    "CsvParseExecutor",
-    "DataFilterExecutor",
 ]
-

@@ -196,6 +196,17 @@ export const HARDCODED_NODES: NodeDef[] = [
     icon: "🧠",
     isStartNode: false,
   },
+
+  // ==================== UTILITY ====================
+  {
+    id: "stopper",
+    name: "Stopper",
+    type: "Stopper",
+    category: "Utility",
+    description: "Workflow completion checkpoint and summary logger",
+    icon: "🏁",
+    isStartNode: false,
+  },
 ];
 
 /**

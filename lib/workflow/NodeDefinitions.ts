@@ -794,7 +794,7 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         label: 'Duration (seconds)',
         type: 'number',
         placeholder: '5',
-        description: 'How long to wait',
+        description: 'How long to wait in seconds',
         required: true,
         validation: { min: 1, max: 3600 },
         group: 'Settings',

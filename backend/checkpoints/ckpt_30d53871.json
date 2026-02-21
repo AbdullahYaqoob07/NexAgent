@@ -1,0 +1,106 @@
+{
+  "checkpoint_id": "ckpt_30d53871",
+  "workflow_id": "D99czv1XLjVFPX483A6t",
+  "execution_id": "79e3e1f8-2b47-4ea7-92df-1fc5e0f6e028",
+  "checkpoint_type": "error",
+  "current_node_id": "node_1771656410781",
+  "current_data": {
+    "requested_duration_ms": 5,
+    "actual_duration_ms": 9.953,
+    "started_at": "2026-02-21T06:47:07.966791",
+    "completed_at": "2026-02-21T06:47:07.976744",
+    "input": {
+      "triggered": true,
+      "trigger_type": "manual",
+      "triggered_at": "2026-02-21T06:47:07.956296",
+      "input": {
+        "demoInput": "Hello from workflow editor!"
+      },
+      "triggered_by": "unknown"
+    }
+  },
+  "node_logs": [
+    {
+      "node_id": "node_1771656406852",
+      "node_name": "Manual Trigger",
+      "node_type": "OnClickExecuteTriggerNode",
+      "status": "success",
+      "output": {
+        "triggered": true,
+        "trigger_type": "manual",
+        "triggered_at": "2026-02-21T06:47:07.956296",
+        "input": {
+          "demoInput": "Hello from workflow editor!"
+        },
+        "triggered_by": "unknown"
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2026-02-21T06:47:07.889457",
+      "completed_at": "2026-02-21T06:47:07.957519",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    },
+    {
+      "node_id": "node_1771656408572",
+      "node_name": "Delay",
+      "node_type": "DelayNode",
+      "status": "success",
+      "output": {
+        "requested_duration_ms": 5,
+        "actual_duration_ms": 9.953,
+        "started_at": "2026-02-21T06:47:07.966791",
+        "completed_at": "2026-02-21T06:47:07.976744",
+        "input": {
+          "triggered": true,
+          "trigger_type": "manual",
+          "triggered_at": "2026-02-21T06:47:07.956296",
+          "input": {
+            "demoInput": "Hello from workflow editor!"
+          },
+          "triggered_by": "unknown"
+        }
+      },
+      "error": null,
+      "error_type": null,
+      "stack_trace": null,
+      "execution_time_ms": 100.0,
+      "started_at": "2026-02-21T06:47:07.889457",
+      "completed_at": "2026-02-21T06:47:07.978414",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    },
+    {
+      "node_id": "node_1771656410781",
+      "node_name": "Stopper",
+      "node_type": "StopperNode",
+      "status": "failed",
+      "output": null,
+      "error": "Node 'node_1771656410781' (StopperNode) is not properly configured. No executor registered for node type: StopperNode. Available types: ['Schedule', 'ScheduleTriggerNode', 'Webhook', 'WebhookTriggerNode', 'Manual Trigger', 'OnClickExecuteTriggerNode', 'Logger', 'LoggerNode', 'Variable Setter', 'VariableSetterNode', 'HTTP Request', 'HTTP Request Action', 'HttpNode', 'Send Email', 'EmailNode', 'Slack Message', 'SlackNode', 'Database Query', 'DatabaseNode', 'Timer', 'TimerNode', 'Counter', 'CounterNode', 'Boolean', 'BooleanNode', 'If Condition', 'IfNode', 'Switch', 'SwitchNode', 'Loop', 'LoopNode', 'Merge', 'MergeNode', 'Delay', 'DelayNode', 'OpenAI GPT', 'OpenAI', 'OpenAINode', 'Text Analysis', 'TextAnalysisNode', 'Image Processing', 'ImageProcessingNode', 'Data Transformation', 'DataTransformNode', 'Date Formatter', 'DateFormatterNode', 'Number Formatter', 'NumberFormatterNode', 'String Manipulation', 'StringManipulationNode', 'JSON Parse', 'JsonParseNode', 'XML Parse', 'XmlParseNode', 'CSV Parse', 'CsvParseNode', 'Data Filter', 'DataFilterNode']",
+      "error_type": "ValueError",
+      "stack_trace": null,
+      "execution_time_ms": 0.0,
+      "started_at": "2026-02-21T06:47:07.889457",
+      "completed_at": "2026-02-21T06:47:07.991706",
+      "attempt_number": 1,
+      "max_attempts": 1,
+      "metadata": {}
+    }
+  ],
+  "variables": {},
+  "visited_nodes": [
+    "node_1771656406852",
+    "node_1771656408572",
+    "node_1771656410781"
+  ],
+  "pending_nodes": [],
+  "created_at": "2026-02-21T06:47:07.993882",
+  "execution_time_ms": 0.0,
+  "checkpoint_size_bytes": 0,
+  "last_successful_node": "node_1771656408572",
+  "last_error": "Node 'node_1771656410781' (StopperNode) is not properly configured. No executor registered for node type: StopperNode. Available types: ['Schedule', 'ScheduleTriggerNode', 'Webhook', 'WebhookTriggerNode', 'Manual Trigger', 'OnClickExecuteTriggerNode', 'Logger', 'LoggerNode', 'Variable Setter', 'VariableSetterNode', 'HTTP Request', 'HTTP Request Action', 'HttpNode', 'Send Email', 'EmailNode', 'Slack Message', 'SlackNode', 'Database Query', 'DatabaseNode', 'Timer', 'TimerNode', 'Counter', 'CounterNode', 'Boolean', 'BooleanNode', 'If Condition', 'IfNode', 'Switch', 'SwitchNode', 'Loop', 'LoopNode', 'Merge', 'MergeNode', 'Delay', 'DelayNode', 'OpenAI GPT', 'OpenAI', 'OpenAINode', 'Text Analysis', 'TextAnalysisNode', 'Image Processing', 'ImageProcessingNode', 'Data Transformation', 'DataTransformNode', 'Date Formatter', 'DateFormatterNode', 'Number Formatter', 'NumberFormatterNode', 'String Manipulation', 'StringManipulationNode', 'JSON Parse', 'JsonParseNode', 'XML Parse', 'XmlParseNode', 'CSV Parse', 'CsvParseNode', 'Data Filter', 'DataFilterNode']"
+}
