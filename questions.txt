@@ -1,0 +1,330 @@
+NEXAGENT - FREQUENTLY ASKED QUESTIONS (FAQ)
+============================================
+
+PROJECT OVERVIEW & GENERAL
+==========================
+1. What is NexAgent?
+2. What are the main features of NexAgent?
+3. What is the current version of NexAgent?
+4. What technology stack does NexAgent use?
+5. Is NexAgent open source?
+6. What are the system requirements to run NexAgent?
+7. How do I get started with NexAgent?
+8. What is a "Nexa" in NexAgent?
+
+AUTHENTICATION & USER MANAGEMENT
+=================================
+9. How do I sign up for NexAgent?
+10. What authentication methods are supported?
+11. How does the dual authentication system work (Firebase + Backend)?
+12. Can I reset my password?
+13. Does NexAgent support multi-factor authentication (MFA)?
+14. How are user credentials stored securely?
+15. What happens if I forget my password?
+16. Can I link multiple social accounts to one NexAgent account?
+17. How do I verify my email address?
+18. What is the account lockout policy after failed login attempts?
+
+WORKFLOWS & WORKFLOW MANAGEMENT
+================================
+19. What is a workflow in NexAgent?
+20. How many workflows can I create?
+21. What is the maximum number of nodes in a workflow?
+22. Can I share workflows with other users?
+23. How do I create a new workflow?
+24. How do I edit an existing workflow?
+25. How do I delete a workflow?
+26. Can I duplicate a workflow?
+27. What is workflow versioning?
+28. How do I publish a workflow to the marketplace?
+29. Can I make a workflow public or private?
+30. What is the difference between draft and active workflow status?
+31. How do I export a workflow?
+32. How do I import a workflow?
+33. Can I collaborate on workflows with other users?
+34. What happens to my workflows if I delete my account?
+
+WORKFLOW NODES & TYPES
+======================
+35. How many node types are available in NexAgent?
+36. What are the 6 categories of nodes?
+37. What is a trigger node and why is it required?
+38. What are the 3 types of trigger nodes?
+39. What are the 5 communication nodes available?
+40. What are the 3 logic nodes and their purposes?
+41. What are the 3 data processing nodes?
+42. What are the 3 integration nodes?
+43. What are the 2 AI/ML nodes?
+44. How do I add a node to my workflow?
+45. How do I configure a node?
+46. How do I connect nodes together?
+47. Can I disable a node without deleting it?
+48. What is a node port (input/output)?
+49. How do I use variable substitution in node configuration?
+50. What is the syntax for referencing node outputs?
+
+WORKFLOW EXECUTION
+==================
+51. How do I execute a workflow?
+52. What are the 3 ways to trigger a workflow execution?
+53. How do I manually run a workflow?
+54. How do I schedule a workflow to run automatically?
+55. What cron expression syntax does NexAgent support?
+56. How do I create a webhook trigger for my workflow?
+57. What is the webhook URL format?
+58. Can I pass input data to a workflow?
+59. How long can a workflow execution take?
+60. What is the execution timeout setting?
+61. How do I retry a failed workflow?
+62. What error handling strategies are available?
+63. Can I pause a running workflow?
+64. Can I cancel a running workflow?
+65. How do I view execution logs?
+66. What information is included in execution logs?
+67. How do I debug a failing workflow?
+68. What is the execution history retention period?
+
+NODES - TRIGGERS
+================
+69. How does the Manual Trigger node work?
+70. How do I configure the Schedule node with cron expressions?
+71. What timezone does the Schedule node use?
+72. How do I create a Webhook trigger?
+73. Can I have multiple triggers in one workflow?
+74. What happens if a trigger is disabled?
+
+NODES - COMMUNICATION
+=====================
+75. How do I use the Chat Input node?
+76. How do I send messages via Telegram?
+77. What information do I need to configure Telegram Send?
+78. How do I send emails through NexAgent?
+79. How do I post messages to Slack?
+80. How do I make HTTP requests to external APIs?
+81. Can I add custom headers to HTTP requests?
+82. What HTTP methods are supported?
+83. How do I handle HTTP response data?
+84. Can I send files through communication nodes?
+
+NODES - LOGIC
+==============
+85. How do I use the Conditional node?
+86. What comparison operators are available in Conditional nodes?
+87. How do I create multiple branches in a Conditional node?
+88. How do I use the Loop node?
+89. What data types can I iterate over in a Loop?
+90. How do I use the Delay node?
+91. What is the maximum delay duration?
+92. Can I use dynamic values for delay duration?
+
+NODES - DATA PROCESSING
+=======================
+93. What does the Data Formatter node do?
+94. How do I parse JSON with the JSON Parser node?
+95. What does the Logger node do?
+96. How do I view logger output?
+97. What log levels are available?
+98. Can I filter logs by node?
+99. How do I export execution logs?
+
+NODES - INTEGRATIONS
+====================
+100. How do I connect Google Sheets to NexAgent?
+101. How do I read data from Google Sheets?
+102. How do I write data to Google Sheets?
+103. How do I connect Google Drive to NexAgent?
+104. How do I upload files to Google Drive?
+105. How do I download files from Google Drive?
+106. How do I process payments with Stripe?
+107. What Stripe operations are supported?
+108. How do I handle Stripe webhooks?
+109. What other integrations are planned?
+110. Can I create custom integrations?
+
+NODES - AI/ML
+=============
+111. How do I use the OpenAI node?
+112. What OpenAI models are supported?
+113. How do I configure the OpenAI node?
+114. What is the maximum token limit for OpenAI?
+115. How do I use the Claude AI node?
+116. What Claude models are supported?
+117. How do I handle AI model errors?
+118. Can I use multiple AI nodes in one workflow?
+119. How do I optimize AI node costs?
+120. What is the token usage tracking feature?
+
+CREDENTIALS & INTEGRATIONS
+===========================
+121. How do I add credentials to NexAgent?
+122. What types of credentials are supported?
+123. How are credentials encrypted?
+124. Can I share credentials with other users?
+125. How do I revoke a credential?
+126. What happens if a credential expires?
+127. How do I update a credential?
+128. Can I have multiple credentials for the same service?
+129. How do I test a credential?
+130. What is the credential status indicator?
+
+MARKETPLACE & TEMPLATES
+=======================
+131. What is the NexAgent Marketplace?
+132. How do I browse marketplace templates?
+133. How do I use a marketplace template?
+134. Can I publish my workflow to the marketplace?
+135. What are the requirements for publishing?
+136. How do I monetize my workflows?
+137. What is the revenue sharing model?
+138. Can I update a published workflow?
+139. How do I remove a workflow from the marketplace?
+140. How are marketplace workflows rated?
+
+ANALYTICS & MONITORING
+======================
+141. What analytics are available?
+142. How do I view workflow execution statistics?
+143. How do I track token usage?
+144. How do I monitor costs?
+145. What is the execution success rate metric?
+146. How do I export analytics reports?
+147. Can I set up alerts for failed executions?
+148. How do I view real-time execution metrics?
+
+BILLING & PRICING
+=================
+149. What are the pricing tiers?
+150. What is included in the Free plan?
+151. What is included in the Pro plan?
+152. What is included in the Enterprise plan?
+153. How do I upgrade my plan?
+154. How do I downgrade my plan?
+155. What payment methods are accepted?
+156. How do I view my billing history?
+157. Can I get an invoice?
+158. What is the refund policy?
+159. Are there discounts for annual billing?
+160. How do I cancel my subscription?
+
+SECURITY & PRIVACY
+==================
+161. How is my data encrypted?
+162. Where is my data stored?
+163. Does NexAgent comply with GDPR?
+164. Does NexAgent comply with CCPA?
+165. How do I delete my account and data?
+166. What is the data retention policy?
+167. Can I export my data?
+168. How often are security audits performed?
+169. What is the incident response process?
+170. How do I report a security vulnerability?
+
+PERFORMANCE & OPTIMIZATION
+===========================
+171. What is the maximum workflow execution time?
+172. How many workflows can run concurrently?
+173. What is the rate limit for API calls?
+174. How do I optimize workflow performance?
+175. What is the recommended number of nodes per workflow?
+176. How do I reduce execution costs?
+177. Can I cache workflow results?
+178. What is the storage limit for execution logs?
+
+TROUBLESHOOTING & SUPPORT
+=========================
+179. What should I do if a workflow fails?
+180. How do I contact support?
+181. What is the support response time?
+182. How do I report a bug?
+183. How do I request a feature?
+184. Where can I find documentation?
+185. Are there video tutorials available?
+186. Is there a community forum?
+187. How do I get help with workflow design?
+188. What are common workflow errors and how to fix them?
+
+DEVELOPMENT & CUSTOMIZATION
+============================
+189. Can I self-host NexAgent?
+190. Is there an API for programmatic access?
+191. Can I create custom nodes?
+192. How do I extend NexAgent functionality?
+193. What is the development roadmap?
+194. Can I contribute to NexAgent?
+195. Is there a plugin system?
+196. How do I set up a development environment?
+197. What are the code contribution guidelines?
+198. How do I run tests?
+
+ADVANCED FEATURES
+=================
+199. What is workflow versioning?
+200. How do I rollback to a previous workflow version?
+201. Can I A/B test workflows?
+202. How do I implement error handling strategies?
+203. What is the retry mechanism?
+204. Can I set up conditional branching?
+205. How do I use loops in workflows?
+206. Can I create nested workflows?
+207. What is the variable scope in workflows?
+208. How do I use environment variables?
+
+INTEGRATIONS - SPECIFIC PLATFORMS
+==================================
+209. How do I integrate with Shopify?
+210. How do I integrate with WhatsApp?
+211. How do I integrate with Facebook Messenger?
+212. How do I integrate with Instagram?
+213. How do I integrate with Slack?
+214. How do I integrate with Telegram?
+215. How do I integrate with Gmail?
+216. How do I integrate with Google Workspace?
+217. How do I integrate with Stripe?
+218. How do I integrate with custom APIs?
+
+MOBILE & ACCESSIBILITY
+======================
+219. Is there a mobile app for NexAgent?
+220. Can I access NexAgent on mobile browsers?
+221. Is NexAgent accessible for users with disabilities?
+222. What accessibility standards does NexAgent follow?
+223. Are there keyboard shortcuts?
+224. Is dark mode available?
+
+MIGRATION & IMPORT/EXPORT
+=========================
+225. Can I migrate from other workflow platforms?
+226. How do I import workflows from other tools?
+227. What file formats are supported for import/export?
+228. Can I backup my workflows?
+229. How do I restore from a backup?
+230. Can I migrate my data to another platform?
+
+FUTURE & ROADMAP
+================
+231. What features are planned for the future?
+232. When will feature X be released?
+233. Can I request a feature?
+234. How often are updates released?
+235. What is the long-term vision for NexAgent?
+236. Will NexAgent support more integrations?
+237. Are there plans for mobile apps?
+238. Will there be offline mode?
+239. What about AI model updates?
+240. How will NexAgent evolve?
+
+COMPLIANCE & REGULATIONS
+========================
+241. Is NexAgent SOC 2 compliant?
+242. Does NexAgent support HIPAA?
+243. Does NexAgent support PCI DSS?
+244. What data residency options are available?
+245. How do I ensure compliance in my workflows?
+
+PERFORMANCE METRICS
+===================
+246. What is the average workflow execution time?
+247. What is the platform uptime SLA?
+248. How many workflows can the platform handle?
+249. What is the maximum data transfer rate?
+250. How do I monitor platform status?
