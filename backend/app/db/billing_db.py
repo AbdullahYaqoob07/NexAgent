@@ -171,6 +171,26 @@ class BillingDatabase:
         except Exception as e:
             logger.error(f"Error getting all plans: {str(e)}")
             return []
+
+    async def get_plan_by_price_id(self, price_id: str) -> Optional[Dict[str, Any]]:
+        """Get plan by Stripe price ID (monthly or yearly)"""
+        try:
+            if not price_id:
+                return None
+
+            monthly_query = self.plans_collection.where('stripe_price_monthly_id', '==', price_id).get()
+            if monthly_query:
+                return monthly_query[0].to_dict()
+
+            yearly_query = self.plans_collection.where('stripe_price_yearly_id', '==', price_id).get()
+            if yearly_query:
+                return yearly_query[0].to_dict()
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting plan by price ID {price_id}: {str(e)}")
+            return None
     
     async def update_plan(self, plan_id: str, update_data: Dict[str, Any]) -> bool:
         """Update billing plan"""

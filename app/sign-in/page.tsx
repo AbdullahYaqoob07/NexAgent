@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
+import { twoFactorService } from '@/lib/api/services/twoFactorService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle, Shield } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MFAVerify } from '@/components/mfa/MFAVerify';
@@ -72,6 +73,8 @@ export default function SignInPage() {
     e.preventDefault();
     setError('');
     setShowVerificationWarning(false);
+    setAccountLocked(false);
+    setLockedUntil(null);
     setLoading(true);
 
     try {
@@ -109,7 +112,31 @@ export default function SignInPage() {
       }
       
     } catch (error: any) {
-      setError(error.message);
+      // Handle Firebase auth errors
+      const errorCode = error?.code || '';
+      const errorMessage = error?.message || 'Login failed. Please try again.';
+      
+      // Track failed attempt on backend
+      if (errorCode.includes('wrong-password') || errorCode.includes('user-not-found') || errorCode.includes('invalid-email')) {
+        try {
+          // Increment failed attempts (this will be done by backend when we call the endpoint)
+          // For now, we'll let the backend handle it on next login attempt
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+          await fetch(`${backendUrl}/api/v1/two-factor/increment-failed-attempts`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+          }).catch(() => {
+            // Ignore errors - backend will handle on next check
+          });
+        } catch (trackError) {
+          console.warn('Failed to track failed attempt:', trackError);
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -241,8 +268,30 @@ export default function SignInPage() {
               </motion.div>
             )}
 
+            {/* Account Locked Warning */}
+            {accountLocked && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start space-x-2 text-red-400 bg-red-400/10 border border-red-400/20 p-3 rounded-lg mb-4"
+              >
+                <Shield size={16} className="flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium mb-1">Account Temporarily Locked</p>
+                  <p className="text-xs text-red-300/80">
+                    {error || 'Your account has been temporarily locked due to multiple failed login attempts.'}
+                    {lockedUntil && (
+                      <span className="block mt-1">
+                        Please try again after the lockout period expires.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Email Verification Warning */}
-            {showVerificationWarning && (
+            {showVerificationWarning && !accountLocked && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}

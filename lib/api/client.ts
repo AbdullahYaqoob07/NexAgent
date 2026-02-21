@@ -48,13 +48,30 @@ apiClient.interceptors.request.use(
     // Always prefer Firebase ID token for authenticated users
     if (typeof window !== 'undefined' && auth?.currentUser) {
       try {
-        const idToken = await auth.currentUser.getIdToken(true); // Force refresh
+        // Force refresh token to ensure it's valid
+        const idToken = await auth.currentUser.getIdToken(true);
         if (idToken) {
           (config.headers as any).Authorization = `Bearer ${idToken}`;
-          if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
+          // Store token for fallback
+          try {
+            localStorage.setItem('backend_auth_token', idToken);
+          } catch {}
+        } else {
+          // If token fetch failed, try to use stored token as fallback
+          const storedToken = localStorage.getItem('backend_auth_token');
+          if (storedToken) {
+            (config.headers as any).Authorization = `Bearer ${storedToken}`;
           }
         }
       } catch (error) {
+        // If token refresh fails, try stored token
+        try {
+          const storedToken = localStorage.getItem('backend_auth_token');
+          if (storedToken) {
+            (config.headers as any).Authorization = `Bearer ${storedToken}`;
+          }
+        } catch {}
+        
         if (process.env.NEXT_PUBLIC_DEBUG_TOKENS === 'true') {
           console.log('[API Client Debug] Failed to get Firebase token:', error);
         }
@@ -93,14 +110,32 @@ apiClient.interceptors.response.use(
       const data: any = error.response.data as any;
 
       // Handle 401 - Unauthorized
+      // Only redirect if:
+      // 1. We have a valid response (not network error)
+      // 2. We're not already on sign-in page
+      // 3. We're not on admin pages
+      // 4. The error is an actual auth failure (not connection refused)
+      // 5. We're not on dashboard (dashboard handles its own errors gracefully)
       if (status === 401 && typeof window !== 'undefined') {
-        const onAdmin = window.location.pathname.startsWith('/admin321');
-        // Keep admin pages from redirect loops while experimenting
-        if (!onAdmin) {
+        const currentPath = window.location.pathname;
+        const onAdmin = currentPath.startsWith('/admin321');
+        const onSignIn = currentPath === '/sign-in' || currentPath.startsWith('/sign-in');
+        const onDashboard = currentPath === '/dashboard' || currentPath.startsWith('/dashboard');
+        const isPublicEndpoint = error.config?.url?.includes('/check-account-status') || 
+                                 error.config?.url?.includes('/forgot-password') ||
+                                 error.config?.url?.includes('/sign-up');
+        const isAnalyticsEndpoint = error.config?.url?.includes('/analytics/');
+        
+        // Don't redirect for:
+        // - Already on sign-in page (prevent loops)
+        // - Admin pages
+        // - Dashboard pages (they handle errors gracefully)
+        // - Public endpoints that don't require auth
+        // - Analytics endpoints (dashboard handles these errors)
+        if (!onAdmin && !onSignIn && !onDashboard && !isPublicEndpoint && !isAnalyticsEndpoint) {
           try { localStorage.removeItem('backend_auth_token'); } catch {}
-          if (window.location.pathname !== '/sign-in') {
-            window.location.href = '/sign-in';
-          }
+          // Use replace to avoid adding to history
+          window.location.replace('/sign-in');
         }
       }
 
@@ -111,8 +146,8 @@ apiClient.interceptors.response.use(
       });
     }
 
-    // Log the actual error for debugging
-    
+    // Network errors (connection refused, timeout, etc.) - don't redirect
+    // These are not authentication failures
     return Promise.reject({
       message: error.message || 'Network error. Please check your connection.',
       error: 'NETWORK_ERROR',

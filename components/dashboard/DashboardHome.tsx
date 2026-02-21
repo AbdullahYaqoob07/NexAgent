@@ -28,6 +28,7 @@ import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
 import { useUserProfile } from '@/lib/useUserProfile';
+import { useAuth } from '@/lib/AuthContext';
 import dashboardApiService, { DashboardOverview, RealTimeMetrics, Alert } from '@/lib/api/dashboard-api';
 
 interface DashboardHomeProps {
@@ -36,9 +37,11 @@ interface DashboardHomeProps {
 
 export default function DashboardHome({}: DashboardHomeProps) {
   const { profileData, loading: profileLoading, displayName, trackFeature } = useUserProfile();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMarketplacePromo, setShowMarketplacePromo] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   
   // Backend dashboard data
@@ -52,9 +55,34 @@ export default function DashboardHome({}: DashboardHomeProps) {
     trackFeature('dashboard_viewed');
   }, [trackFeature]);
   
-  // Fetch dashboard data from backend
+  // Fetch dashboard data from backend - only when user is authenticated
   useEffect(() => {
+    // Don't fetch if auth is still loading or user is not authenticated
+    if (authLoading || !user) {
+      setDataLoading(false);
+      return;
+    }
+    
     const fetchDashboardData = async () => {
+      // Double-check user is authenticated
+      try {
+        const { auth } = await import('@/lib/firebase');
+        if (!auth.currentUser) {
+          setDataLoading(false);
+          return;
+        }
+        
+        // Get fresh token
+        const token = await auth.currentUser.getIdToken(true).catch(() => null);
+        if (!token) {
+          setDataLoading(false);
+          return;
+        }
+      } catch (error) {
+        setDataLoading(false);
+        return;
+      }
+      
       try {
         setDataLoading(true);
         const [overview, realTime, alertsResponse] = await Promise.all([
@@ -65,8 +93,14 @@ export default function DashboardHome({}: DashboardHomeProps) {
         setDashboardData(overview);
         setRealTimeMetrics(realTime);
         setAlerts(alertsResponse.alerts);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+      } catch (error: any) {
+        // Suppress "Invalid token" errors - they're expected if token is expired/invalid
+        // These are handled gracefully by showing empty data
+        if (error?.error !== 'NETWORK_ERROR' && 
+            error?.status !== 401 && 
+            error?.message !== 'Invalid token') {
+          console.error('Failed to fetch dashboard data:', error);
+        }
       } finally {
         setDataLoading(false);
       }
@@ -77,7 +111,7 @@ export default function DashboardHome({}: DashboardHomeProps) {
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [authLoading, user, profileLoading]);
   
   // Close notifications when clicking outside
   useEffect(() => {
@@ -92,6 +126,45 @@ export default function DashboardHome({}: DashboardHomeProps) {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showNotifications]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      return;
+    }
+
+    const promoKey = `marketplace_promo_seen_${user.uid}`;
+    try {
+      const seen = localStorage.getItem(promoKey);
+      if (!seen) {
+        setShowMarketplacePromo(true);
+      }
+    } catch (error) {
+      setShowMarketplacePromo(true);
+    }
+  }, [user?.uid]);
+
+  const dismissMarketplacePromo = () => {
+    if (user?.uid) {
+      try {
+        localStorage.setItem(`marketplace_promo_seen_${user.uid}`, '1');
+      } catch (error) {
+        // No-op if storage is unavailable
+      }
+    }
+    setShowMarketplacePromo(false);
+  };
+
+  const handleMarketplacePromoClick = () => {
+    if (user?.uid) {
+      try {
+        localStorage.setItem(`marketplace_promo_seen_${user.uid}`, '1');
+      } catch (error) {
+        // No-op if storage is unavailable
+      }
+    }
+    setShowMarketplacePromo(false);
+    router.push('/marketplace');
+  };
   
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -165,6 +238,31 @@ export default function DashboardHome({}: DashboardHomeProps) {
       borderColor: "border-purple-500/20"
     }
   ];
+
+  const featuredTemplates = [
+    {
+      id: '1',
+      name: 'Google Sheets Automation',
+      category: 'Data Processing',
+      rating: 4.8,
+      installs: 12500,
+      author: 'NexAgent Team',
+      price: 'Free',
+      description: 'Automatically sync data between Google Sheets and your workflows.',
+      image: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=400&h=200&fit=crop'
+    },
+    {
+      id: '2',
+      name: 'Slack Integration Hub',
+      category: 'Communication',
+      rating: 4.6,
+      installs: 8900,
+      author: 'DevCorp',
+      price: '$9.99',
+      description: 'Send notifications and manage team communication directly from workflows.',
+      image: 'https://images.unsplash.com/photo-1611606063065-ee7946f0787a?w=400&h=200&fit=crop'
+    }
+  ];
   
   // Quick actions for the dashboard
   const quickActions = [
@@ -200,6 +298,96 @@ export default function DashboardHome({}: DashboardHomeProps) {
 
   return (
     <DashboardLayout>
+      <AnimatePresence>
+        {showMarketplacePromo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Marketplace promotion"
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-sm max-h-[80vh] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#121212] via-[#0b0b0b] to-[#1a0c02] p-5 shadow-2xl"
+            >
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  dismissMarketplacePromo();
+                }}
+                className="absolute right-3 top-3 rounded-full border border-white/10 bg-white/5 p-2 text-white/70 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close promotion"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF6900]/15">
+                  <Store className="h-6 w-6 text-[#FF6900]" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/50">Featured Marketplace</p>
+                  <h2 className="text-2xl font-semibold text-white">Buy our featured workflows</h2>
+                  <p className="text-sm text-white/70">
+                    Explore curated automation packs and launch faster with proven templates.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                {featuredTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={handleMarketplacePromoClick}
+                    className="w-full text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <div className="flex gap-3 p-3">
+                      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border border-white/10">
+                        <img
+                          src={template.image}
+                          alt={template.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-sm font-semibold text-white line-clamp-1">{template.name}</h3>
+                          <span className="text-[11px] text-white/60">{template.price}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-white/60 line-clamp-2">{template.description}</p>
+                        <div className="mt-2 flex items-center gap-2 text-[11px] text-white/50">
+                          <span>{template.category}</span>
+                          <span className="text-white/30">•</span>
+                          <span>{template.rating}★</span>
+                          <span className="text-white/30">•</span>
+                          <span>{template.installs.toLocaleString()} installs</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleMarketplacePromoClick}
+                className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white hover:bg-white/10 transition-colors"
+              >
+                <span className="text-sm font-medium">Go to Marketplace</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="relative p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
         {/* Welcome Section + Search & Notifications */}
         <motion.div

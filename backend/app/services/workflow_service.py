@@ -26,6 +26,33 @@ class WorkflowService:
         Create a new workflow
         """
         try:
+            # Check user's workflow limit based on their plan
+            user_ref = self.db.collection(self.users_collection).document(user_id)
+            user_doc = user_ref.get()
+            
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                usage = user_data.get('usage', {})
+                current_workflows = usage.get('totalWorkflows', 0)
+                limits = usage.get('limits', {})
+                max_workflows = limits.get('workflowsMax', 5)
+                
+                # Get subscription plan for better error message
+                subscription = user_data.get('subscription', {})
+                current_plan = subscription.get('plan', 'trial')
+                
+                # Check if user has reached their workflow limit
+                if current_workflows >= max_workflows:
+                    logger.warning(f"⚠️ User {user_id} reached workflow limit: {current_workflows}/{max_workflows}")
+                    return {
+                        'success': False,
+                        'error': f'Workflow limit reached. Your {current_plan} plan allows up to {max_workflows} workflows. Please upgrade your plan to create more workflows.',
+                        'limit_reached': True,
+                        'current_count': current_workflows,
+                        'max_allowed': max_workflows,
+                        'plan': current_plan
+                    }
+            
             # Create workflow document
             workflow_ref = self.db.collection(self.workflows_collection).document()
             workflow_id = workflow_ref.id

@@ -3,7 +3,7 @@ from firebase_admin import credentials, auth, firestore
 from app.core.config import get_firebase_credentials, settings
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +50,17 @@ class FirebaseService:
             return None
     
     async def create_user(self, email: str, password: str, display_name: str = None) -> Dict[str, Any]:
-        """Create a new user in Firebase Auth"""
+        """Create a new user in Firebase Auth or reuse existing user"""
         try:
-            user_record = auth.create_user(
-                email=email,
-                password=password,
-                display_name=display_name,
-                email_verified=False
-            )
+            try:
+                user_record = auth.create_user(
+                    email=email,
+                    password=password,
+                    display_name=display_name,
+                    email_verified=False
+                )
+            except auth.EmailAlreadyExistsError:
+                user_record = auth.get_user_by_email(email)
             
             # Create comprehensive user document in Firestore
             user_data = {
@@ -96,13 +99,13 @@ class FirebaseService:
                 
                 # Subscription details
                 'subscription': {
-                    'plan': 'free',
-                    'status': 'active',
+                    'plan': 'trial',  # Options: trial, free, basic, pro, enterprise
+                    'status': 'trialing',  # trialing, active, cancelled, past_due, unpaid
                     'billing_cycle': 'monthly',
                     'startDate': firestore.SERVER_TIMESTAMP,
                     'endDate': None,
                     'next_billing_date': None,
-                    'trial_ends_at': None,
+                    'trial_ends_at': datetime.now() + timedelta(days=30),  # 30 days trial
                     'cancelAtPeriodEnd': False,
                     'stripeCustomerId': None,
                     'stripeSubscriptionId': None,
@@ -142,10 +145,10 @@ class FirebaseService:
                     'current_period_start': firestore.SERVER_TIMESTAMP,
                     'current_period_end': None,
                     
-                    # Limits based on plan (Free tier)
+                    # Limits based on plan (Trial tier - same as free)
                     'limits': {
                         'tokensPerMonth': 10000,
-                        'workflowsMax': 5,              # 5 NexAs on free plan
+                        'workflowsMax': 5,              # 5 workflows max on trial plan
                         'apiCallsPerMonth': 1000,
                         'executionsPerMonth': 500,
                         'storage_gb': 1,
@@ -156,16 +159,12 @@ class FirebaseService:
                 # Security settings
                 'security': {
                     'twoFactorEnabled': False,
-                    'twoFactorMethod': None,
+                    'twoFactorMethod': None,  # 'email' or 'sms' or 'app'
                     'backupCodes': [],
                     'lastPasswordChange': firestore.SERVER_TIMESTAMP,
                     'sessionTimeout': 604800,  # 1 week in seconds
                     'ipWhitelist': [],
-                    'loginNotifications': True,
-                    # Account lockout settings
-                    'failedLoginAttempts': 0,
-                    'accountLockedUntil': None,
-                    'lastFailedLoginAttempt': None
+                    'loginNotifications': True
                 },
                 
                 # Onboarding progress
@@ -248,8 +247,8 @@ class FirebaseService:
             if stripe_customer_id:
                 user_data['subscription']['stripeCustomerId'] = stripe_customer_id
             
-            # Save to Firestore
-            self.db.collection('users').document(user_record.uid).set(user_data)
+            # Save to Firestore (merge to preserve any existing fields)
+            self.db.collection('users').document(user_record.uid).set(user_data, merge=True)
             
             return {
                 'success': True,
