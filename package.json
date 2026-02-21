@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "npm run build:metadata && next dev --turbopack",
+    "build": "npm run build:metadata && next build --turbopack",
+    "build:metadata": "node scripts/generate-nodes-metadata.js",
     "start": "next start",
     "lint": "eslint",
     "sync-users": "tsx scripts/syncUsers.ts",
