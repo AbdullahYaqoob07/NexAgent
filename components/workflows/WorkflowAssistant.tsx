@@ -60,12 +60,28 @@ const commonSuggestions = [
   "Show me workflow templates"
 ];
 
+const STORAGE_KEY = "nexagent_assistant_messages";
+
+function loadMessages(): Message[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored) as Message[];
+      // Restore Date objects from JSON strings
+      return parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+    }
+  } catch {
+    // ignore
+  }
+  return initialMessages;
+}
+
 export function WorkflowAssistant({ 
   onClose, 
   isMinimized = false, 
   onToggleMinimize 
 }: WorkflowAssistantProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(() => loadMessages());
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +91,15 @@ export function WorkflowAssistant({
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // ignore storage errors
+    }
+  }, [messages]);
 
   useEffect(() => {
     scrollToBottom();
