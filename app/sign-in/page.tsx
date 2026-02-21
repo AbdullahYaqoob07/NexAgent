@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle, Shield } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { MFAVerify } from '@/components/mfa/MFAVerify';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -24,19 +25,29 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showVerificationWarning, setShowVerificationWarning] = useState(false);
-  const [accountLocked, setAccountLocked] = useState(false);
-  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
+  const [showMFA, setShowMFA] = useState(false);
+  const [mfaUid, setMfaUid] = useState<string | null>(null);
 
   // If already authenticated (Firebase or backend), don't show sign-in at all
+  // BUT: Don't redirect if MFA is required (showMFA will be true)
   useEffect(() => {
-    // Skip redirect check if we're in the middle of a logout or if auth is still loading
-    if (authLoading || backendLoading) {
+    // Don't redirect if MFA verification is in progress
+    if (showMFA) {
+      console.log('⏸️ MFA verification in progress - preventing auto-redirect');
       return;
     }
-
-    // Only redirect if we have a valid authenticated user
-    // Check both Firebase user and that we're not on sign-in page (prevent loops)
-    if ((firebaseUser || backendAuthenticated) && window.location.pathname === '/sign-in') {
+    
+    // Also check if there's a session token - if not, user might be in MFA flow
+    const hasSessionToken = typeof window !== 'undefined' && localStorage.getItem('backend_session_token');
+    
+    if (!authLoading && !backendLoading && (firebaseUser || backendAuthenticated)) {
+      // If user is authenticated but has no session token, they might be in MFA flow
+      // Don't redirect in that case
+      if (!hasSessionToken && firebaseUser) {
+        console.log('⏸️ User authenticated but no session token - might be in MFA flow, preventing redirect');
+        return;
+      }
+      
       // Prefer hard-coded admin email for redirect decision to avoid races
       const email = firebaseUser?.email;
       let redirect = email === 'admin@gmail.com' ? '/admin321' : '/dashboard';
@@ -53,10 +64,10 @@ export default function SignInPage() {
         }
       }
 
-      // Use replace to avoid adding to history and prevent loops
+      console.log('🔄 Auto-redirecting authenticated user to:', redirect);
       router.replace(redirect);
     }
-  }, [authLoading, backendLoading, firebaseUser, backendAuthenticated, router]);
+  }, [authLoading, backendLoading, firebaseUser, backendAuthenticated, router, showMFA]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,114 +78,24 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      // Step 1: Check account status before login (only if backend is available)
-      let accountStatus = null;
-      try {
-        accountStatus = await twoFactorService.checkAccountStatus(email);
-        console.log('Account status check result:', accountStatus);
-        
-        if (accountStatus?.accountLocked) {
-          setAccountLocked(true);
-          setLockedUntil(accountStatus.lockedUntil || null);
-          setError(`Account temporarily locked due to ${accountStatus.failedAttempts} failed login attempts. Please try again later.`);
-          setLoading(false);
-          return;
-        }
-      } catch (statusError: any) {
-        // If backend is not available or connection refused, continue with login (graceful degradation)
-        // Don't show error for network issues - just proceed with Firebase login
-        console.warn('Account status check failed:', statusError);
-        if (statusError?.error !== 'NETWORK_ERROR' && statusError?.status !== 401) {
-          console.warn('Backend unavailable for account status check, proceeding with login:', statusError);
-        }
-        // Don't block login if backend check fails - but we'll check 2FA after login
-      }
-
-      // Step 2: Attempt Firebase login
-      const authUser = await signIn(email, password);
+      const authUser = await signIn(email, password) as any;
       
-      // Step 3: Always check 2FA status after successful login
-      // This ensures we check even if the pre-login check failed
-      let twoFactorEnabled = false;
-      try {
-        // First try to use accountStatus if we have it
-        if (accountStatus && accountStatus.twoFactorEnabled !== undefined) {
-          twoFactorEnabled = accountStatus.twoFactorEnabled;
-          console.log('2FA status from pre-login check:', twoFactorEnabled);
-        } else {
-          // If we don't have it, check after login
-          const { auth } = await import('@/lib/firebase');
-          const user = auth.currentUser;
-          if (user) {
-            const idToken = await user.getIdToken();
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
-            const statusResponse = await fetch(`${backendUrl}/api/v1/two-factor/status`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${idToken}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (statusResponse.ok) {
-              const statusData = await statusResponse.json();
-              twoFactorEnabled = statusData.twoFactorEnabled || false;
-              console.log('2FA status from backend after login:', statusData);
-            } else {
-              console.warn('Failed to get 2FA status, status:', statusResponse.status);
-            }
-          }
-        }
-      } catch (statusCheckError) {
-        console.warn('Failed to check 2FA status after login:', statusCheckError);
-        // Continue without 2FA check if it fails
+      console.log('🔍 Sign-in result:', { 
+        hasUser: !!authUser, 
+        requiresMFA: authUser?.requiresMFA,
+        uid: authUser?.uid 
+      });
+      
+      // Check if MFA is required
+      if (authUser?.requiresMFA) {
+        console.log('🔐 MFA required - showing MFA verification step');
+        setMfaUid(authUser.uid);
+        setShowMFA(true);
+        setLoading(false);
+        return;
       }
       
-      // Step 4: Check if 2FA is enabled
-      if (twoFactorEnabled) {
-        console.log('✅ 2FA is enabled, redirecting to OTP verification');
-        // Get Firebase token for 2FA API calls
-        const { auth } = await import('@/lib/firebase');
-        const user = auth.currentUser;
-        if (!user) {
-          setError('Session expired. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        // Send OTP
-        try {
-          await twoFactorService.sendOTP();
-          // Redirect to OTP verification page
-          router.push(`/verify-otp?email=${encodeURIComponent(email)}&userId=${authUser.uid}`);
-          return;
-        } catch (otpError: any) {
-          setError(otpError?.response?.data?.detail || 'Failed to send verification code. Please try again.');
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Step 5: No 2FA - proceed with normal login
-      console.log('ℹ️ 2FA is not enabled, proceeding with normal login');
-      // Reset failed attempts on backend
-      try {
-        const { auth } = await import('@/lib/firebase');
-        const user = auth.currentUser;
-        if (user) {
-          const idToken = await user.getIdToken();
-          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
-          await fetch(`${backendUrl}/api/v1/two-factor/reset-failed-attempts`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${idToken}`,
-              'Content-Type': 'application/json'
-            }
-          });
-        }
-      } catch (resetError) {
-        console.warn('Failed to reset failed attempts:', resetError);
-      }
+      console.log('✅ No MFA required - proceeding with normal login');
       
       // Check if email is verified
       if (authUser && !authUser.emailVerified) {
@@ -386,8 +307,56 @@ export default function SignInPage() {
               </motion.div>
             )}
 
-            {/* Compact Form */}
-            <form onSubmit={handleEmailSignIn} className="space-y-4">
+            {/* MFA Verification Step */}
+            {showMFA && mfaUid ? (
+              <div className="space-y-4">
+                <MFAVerify
+                  uid={mfaUid}
+                  onVerify={async (code: string) => {
+                    try {
+                      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+                      const response = await fetch(`${backendUrl}/api/v1/auth/mfa/verify-login`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          uid: mfaUid,
+                          code: code
+                        })
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Invalid verification code');
+                      }
+
+                      const data = await response.json();
+                      
+                      // Store session token if provided
+                      if (data.access_token) {
+                        try {
+                          localStorage.setItem('backend_session_token', data.access_token);
+                        } catch {}
+                      }
+                      
+                      // MFA verified, complete login
+                      setShowMFA(false);
+                      
+                      // Use redirect from backend metadata
+                      const redirectTo = data.metadata?.redirect_to || (email === 'admin@gmail.com' ? '/admin321' : '/dashboard');
+                      router.push(redirectTo);
+                    } catch (err: any) {
+                      setError(err.message || 'Invalid verification code');
+                    }
+                  }}
+                  error={error}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Compact Form */}
+                <form onSubmit={handleEmailSignIn} className="space-y-4">
               <motion.div 
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -479,10 +448,10 @@ export default function SignInPage() {
                   )}
                 </Button>
               </motion.div>
-            </form>
+                </form>
 
-            {/* Compact Divider */}
-            <motion.div 
+                {/* Compact Divider */}
+                <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 1.1 }}
@@ -530,6 +499,8 @@ export default function SignInPage() {
                 Continue with Google
               </Button>
             </motion.div>
+              </>
+            )}
 
             {/* Compact Sign Up Link */}
             <motion.div 

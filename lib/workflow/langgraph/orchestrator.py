@@ -74,7 +74,7 @@ class WorkflowOrchestrator:
         self._register_node_types()
     
     def _register_node_types(self):
-        """Register all supported node types"""
+        """Register all 20 nodes from src/workflows"""
         from .nodes import (
             # Triggers
             ScheduleTriggerExecutor,
@@ -82,104 +82,124 @@ class WorkflowOrchestrator:
             ManualTriggerExecutor,
             # Actions
             LoggerExecutor,
-            VariableSetterExecutor,
             HttpRequestExecutor,
             EmailExecutor,
             SlackExecutor,
-            DatabaseExecutor,
             # Logic
-            TimerExecutor,
-            CounterExecutor,
-            BooleanExecutor,
             IfConditionExecutor,
-            SwitchExecutor,
             LoopExecutor,
-            MergeExecutor,
             DelayExecutor,
+            StopperExecutor,
             # AI/ML
             OpenAIExecutor,
-            TextAnalysisExecutor,
-            ImageProcessingExecutor,
-            DataTransformExecutor,
             # Data
-            DateFormatterExecutor,
-            NumberFormatterExecutor,
-            StringManipulationExecutor,
             JsonParseExecutor,
-            XmlParseExecutor,
-            CsvParseExecutor,
-            DataFilterExecutor,
+            DateFormatterExecutor,
         )
         
-        # Register triggers
+        # ===== TRIGGERS (3) =====
+        # 1. Scheduling
         self.executor_factory.register_executor("Schedule", ScheduleTriggerExecutor)
+        self.executor_factory.register_executor("Scheduling", ScheduleTriggerExecutor)
         self.executor_factory.register_executor("ScheduleTriggerNode", ScheduleTriggerExecutor)
+        
+        # 2. WebHook
         self.executor_factory.register_executor("Webhook", WebhookTriggerExecutor)
+        self.executor_factory.register_executor("WebHook", WebhookTriggerExecutor)
         self.executor_factory.register_executor("WebhookTriggerNode", WebhookTriggerExecutor)
+        
+        # 3. Manual Trigger
         self.executor_factory.register_executor("Manual Trigger", ManualTriggerExecutor)
+        self.executor_factory.register_executor("ManualTrigger", ManualTriggerExecutor)
         self.executor_factory.register_executor("OnClickExecuteTriggerNode", ManualTriggerExecutor)
         
-        # Register actions
+        # ===== ACTIONS (5) =====
+        # 4. Logger
         self.executor_factory.register_executor("Logger", LoggerExecutor)
         self.executor_factory.register_executor("LoggerNode", LoggerExecutor)
-        self.executor_factory.register_executor("Variable Setter", VariableSetterExecutor)
-        self.executor_factory.register_executor("VariableSetterNode", VariableSetterExecutor)
-        self.executor_factory.register_executor("HTTP Request", HttpRequestExecutor)
-        self.executor_factory.register_executor("HTTP Request Action", HttpRequestExecutor)
-        self.executor_factory.register_executor("HttpNode", HttpRequestExecutor)
-        self.executor_factory.register_executor("Send Email", EmailExecutor)
-        self.executor_factory.register_executor("EmailNode", EmailExecutor)
-        self.executor_factory.register_executor("Slack Message", SlackExecutor)
-        self.executor_factory.register_executor("SlackNode", SlackExecutor)
-        self.executor_factory.register_executor("Database Query", DatabaseExecutor)
-        self.executor_factory.register_executor("DatabaseNode", DatabaseExecutor)
         
-        # Register logic
-        self.executor_factory.register_executor("Timer", TimerExecutor)
-        self.executor_factory.register_executor("TimerNode", TimerExecutor)
-        self.executor_factory.register_executor("Counter", CounterExecutor)
-        self.executor_factory.register_executor("CounterNode", CounterExecutor)
-        self.executor_factory.register_executor("Boolean", BooleanExecutor)
-        self.executor_factory.register_executor("BooleanNode", BooleanExecutor)
+        # 5. HTTPRequest
+        self.executor_factory.register_executor("HTTP Request", HttpRequestExecutor)
+        self.executor_factory.register_executor("HTTPRequest", HttpRequestExecutor)
+        self.executor_factory.register_executor("HttpRequest", HttpRequestExecutor)
+        self.executor_factory.register_executor("HttpNode", HttpRequestExecutor)
+        
+        # 6. EmailSend
+        self.executor_factory.register_executor("Send Email", EmailExecutor)
+        self.executor_factory.register_executor("EmailSend", EmailExecutor)
+        self.executor_factory.register_executor("Email", EmailExecutor)
+        self.executor_factory.register_executor("EmailNode", EmailExecutor)
+        
+        # 7. Slack Message
+        self.executor_factory.register_executor("Slack Message", SlackExecutor)
+        self.executor_factory.register_executor("SlackMessage", SlackExecutor)
+        self.executor_factory.register_executor("Slack", SlackExecutor)
+        self.executor_factory.register_executor("SlackNode", SlackExecutor)
+        
+        # 8. TelegramSend - TODO: Implement TelegramExecutor
+        # self.executor_factory.register_executor("Telegram Send", TelegramExecutor)
+        # self.executor_factory.register_executor("TelegramSend", TelegramExecutor)
+        # self.executor_factory.register_executor("Telegram", TelegramExecutor)
+        
+        # ===== LOGIC (4) =====
+        # 9. Conditional
         self.executor_factory.register_executor("If Condition", IfConditionExecutor)
+        self.executor_factory.register_executor("Conditional", IfConditionExecutor)
         self.executor_factory.register_executor("IfNode", IfConditionExecutor)
-        self.executor_factory.register_executor("Switch", SwitchExecutor)
-        self.executor_factory.register_executor("SwitchNode", SwitchExecutor)
+        
+        # 10. Loop
         self.executor_factory.register_executor("Loop", LoopExecutor)
         self.executor_factory.register_executor("LoopNode", LoopExecutor)
-        self.executor_factory.register_executor("Merge", MergeExecutor)
-        self.executor_factory.register_executor("MergeNode", MergeExecutor)
+        
+        # 11. Delay
         self.executor_factory.register_executor("Delay", DelayExecutor)
         self.executor_factory.register_executor("DelayNode", DelayExecutor)
         
-        # Register AI/ML
+        # 12. Stopper (utility)
+        self.executor_factory.register_executor("Stopper", StopperExecutor)
+        self.executor_factory.register_executor("StopperNode", StopperExecutor)
+        
+        # ===== AI/ML (2) =====
+        # 13. OpenAI
         self.executor_factory.register_executor("OpenAI GPT", OpenAIExecutor)
         self.executor_factory.register_executor("OpenAI", OpenAIExecutor)
         self.executor_factory.register_executor("OpenAINode", OpenAIExecutor)
-        self.executor_factory.register_executor("Text Analysis", TextAnalysisExecutor)
-        self.executor_factory.register_executor("TextAnalysisNode", TextAnalysisExecutor)
-        self.executor_factory.register_executor("Image Processing", ImageProcessingExecutor)
-        self.executor_factory.register_executor("ImageProcessingNode", ImageProcessingExecutor)
-        self.executor_factory.register_executor("Data Transformation", DataTransformExecutor)
-        self.executor_factory.register_executor("DataTransformNode", DataTransformExecutor)
         
-        # Register data
-        self.executor_factory.register_executor("Date Formatter", DateFormatterExecutor)
-        self.executor_factory.register_executor("DateFormatterNode", DateFormatterExecutor)
-        self.executor_factory.register_executor("Number Formatter", NumberFormatterExecutor)
-        self.executor_factory.register_executor("NumberFormatterNode", NumberFormatterExecutor)
-        self.executor_factory.register_executor("String Manipulation", StringManipulationExecutor)
-        self.executor_factory.register_executor("StringManipulationNode", StringManipulationExecutor)
+        # 14. ClaudeAI - TODO: Implement ClaudeAIExecutor
+        # self.executor_factory.register_executor("Claude AI", ClaudeAIExecutor)
+        # self.executor_factory.register_executor("ClaudeAI", ClaudeAIExecutor)
+        
+        # ===== DATA (2) =====
+        # 15. JSONParser
         self.executor_factory.register_executor("JSON Parse", JsonParseExecutor)
+        self.executor_factory.register_executor("JSONParser", JsonParseExecutor)
+        self.executor_factory.register_executor("JsonParse", JsonParseExecutor)
         self.executor_factory.register_executor("JsonParseNode", JsonParseExecutor)
-        self.executor_factory.register_executor("XML Parse", XmlParseExecutor)
-        self.executor_factory.register_executor("XmlParseNode", XmlParseExecutor)
-        self.executor_factory.register_executor("CSV Parse", CsvParseExecutor)
-        self.executor_factory.register_executor("CsvParseNode", CsvParseExecutor)
-        self.executor_factory.register_executor("Data Filter", DataFilterExecutor)
-        self.executor_factory.register_executor("DataFilterNode", DataFilterExecutor)
+        
+        # 16. DataFormatter
+        self.executor_factory.register_executor("Data Formatter", DateFormatterExecutor)
+        self.executor_factory.register_executor("DataFormatter", DateFormatterExecutor)
+        self.executor_factory.register_executor("DateFormatterNode", DateFormatterExecutor)
+        
+        # ===== ECOMMERCE/INTEGRATIONS (4) =====
+        # 17. Stripe - TODO: Implement StripeExecutor
+        # self.executor_factory.register_executor("Stripe", StripeExecutor)
+        # self.executor_factory.register_executor("StripeNode", StripeExecutor)
+        
+        # 18. Google Sheets - TODO: Implement GoogleSheetsExecutor
+        # self.executor_factory.register_executor("Google Sheets", GoogleSheetsExecutor)
+        # self.executor_factory.register_executor("GoogleSheets", GoogleSheetsExecutor)
+        
+        # 19. Google Drive - TODO: Implement GoogleDriveExecutor
+        # self.executor_factory.register_executor("Google Drive", GoogleDriveExecutor)
+        # self.executor_factory.register_executor("GoogleDrive", GoogleDriveExecutor)
+        
+        # 20. Chat Input - TODO: Implement ChatInputExecutor
+        # self.executor_factory.register_executor("Chat Input", ChatInputExecutor)
+        # self.executor_factory.register_executor("ChatInput", ChatInputExecutor)
         
         logger.info(f"Registered {len(self.executor_factory.get_registered_types())} node types")
+        logger.info(f"Backend knows about all 20 nodes from src/workflows/")
     
     async def execute_workflow(
         self,

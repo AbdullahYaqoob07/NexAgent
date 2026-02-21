@@ -7,6 +7,7 @@ import { WorkflowSidebar } from "./WorkflowSidebar";
 import WorkflowCanvas, { WorkflowCanvasRef } from "./WorkflowCanvas";
 import { WorkflowAssistant } from "./WorkflowAssistant";
 import ExecutionModal from "./ExecutionModal";
+import { WorkflowWalkthrough } from "./WorkflowWalkthrough";
 // Removed tour components
 import { Workflow } from "@/lib/workflow/types";
 import { workflowManager } from "@/lib/workflow/WorkflowManager";
@@ -32,6 +33,10 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [isLoadingWorkflow, setIsLoadingWorkflow] = useState(false);
   const sidebarRef = useRef<{ openTriggersWithBlink: () => void }>(null);
   const canvasRef = useRef<WorkflowCanvasRef>(null);
+  const sidebarElementRef = useRef<HTMLDivElement>(null);
+  const canvasElementRef = useRef<HTMLDivElement>(null);
+  const assistantElementRef = useRef<HTMLDivElement>(null);
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
   const [activeTab, setActiveTab] = useState<'nexa' | 'executions'>('nexa');
   const [executionModalOpen, setExecutionModalOpen] = useState(false);
   const [lastExecutionId, setLastExecutionId] = useState<string | null>(null);
@@ -243,6 +248,19 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       checkForScheduleNode();
     }
   }, [canvasNodeCount, schedulerStatus.scheduled]);
+
+  // Check if walkthrough should be shown (first time on /workflows/new)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const walkthroughShown = localStorage.getItem('workflow-walkthrough-shown');
+    if (!walkthroughShown && !workflowId) {
+      // Only show on new workflow page, not when editing existing
+      setTimeout(() => {
+        setShowWalkthrough(true);
+      }, 500); // Small delay to ensure components are rendered
+    }
+  }, [workflowId]);
 
   // Tour disabled for now
 
@@ -960,12 +978,14 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       )}
       
       {/* Left Sidebar - Nodes */}
-      <WorkflowSidebar 
-        ref={sidebarRef}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        canvasNodeCount={canvasNodeCount}
-      />
+      <div ref={sidebarElementRef}>
+        <WorkflowSidebar 
+          ref={sidebarRef}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          canvasNodeCount={canvasNodeCount}
+        />
+      </div>
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -983,7 +1003,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         />
         
         {/* Canvas */}
-        <div className="flex-1 relative flex flex-col">
+        <div ref={canvasElementRef} className="flex-1 relative flex flex-col">
           {/* Tabs bar on top-left over canvas */}
           <div className="absolute top-3 left-4 z-30 bg-black/60 backdrop-blur-sm border border-zinc-800 rounded-xl overflow-hidden flex">
             <button
@@ -1207,11 +1227,13 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
       {/* Right Sidebar - AI Assistant */}
       {showAssistant && (
-        <WorkflowAssistant 
-          onClose={() => setShowAssistant(false)}
-          isMinimized={assistantMinimized}
-          onToggleMinimize={() => setAssistantMinimized(!assistantMinimized)}
-        />
+        <div ref={assistantElementRef}>
+          <WorkflowAssistant 
+            onClose={() => setShowAssistant(false)}
+            isMinimized={assistantMinimized}
+            onToggleMinimize={() => setAssistantMinimized(!assistantMinimized)}
+          />
+        </div>
       )}
       
       {/* Error Display */}
@@ -1255,6 +1277,44 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         open={executionModalOpen}
         onClose={() => { setExecutionModalOpen(false); setActiveTab('nexa'); }}
       />
+
+      {/* Walkthrough */}
+      {showWalkthrough && sidebarElementRef.current && canvasElementRef.current && assistantElementRef.current && (
+        <WorkflowWalkthrough
+          steps={[
+            {
+              id: 'sidebar',
+              title: 'Node Library',
+              description: 'Browse and drag workflow nodes from the sidebar. Start with a Trigger node to begin your automation workflow.',
+              targetRef: sidebarElementRef,
+            },
+            {
+              id: 'canvas',
+              title: 'Workflow Canvas',
+              description: 'Build your workflow by connecting nodes on the canvas. Drag nodes here and connect them to create your automation flow.',
+              targetRef: canvasElementRef,
+            },
+            {
+              id: 'assistant',
+              title: 'AI Assistant',
+              description: 'Get help from the AI assistant to design workflows, troubleshoot issues, and optimize your automation logic.',
+              targetRef: assistantElementRef,
+            },
+          ]}
+          onComplete={() => {
+            setShowWalkthrough(false);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('workflow-walkthrough-shown', 'true');
+            }
+          }}
+          onSkip={() => {
+            setShowWalkthrough(false);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('workflow-walkthrough-shown', 'true');
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

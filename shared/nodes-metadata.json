@@ -1,0 +1,149 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-02-21T12:55:54.752Z",
+  "schemaVersion": 1,
+  "nodeCount": 3,
+  "nodes": [
+    {
+      "type": "ManualTrigger",
+      "schemaVersion": 1,
+      "name": "Manual Trigger",
+      "category": "Triggers",
+      "icon": "⚡",
+      "description": "Start workflow manually by clicking Run",
+      "inputs": [],
+      "outputs": [
+        {
+          "id": "timestamp",
+          "label": "Timestamp",
+          "type": "date",
+          "description": "Timestamp when the workflow was triggered"
+        },
+        {
+          "id": "executionId",
+          "label": "Execution ID",
+          "type": "string",
+          "description": "Unique ID for this workflow execution"
+        }
+      ],
+      "executor": "ManualTriggerExecutor",
+      "isStartNode": true,
+      "maxInstances": 1,
+      "requiredSecrets": [],
+      "requiredIntegrations": []
+    },
+    {
+      "type": "Delay",
+      "schemaVersion": 1,
+      "name": "Delay",
+      "category": "Logic",
+      "icon": "⏱️",
+      "description": "Pauses workflow execution for a specified duration",
+      "inputs": [
+        {
+          "id": "duration",
+          "label": "Duration",
+          "type": "number",
+          "required": true,
+          "default": 5,
+          "validation": {
+            "min": 1,
+            "max": 3600
+          },
+          "description": "How long to wait in seconds"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "delayed",
+          "label": "Delayed",
+          "type": "trigger",
+          "description": "Fires after the delay completes"
+        },
+        {
+          "id": "delayedUntil",
+          "label": "Delayed Until",
+          "type": "date",
+          "description": "Timestamp when delay completed"
+        },
+        {
+          "id": "duration",
+          "label": "Duration",
+          "type": "number",
+          "description": "Duration in seconds that was delayed"
+        }
+      ],
+      "executor": "DelayExecutor",
+      "isStartNode": false,
+      "requiredSecrets": [],
+      "requiredIntegrations": []
+    },
+    {
+      "type": "Stopper",
+      "schemaVersion": 1,
+      "name": "Stopper",
+      "category": "Logic",
+      "icon": "🛑",
+      "description": "Stop and log workflow completion",
+      "inputs": [
+        {
+          "id": "logLevel",
+          "label": "Log Level",
+          "type": "select",
+          "required": false,
+          "default": "info",
+          "options": [
+            {
+              "value": "info",
+              "label": "Info"
+            },
+            {
+              "value": "success",
+              "label": "Success"
+            },
+            {
+              "value": "warning",
+              "label": "Warning"
+            },
+            {
+              "value": "error",
+              "label": "Error"
+            }
+          ],
+          "description": "Logging level for completion message"
+        },
+        {
+          "id": "customMessage",
+          "label": "Custom Message",
+          "type": "textarea",
+          "required": false,
+          "description": "Optional custom message to log"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "status",
+          "label": "Status",
+          "type": "string",
+          "description": "Workflow completion status (success or error)"
+        },
+        {
+          "id": "message",
+          "label": "Message",
+          "type": "string",
+          "description": "Completion message"
+        },
+        {
+          "id": "timestamp",
+          "label": "Timestamp",
+          "type": "date",
+          "description": "When the workflow was stopped"
+        }
+      ],
+      "executor": "StopperExecutor",
+      "isStartNode": false,
+      "requiredSecrets": [],
+      "requiredIntegrations": []
+    }
+  ]
+}

@@ -17,3 +17,6 @@ jinja2
 cryptography
 croniter
 pytz
+pyotp
+qrcode[pil]
+Pillow

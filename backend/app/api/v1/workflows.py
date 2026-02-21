@@ -183,16 +183,16 @@ async def get_workflows(
     current_user: dict = Depends(get_current_user),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    status: Optional[str] = Query(None, description="Filter by status (draft, active, archived)")
+    filter_status: Optional[str] = Query(None, description="Filter by status (draft, active, archived)")
 ):
     """
     Get all workflows for the authenticated user
-    
+
     Requires authentication via Bearer token
     
     - **page**: Page number (default: 1)
     - **page_size**: Items per page (default: 20, max: 100)
-    - **status**: Filter by status (optional)
+    - **filter_status**: Filter by status (optional)
     """
     try:
         user_id = current_user['uid']
@@ -202,7 +202,7 @@ async def get_workflows(
             user_id=user_id,
             page=page,
             page_size=page_size,
-            status=status
+            status=filter_status
         )
         
         if not result['success']:

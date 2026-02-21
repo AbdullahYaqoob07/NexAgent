@@ -80,47 +80,142 @@ export function WorkflowAssistant({
     scrollToBottom();
   }, [messages]);
 
-  const simulateAssistantResponse = async (userMessage: string): Promise<string> => {
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+  const cleanMarkdownFormatting = (text: string): string => {
+    // Process line by line to handle list items vs bold text
+    const lines = text.split('\n');
+    const processedLines = lines.map(line => {
+      let processedLine = line;
+      
+      // Handle lines that start with "** " or "* " (list items)
+      const listMatch = processedLine.match(/^(\*+)\s+(.*)$/);
+      if (listMatch) {
+        // This is a list item - normalize to single asterisk
+        processedLine = '* ' + listMatch[2];
+        
+        // Still need to handle bold within the list item text
+        // Normalize any remaining asterisks in the content
+        const content = listMatch[2];
+        const normalizedContent = content.replace(/\*{1,3}/g, '**');
+        processedLine = '* ' + normalizedContent;
+      } else {
+        // Not a list item - normalize all asterisks for bold
+        processedLine = processedLine.replace(/\*{1,3}/g, '**');
+      }
+      
+      // Ensure proper ** pairing within the line
+      const count = (processedLine.match(/\*\*/g) || []).length;
+      
+      // If odd number of **, close the bold at end of line
+      if (count % 2 === 1) {
+        // Add closing ** if line doesn't already end with it
+        if (!processedLine.endsWith('**')) {
+          processedLine = processedLine + '**';
+        } else {
+          // Line ends with ** but count is odd - there's an opening one somewhere
+          // Add one at the start if it doesn't start with **
+          if (!processedLine.startsWith('**') && !processedLine.startsWith('* ')) {
+            processedLine = '**' + processedLine;
+          }
+        }
+      }
+      
+      return processedLine;
+    });
     
-    // Simple response logic based on keywords
-    const message = userMessage.toLowerCase();
+    return processedLines.join('\n');
+  };
+
+  const renderMarkdown = (text: string) => {
+    // Split by new lines
+    const lines = text.split('\n');
     
-    if (message.includes("customer") || message.includes("onboarding")) {
-      return "Great! For customer onboarding automation, I recommend starting with these key components:\n\n🎯 **Trigger**: New customer signup (Webhook or Database trigger)\n📧 **Welcome Email**: Send personalized welcome message\n📋 **Profile Setup**: Create customer profile in CRM\n🔔 **Internal Notification**: Alert your team\n✅ **Follow-up**: Schedule check-in emails\n\nWould you like me to help you set up any of these specific steps?";
+    return lines.map((line, lineIndex) => {
+      // Check if this is a list item
+      const isListItem = line.trim().startsWith('* ');
+      const lineContent = isListItem ? line.trim().substring(2) : line;
+      
+      // Split the line into parts (text and bold sections)
+      const parts = [];
+      let lastIndex = 0;
+      const boldRegex = /\*\*([^*]+)\*\*/g;
+      let match;
+      
+      while ((match = boldRegex.exec(lineContent)) !== null) {
+        // Add text before the bold part
+        if (match.index > lastIndex) {
+          parts.push(
+            <span key={`text-${lineIndex}-${lastIndex}`}>
+              {lineContent.substring(lastIndex, match.index)}
+            </span>
+          );
+        }
+        
+        // Add bold part
+        parts.push(
+          <strong key={`bold-${lineIndex}-${match.index}`} className="font-semibold">
+            {match[1]}
+          </strong>
+        );
+        
+        lastIndex = match.index + match[0].length;
+      }
+      
+      // Add remaining text after last bold part
+      if (lastIndex < lineContent.length) {
+        parts.push(
+          <span key={`text-${lineIndex}-${lastIndex}`}>
+            {lineContent.substring(lastIndex)}
+          </span>
+        );
+      }
+      
+      // Render as list item or regular line
+      const content = parts.length > 0 ? parts : lineContent;
+      
+      if (isListItem) {
+        return (
+          <div key={`line-${lineIndex}`} className="flex gap-2">
+            <span className="select-none">•</span>
+            <span>{content}</span>
+          </div>
+        );
+      }
+      
+      // Return the line with a line break
+      return (
+        <span key={`line-${lineIndex}`}>
+          {content}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      );
+    });
+  };
+
+  const fetchAssistantResponse = async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch('https://nexagent-chatbot.onrender.com/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: userMessage
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Clean up markdown formatting in the response
+      const answer = data.answer || "I couldn't generate a response. Please try again.";
+      return cleanMarkdownFormatting(answer);
+    } catch (error) {
+      console.error('Chatbot API error:', error);
+      throw error;
     }
-    
-    if (message.includes("email") || message.includes("notification")) {
-      return "Perfect! Email automation is one of our most popular workflows. Here's what I can help you build:\n\n📧 **Email Types**:\n• Welcome sequences\n• Reminder notifications  \n• Status updates\n• Marketing campaigns\n\n🔧 **Integration Options**:\n• Gmail/Outlook\n• SendGrid\n• Mailchimp\n• Custom SMTP\n\nWhat type of email automation are you looking to create?";
-    }
-    
-    if (message.includes("data") || message.includes("processing")) {
-      return "Data processing workflows are excellent for automation! Here are some common patterns:\n\n📊 **Data Sources**:\n• CSV/Excel files\n• Database queries\n• API responses\n• Web scraping\n\n🔄 **Processing Steps**:\n• Data validation\n• Transformation & formatting\n• Filtering & sorting\n• Aggregation & analysis\n\n📤 **Output Options**:\n• Save to database\n• Generate reports\n• Send notifications\n• Trigger other workflows\n\nWhat kind of data are you working with?";
-    }
-    
-    if (message.includes("lead") || message.includes("qualification")) {
-      return "Lead qualification is a game-changer for sales teams! Here's a comprehensive approach:\n\n🎯 **Lead Scoring Factors**:\n• Company size & industry\n• Engagement level\n• Budget indicators\n• Timeline to purchase\n\n🔀 **Routing Logic**:\n• High-value leads → Senior sales rep\n• Warm leads → Inside sales\n• Cold leads → Nurture campaign\n\n📈 **Automation Benefits**:\n• 40% faster response times\n• Better lead distribution\n• Improved conversion rates\n\nShall we start building your lead qualification workflow?";
-    }
-    
-    if (message.includes("api") || message.includes("connect")) {
-      return "Connecting APIs is straightforward with NexAgent! Here's how to do it effectively:\n\n🔌 **Connection Steps**:\n1. **Authentication**: API keys, OAuth, or tokens\n2. **Request Setup**: Headers, parameters, body\n3. **Response Handling**: Parse JSON/XML data\n4. **Error Management**: Retry logic & fallbacks\n\n💡 **Best Practices**:\n• Use environment variables for secrets\n• Implement rate limiting\n• Add proper error handling\n• Log requests for debugging\n\nWhich APIs are you looking to integrate?";
-    }
-    
-    if (message.includes("error") || message.includes("handle")) {
-      return "Error handling is crucial for reliable workflows! Here are the strategies I recommend:\n\n🛡️ **Error Types**:\n• Network timeouts\n• API rate limits\n• Invalid data formats\n• Authentication failures\n\n🔄 **Recovery Strategies**:\n• **Retry Logic**: Exponential backoff\n• **Fallback Actions**: Alternative paths\n• **Manual Review**: Queue for human intervention\n• **Notifications**: Alert operators immediately\n\n✅ **Monitoring**:\n• Error rate dashboards\n• Alert thresholds\n• Detailed error logs\n\nWould you like help setting up error handling for a specific workflow?";
-    }
-    
-    if (message.includes("conditional") || message.includes("logic") || message.includes("if")) {
-      return "Conditional logic helps create smart, dynamic workflows! Here's how to use it:\n\n🔀 **Common Conditions**:\n• **Data Validation**: Check if fields are complete\n• **Business Rules**: Route based on criteria\n• **Time-based**: Different actions by day/time\n• **User Attributes**: Personalized flows\n\n🧩 **Logic Nodes**:\n• **IF Node**: Simple true/false branching\n• **Switch Node**: Multiple condition paths\n• **Filter Node**: Process only matching items\n• **Merge Node**: Combine multiple branches\n\n💡 **Pro Tips**:\n• Keep conditions simple and clear\n• Use descriptive node names\n• Test all possible paths\n• Document complex logic\n\nWhat kind of conditional logic do you need help with?";
-    }
-    
-    if (message.includes("template") || message.includes("example")) {
-      return "I have tons of proven workflow templates! Here are some popular categories:\n\n📋 **Business Templates**:\n• Customer onboarding sequences\n• Invoice processing & approval\n• Employee offboarding\n• Lead nurturing campaigns\n\n🔧 **Technical Templates**:\n• Data synchronization\n• File processing & backup\n• System monitoring alerts\n• API data aggregation\n\n📊 **Analytics Templates**:\n• Daily/weekly reports\n• Performance dashboards\n• Anomaly detection\n• Trend analysis\n\nWhich category interests you most? I can walk you through a specific template.";
-    }
-    
-    // Default response
-    return "I'd be happy to help you with that! To provide the most relevant guidance, could you tell me more about:\n\n🎯 **Your Goal**: What business process are you trying to automate?\n🔧 **Your Tools**: What systems/apps do you currently use?\n📊 **Your Data**: What information flows through your process?\n👥 **Your Team**: Who will be involved in this workflow?\n\nThe more details you share, the better I can tailor my recommendations to your specific needs.";
   };
 
   const handleSendMessage = async () => {
@@ -140,7 +235,7 @@ export function WorkflowAssistant({
     setIsTyping(true);
 
     try {
-      const response = await simulateAssistantResponse(userMessage.content);
+      const response = await fetchAssistantResponse(userMessage.content);
       
       setIsTyping(false);
       
@@ -160,13 +255,14 @@ export function WorkflowAssistant({
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       setIsTyping(false);
-      const errorMessage: Message = {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get response';
+      const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
-        content: "I apologize, but I encountered an issue processing your request. Please try again, and if the problem persists, our support team is here to help.",
+        content: `I encountered an issue: ${errorMessage}. Please try again, and if the problem persists, our support team is here to help.`,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
@@ -259,8 +355,8 @@ export function WorkflowAssistant({
                 ? "bg-[#FF6900] text-white rounded-2xl rounded-br-md" 
                 : "bg-zinc-900 border border-zinc-800 text-white rounded-2xl rounded-bl-md"
             } px-4 py-3`}>
-              <div className="text-sm leading-relaxed whitespace-pre-line">
-                {message.content}
+              <div className="text-sm leading-relaxed">
+                {renderMarkdown(message.content)}
               </div>
               
               {message.suggestions && (

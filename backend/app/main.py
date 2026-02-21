@@ -11,10 +11,13 @@ from app.api.v1.templates import router as template_router
 from app.api.v1.integrations import router as integration_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audit import router as audit_router
-from app.api.v1.two_factor import router as two_factor_router
+from app.api.v1.backup import router as backup_router
+from app.api.v1.telegram import router as telegram_router
 from app.api.routes.billing import router as billing_router
 import logging
 import uvicorn
+import asyncio
+from app.services.backup_service import backup_service
 
 # Configure logging
 logging.basicConfig(
@@ -116,8 +119,23 @@ app.include_router(template_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(integration_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(analytics_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(audit_router, prefix=f"/api/{settings.API_VERSION}")
-app.include_router(two_factor_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(backup_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(telegram_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(billing_router)
+
+
+# Background task for scheduled backups
+async def scheduled_backup_task():
+    """Run scheduled backups every 24 hours"""
+    while True:
+        try:
+            await asyncio.sleep(24 * 60 * 60)  # Wait 24 hours
+            logger.info("Running scheduled backup process...")
+            result = await backup_service.process_scheduled_backups()
+            logger.info(f"Scheduled backup completed: {result}")
+        except Exception as e:
+            logger.error(f"Error in scheduled backup task: {str(e)}")
+            await asyncio.sleep(3600)  # Wait 1 hour before retrying on error
 
 
 # Startup event
@@ -129,6 +147,10 @@ async def startup_event():
     logger.info(f"API Version: {settings.API_VERSION}")
     logger.info(f"CORS Origins from config: {settings.CORS_ORIGINS}")
     logger.info(f"CORS Origins after processing: {cors_origins}")
+    
+    # Start scheduled backup task
+    asyncio.create_task(scheduled_backup_task())
+    logger.info("Scheduled backup task started (runs every 24 hours)")
 
 
 # Shutdown event

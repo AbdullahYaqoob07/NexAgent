@@ -692,6 +692,7 @@ class DelayExecutor(BaseNodeExecutor):
     """
     Delay Node - Pauses workflow execution for specified duration
     
+    The duration field from the frontend is in SECONDS by default.
     Useful for rate limiting, waiting for external processes, or scheduling delays.
     """
     
@@ -706,37 +707,105 @@ class DelayExecutor(BaseNodeExecutor):
         if duration is None:
             errors.append("Duration is required")
         elif not isinstance(duration, (int, float)) or duration < 0:
-            errors.append("Duration must be a non-negative number (milliseconds)")
+            errors.append("Duration must be a non-negative number (seconds)")
         
-        max_delay = config.get("maxDelay", 300000)  # 5 minutes default max
-        if duration > max_delay:
-            errors.append(f"Duration cannot exceed {max_delay}ms ({max_delay/1000}s)")
+        max_delay_seconds = 3600  # max 1 hour (3600 seconds)
+        if duration > max_delay_seconds:
+            errors.append(f"Duration cannot exceed {max_delay_seconds}s (1 hour)")
         
         return errors
     
     async def _execute_impl(self, input_data: Any) -> Any:
         """
-        Wait for specified duration.
+        Wait for specified duration (in seconds).
         """
         config = self.config.config
-        duration_ms = config.get("duration", 1000)
-        
-        # Convert to seconds
-        duration_sec = duration_ms / 1000.0
+        duration_seconds = float(config.get("duration", 1))  # Default 1 second
         
         start_time = datetime.utcnow()
-        logger.info(f"Delaying execution for {duration_ms}ms ({duration_sec}s)")
+        duration_ms = duration_seconds * 1000
+        logger.info(f"Delaying execution for {duration_seconds}s ({duration_ms:.0f}ms)")
         
-        # Actual delay
-        await asyncio.sleep(duration_sec)
+        # Actual delay (asyncio.sleep expects seconds)
+        await asyncio.sleep(duration_seconds)
         
         end_time = datetime.utcnow()
         actual_duration_ms = (end_time - start_time).total_seconds() * 1000
         
         return {
-            "requested_duration_ms": duration_ms,
+            "requested_duration_seconds": duration_seconds,
             "actual_duration_ms": actual_duration_ms,
             "started_at": start_time.isoformat(),
             "completed_at": end_time.isoformat(),
             "input": input_data
         }
+
+class StopperExecutor(BaseNodeExecutor):
+    """
+    Stopper Node - Marks workflow completion and logs final status
+    
+    This node signals the end of a workflow execution.
+    It logs the completion status (success/error) and passes through the final output data.
+    
+    Logs to:
+    - Backend terminal (logger.info/error)
+    - Output pane shows structured status with success/failure indicator
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return []  # No required fields for stopper
+    
+    def _validate_custom_config(self) -> List[str]:
+        return []  # No custom validation needed
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Execute stopper - log completion and return status with success/failure message.
+        """
+        # Log to backend (visible in terminal where python run.py is running)
+        logger.info('=' * 70)
+        logger.info('🛑 STOPPER NODE: Workflow Execution Complete')
+        logger.info('=' * 70)
+        
+        # Check if input_data contains error information
+        has_error = False
+        error_message = None
+        
+        if isinstance(input_data, dict):
+            # Check for common error indicators
+            has_error = (
+                input_data.get('success') == False or
+                input_data.get('error') is not None or
+                input_data.get('status') == 'error'
+            )
+            
+            if has_error:
+                error_message = input_data.get('error') or input_data.get('message') or 'Unknown error'
+                logger.error(f"❌ Workflow failed: {error_message}")
+            else:
+                logger.info(f"✅ Workflow completed successfully")
+        else:
+            logger.info(f"✅ Workflow completed successfully")
+        
+        logger.info(f"📊 Final output data: {input_data}")
+        logger.info('=' * 70)
+        
+        # Return structured status visible in output pane
+        if has_error:
+            return {
+                "status": "error",
+                "success": False,
+                "message": f"❌ Workflow execution failed: {error_message}",
+                "completed_at": datetime.utcnow().isoformat(),
+                "final_output": input_data,
+                "visualization": "error"
+            }
+        else:
+            return {
+                "status": "completed",
+                "success": True,
+                "message": "✅ Workflow execution completed successfully",
+                "completed_at": datetime.utcnow().isoformat(),
+                "final_output": input_data,
+                "visualization": "success"
+            }

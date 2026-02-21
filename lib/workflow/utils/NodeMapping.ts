@@ -97,6 +97,16 @@ export const NODE_MAPPINGS: NodeMapping[] = [
       { id: 'email_data', name: 'Email Data', type: 'object', required: true }
     ]
   },
+  {
+    displayName: 'ManualTrigger',
+    nodeType: 'manual_trigger',
+    category: 'trigger',
+    defaultConfig: { description: 'Start workflow manually by clicking Execute' },
+    inputs: [],
+    outputs: [
+      { id: 'trigger_data', name: 'Trigger Data', type: 'object', required: true }
+    ]
+  },
 
   // Actions
   {
@@ -242,6 +252,18 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     ],
     outputs: [
       { id: 'delay_result', name: 'Delay Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'Stopper',
+    nodeType: 'stopper',
+    category: 'logic',
+    defaultConfig: { description: 'Mark workflow completion' },
+    inputs: [
+      { id: 'input_data', name: 'Input Data', type: 'object', required: false }
+    ],
+    outputs: [
+      { id: 'completion_status', name: 'Completion Status', type: 'object', required: true }
     ]
   },
 

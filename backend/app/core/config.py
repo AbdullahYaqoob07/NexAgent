@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     FIREBASE_TOKEN_URI: str = "https://oauth2.googleapis.com/token"
     FIREBASE_AUTH_PROVIDER_CERT_URL: str = "https://www.googleapis.com/oauth2/v1/certs"
     FIREBASE_CLIENT_CERT_URL: str = ""
+    FIREBASE_STORAGE_BUCKET: str = "nexagent-90391.appspot.com"
     
     # Email Configuration (Optional)
     SMTP_HOST: str = "smtp.gmail.com"
