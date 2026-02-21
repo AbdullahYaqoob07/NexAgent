@@ -80,6 +80,117 @@ export function WorkflowAssistant({
     scrollToBottom();
   }, [messages]);
 
+  const cleanMarkdownFormatting = (text: string): string => {
+    // Process line by line to handle list items vs bold text
+    const lines = text.split('\n');
+    const processedLines = lines.map(line => {
+      let processedLine = line;
+      
+      // Handle lines that start with "** " or "* " (list items)
+      const listMatch = processedLine.match(/^(\*+)\s+(.*)$/);
+      if (listMatch) {
+        // This is a list item - normalize to single asterisk
+        processedLine = '* ' + listMatch[2];
+        
+        // Still need to handle bold within the list item text
+        // Normalize any remaining asterisks in the content
+        const content = listMatch[2];
+        const normalizedContent = content.replace(/\*{1,3}/g, '**');
+        processedLine = '* ' + normalizedContent;
+      } else {
+        // Not a list item - normalize all asterisks for bold
+        processedLine = processedLine.replace(/\*{1,3}/g, '**');
+      }
+      
+      // Ensure proper ** pairing within the line
+      const count = (processedLine.match(/\*\*/g) || []).length;
+      
+      // If odd number of **, close the bold at end of line
+      if (count % 2 === 1) {
+        // Add closing ** if line doesn't already end with it
+        if (!processedLine.endsWith('**')) {
+          processedLine = processedLine + '**';
+        } else {
+          // Line ends with ** but count is odd - there's an opening one somewhere
+          // Add one at the start if it doesn't start with **
+          if (!processedLine.startsWith('**') && !processedLine.startsWith('* ')) {
+            processedLine = '**' + processedLine;
+          }
+        }
+      }
+      
+      return processedLine;
+    });
+    
+    return processedLines.join('\n');
+  };
+
+  const renderMarkdown = (text: string) => {
+    // Split by new lines
+    const lines = text.split('\n');
+    
+    return lines.map((line, lineIndex) => {
+      // Check if this is a list item
+      const isListItem = line.trim().startsWith('* ');
+      const lineContent = isListItem ? line.trim().substring(2) : line;
+      
+      // Split the line into parts (text and bold sections)
+      const parts = [];
+      let lastIndex = 0;
+      const boldRegex = /\*\*([^*]+)\*\*/g;
+      let match;
+      
+      while ((match = boldRegex.exec(lineContent)) !== null) {
+        // Add text before the bold part
+        if (match.index > lastIndex) {
+          parts.push(
+            <span key={`text-${lineIndex}-${lastIndex}`}>
+              {lineContent.substring(lastIndex, match.index)}
+            </span>
+          );
+        }
+        
+        // Add bold part
+        parts.push(
+          <strong key={`bold-${lineIndex}-${match.index}`} className="font-semibold">
+            {match[1]}
+          </strong>
+        );
+        
+        lastIndex = match.index + match[0].length;
+      }
+      
+      // Add remaining text after last bold part
+      if (lastIndex < lineContent.length) {
+        parts.push(
+          <span key={`text-${lineIndex}-${lastIndex}`}>
+            {lineContent.substring(lastIndex)}
+          </span>
+        );
+      }
+      
+      // Render as list item or regular line
+      const content = parts.length > 0 ? parts : lineContent;
+      
+      if (isListItem) {
+        return (
+          <div key={`line-${lineIndex}`} className="flex gap-2">
+            <span className="select-none">•</span>
+            <span>{content}</span>
+          </div>
+        );
+      }
+      
+      // Return the line with a line break
+      return (
+        <span key={`line-${lineIndex}`}>
+          {content}
+          {lineIndex < lines.length - 1 && <br />}
+        </span>
+      );
+    });
+  };
+
   const fetchAssistantResponse = async (userMessage: string): Promise<string> => {
     try {
       const response = await fetch('https://nexagent-chatbot.onrender.com/query', {
@@ -98,8 +209,9 @@ export function WorkflowAssistant({
 
       const data = await response.json();
       
-      // Return only the answer, not the sources
-      return data.answer || "I couldn't generate a response. Please try again.";
+      // Clean up markdown formatting in the response
+      const answer = data.answer || "I couldn't generate a response. Please try again.";
+      return cleanMarkdownFormatting(answer);
     } catch (error) {
       console.error('Chatbot API error:', error);
       throw error;
@@ -243,8 +355,8 @@ export function WorkflowAssistant({
                 ? "bg-[#FF6900] text-white rounded-2xl rounded-br-md" 
                 : "bg-zinc-900 border border-zinc-800 text-white rounded-2xl rounded-bl-md"
             } px-4 py-3`}>
-              <div className="text-sm leading-relaxed whitespace-pre-line">
-                {message.content}
+              <div className="text-sm leading-relaxed">
+                {renderMarkdown(message.content)}
               </div>
               
               {message.suggestions && (
