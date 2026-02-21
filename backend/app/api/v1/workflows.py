@@ -104,6 +104,19 @@ async def create_workflow(
         )
         
         if not result['success']:
+            # Check if it's a workflow limit error
+            if result.get('limit_reached'):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={
+                        'message': result.get('error', 'Workflow limit reached'),
+                        'limit_reached': True,
+                        'current_count': result.get('current_count'),
+                        'max_allowed': result.get('max_allowed'),
+                        'plan': result.get('plan')
+                    }
+                )
+            
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=result.get('error', 'Failed to create workflow')

@@ -11,6 +11,7 @@ from app.api.v1.templates import router as template_router
 from app.api.v1.integrations import router as integration_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.audit import router as audit_router
+from app.api.v1.two_factor import router as two_factor_router
 from app.api.routes.billing import router as billing_router
 import logging
 import uvicorn
@@ -115,6 +116,7 @@ app.include_router(template_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(integration_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(analytics_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(audit_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(two_factor_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(billing_router)
 
 

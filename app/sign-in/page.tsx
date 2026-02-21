@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
+import { twoFactorService } from '@/lib/api/services/twoFactorService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Mail, Lock, Eye, EyeOff, ArrowRight, Zap, Star, MailCheck, AlertTriangle, Shield } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -23,10 +24,19 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showVerificationWarning, setShowVerificationWarning] = useState(false);
+  const [accountLocked, setAccountLocked] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
 
   // If already authenticated (Firebase or backend), don't show sign-in at all
   useEffect(() => {
-    if (!authLoading && !backendLoading && (firebaseUser || backendAuthenticated)) {
+    // Skip redirect check if we're in the middle of a logout or if auth is still loading
+    if (authLoading || backendLoading) {
+      return;
+    }
+
+    // Only redirect if we have a valid authenticated user
+    // Check both Firebase user and that we're not on sign-in page (prevent loops)
+    if ((firebaseUser || backendAuthenticated) && window.location.pathname === '/sign-in') {
       // Prefer hard-coded admin email for redirect decision to avoid races
       const email = firebaseUser?.email;
       let redirect = email === 'admin@gmail.com' ? '/admin321' : '/dashboard';
@@ -43,6 +53,7 @@ export default function SignInPage() {
         }
       }
 
+      // Use replace to avoid adding to history and prevent loops
       router.replace(redirect);
     }
   }, [authLoading, backendLoading, firebaseUser, backendAuthenticated, router]);
@@ -51,10 +62,119 @@ export default function SignInPage() {
     e.preventDefault();
     setError('');
     setShowVerificationWarning(false);
+    setAccountLocked(false);
+    setLockedUntil(null);
     setLoading(true);
 
     try {
+      // Step 1: Check account status before login (only if backend is available)
+      let accountStatus = null;
+      try {
+        accountStatus = await twoFactorService.checkAccountStatus(email);
+        console.log('Account status check result:', accountStatus);
+        
+        if (accountStatus?.accountLocked) {
+          setAccountLocked(true);
+          setLockedUntil(accountStatus.lockedUntil || null);
+          setError(`Account temporarily locked due to ${accountStatus.failedAttempts} failed login attempts. Please try again later.`);
+          setLoading(false);
+          return;
+        }
+      } catch (statusError: any) {
+        // If backend is not available or connection refused, continue with login (graceful degradation)
+        // Don't show error for network issues - just proceed with Firebase login
+        console.warn('Account status check failed:', statusError);
+        if (statusError?.error !== 'NETWORK_ERROR' && statusError?.status !== 401) {
+          console.warn('Backend unavailable for account status check, proceeding with login:', statusError);
+        }
+        // Don't block login if backend check fails - but we'll check 2FA after login
+      }
+
+      // Step 2: Attempt Firebase login
       const authUser = await signIn(email, password);
+      
+      // Step 3: Always check 2FA status after successful login
+      // This ensures we check even if the pre-login check failed
+      let twoFactorEnabled = false;
+      try {
+        // First try to use accountStatus if we have it
+        if (accountStatus && accountStatus.twoFactorEnabled !== undefined) {
+          twoFactorEnabled = accountStatus.twoFactorEnabled;
+          console.log('2FA status from pre-login check:', twoFactorEnabled);
+        } else {
+          // If we don't have it, check after login
+          const { auth } = await import('@/lib/firebase');
+          const user = auth.currentUser;
+          if (user) {
+            const idToken = await user.getIdToken();
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+            const statusResponse = await fetch(`${backendUrl}/api/v1/two-factor/status`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${idToken}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
+              twoFactorEnabled = statusData.twoFactorEnabled || false;
+              console.log('2FA status from backend after login:', statusData);
+            } else {
+              console.warn('Failed to get 2FA status, status:', statusResponse.status);
+            }
+          }
+        }
+      } catch (statusCheckError) {
+        console.warn('Failed to check 2FA status after login:', statusCheckError);
+        // Continue without 2FA check if it fails
+      }
+      
+      // Step 4: Check if 2FA is enabled
+      if (twoFactorEnabled) {
+        console.log('✅ 2FA is enabled, redirecting to OTP verification');
+        // Get Firebase token for 2FA API calls
+        const { auth } = await import('@/lib/firebase');
+        const user = auth.currentUser;
+        if (!user) {
+          setError('Session expired. Please try again.');
+          setLoading(false);
+          return;
+        }
+
+        // Send OTP
+        try {
+          await twoFactorService.sendOTP();
+          // Redirect to OTP verification page
+          router.push(`/verify-otp?email=${encodeURIComponent(email)}&userId=${authUser.uid}`);
+          return;
+        } catch (otpError: any) {
+          setError(otpError?.response?.data?.detail || 'Failed to send verification code. Please try again.');
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Step 5: No 2FA - proceed with normal login
+      console.log('ℹ️ 2FA is not enabled, proceeding with normal login');
+      // Reset failed attempts on backend
+      try {
+        const { auth } = await import('@/lib/firebase');
+        const user = auth.currentUser;
+        if (user) {
+          const idToken = await user.getIdToken();
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+          await fetch(`${backendUrl}/api/v1/two-factor/reset-failed-attempts`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      } catch (resetError) {
+        console.warn('Failed to reset failed attempts:', resetError);
+      }
       
       // Check if email is verified
       if (authUser && !authUser.emailVerified) {
@@ -71,7 +191,31 @@ export default function SignInPage() {
       }
       
     } catch (error: any) {
-      setError(error.message);
+      // Handle Firebase auth errors
+      const errorCode = error?.code || '';
+      const errorMessage = error?.message || 'Login failed. Please try again.';
+      
+      // Track failed attempt on backend
+      if (errorCode.includes('wrong-password') || errorCode.includes('user-not-found') || errorCode.includes('invalid-email')) {
+        try {
+          // Increment failed attempts (this will be done by backend when we call the endpoint)
+          // For now, we'll let the backend handle it on next login attempt
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+          await fetch(`${backendUrl}/api/v1/two-factor/increment-failed-attempts`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+          }).catch(() => {
+            // Ignore errors - backend will handle on next check
+          });
+        } catch (trackError) {
+          console.warn('Failed to track failed attempt:', trackError);
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -203,8 +347,30 @@ export default function SignInPage() {
               </motion.div>
             )}
 
+            {/* Account Locked Warning */}
+            {accountLocked && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start space-x-2 text-red-400 bg-red-400/10 border border-red-400/20 p-3 rounded-lg mb-4"
+              >
+                <Shield size={16} className="flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs font-medium mb-1">Account Temporarily Locked</p>
+                  <p className="text-xs text-red-300/80">
+                    {error || 'Your account has been temporarily locked due to multiple failed login attempts.'}
+                    {lockedUntil && (
+                      <span className="block mt-1">
+                        Please try again after the lockout period expires.
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Email Verification Warning */}
-            {showVerificationWarning && (
+            {showVerificationWarning && !accountLocked && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}

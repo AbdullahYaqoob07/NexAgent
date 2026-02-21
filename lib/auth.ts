@@ -276,6 +276,13 @@ class FirebaseAuthService {
   async signOutUser(): Promise<void> {
     try {
       await signOut(auth);
+      // Clear all auth-related localStorage items
+      try {
+        localStorage.removeItem('backend_auth_token');
+        localStorage.removeItem('backend_session_token');
+        localStorage.removeItem('user_is_admin');
+        localStorage.removeItem('admin_redirect_url');
+      } catch {}
       console.log('✅ User signed out successfully');
     } catch (error: any) {
       console.error('❌ Sign out error:', error);

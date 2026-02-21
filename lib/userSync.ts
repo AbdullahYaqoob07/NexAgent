@@ -64,7 +64,7 @@ export interface FirebaseUser {
   
   // Subscription and billing
   subscription: {
-    plan: 'free' | 'pro' | 'enterprise';
+    plan: 'trial' | 'free' | 'pro' | 'enterprise';
     status: 'active' | 'cancelled' | 'past_due' | 'trialing';
     currentPeriodStart?: Timestamp;
     currentPeriodEnd?: Timestamp;
@@ -225,7 +225,7 @@ export interface FirebaseUser {
     utmCampaign: string | null;
     ipAddress: string | null;
     userAgent: string | null;
-    initialPlan: 'free' | 'pro' | 'enterprise';
+    initialPlan: 'trial' | 'free' | 'pro' | 'enterprise';
     tags: string[]; // For segmentation
     notes: string | null; // Admin notes
   };
@@ -241,6 +241,7 @@ class UserSyncService {
     const email = authUser.email || '';
     const displayName = authUser.displayName || email.split('@')[0];
     const now = serverTimestamp() as Timestamp;
+    const trialEndsAt = Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
     
     // Extract name parts from displayName or email
     const nameParts = displayName.split(' ');
@@ -298,12 +299,13 @@ class UserSyncService {
         website: null
       },
       
-      // Subscription - start with free plan
+      // Subscription - start with trial plan
       subscription: {
-        plan: 'free',
-        status: 'active',
+        plan: 'trial',
+        status: 'trialing',
         currentPeriodStart: serverTimestamp() as Timestamp,
-        cancelAtPeriodEnd: false
+        cancelAtPeriodEnd: false,
+        trialEndsAt
       },
       
       // Usage tracking with free tier limits
@@ -426,7 +428,7 @@ class UserSyncService {
         utmCampaign: null,
         ipAddress: null,
         userAgent: null,
-        initialPlan: 'free',
+        initialPlan: 'trial',
         tags: [],
         notes: null
       }

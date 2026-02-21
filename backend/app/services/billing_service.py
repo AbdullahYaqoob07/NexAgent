@@ -142,7 +142,7 @@ class BillingService:
             
             # Get user's Stripe customer ID (should be created during signup)
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             if not stripe_customer_id:
                 raise HTTPException(status_code=400, detail="User has no Stripe customer ID")
@@ -531,6 +531,30 @@ class BillingService:
         if not user_doc.exists:
             raise HTTPException(status_code=404, detail="User not found")
         return user_doc.to_dict()
+
+    def _extract_stripe_customer_id(self, user_doc: Dict[str, Any]) -> Optional[str]:
+        """Extract Stripe customer ID from user document"""
+        if not user_doc:
+            return None
+        return (
+            user_doc.get('stripeCustomerId')
+            or user_doc.get('subscription', {}).get('stripeCustomerId')
+            or user_doc.get('subscription', {}).get('customerId')
+        )
+
+    async def _get_user_ref_by_stripe_customer_id(self, customer_id: str):
+        """Find user document by Stripe customer ID"""
+        users_collection = self.db.db.collection('users')
+
+        results = users_collection.where('subscription.stripeCustomerId', '==', customer_id).get()
+        if results:
+            return results[0].reference
+
+        legacy_results = users_collection.where('subscription.customerId', '==', customer_id).get()
+        if legacy_results:
+            return legacy_results[0].reference
+
+        return None
     
     # Webhook event handlers
     async def _handle_payment_succeeded(self, event_data: Dict[str, Any]):
@@ -552,14 +576,82 @@ class BillingService:
     async def _handle_subscription_updated(self, event_data: Dict[str, Any]):
         """Handle subscription update"""
         subscription = event_data['data']['object']
-        # Sync subscription changes with database
-        pass
+        customer_id = subscription.get('customer')
+        if not customer_id:
+            return
+
+        user_ref = await self._get_user_ref_by_stripe_customer_id(customer_id)
+        if not user_ref:
+            logger.warning(f"No user found for Stripe customer {customer_id}")
+            return
+
+        price_id = None
+        items = subscription.get('items', {}).get('data', [])
+        if items:
+            price_id = items[0].get('price', {}).get('id')
+
+        plan_doc = await self.db.get_plan_by_price_id(price_id) if price_id else None
+        plan_type = (plan_doc.get('plan_type') if plan_doc else 'basic')
+        limits = plan_doc.get('limits') if plan_doc else None
+
+        current_period_start = subscription.get('current_period_start')
+        current_period_end = subscription.get('current_period_end')
+        trial_end = subscription.get('trial_end')
+
+        update_payload = {
+            'subscription.plan': plan_type,
+            'subscription.status': subscription.get('status', SubscriptionStatus.ACTIVE.value),
+            'subscription.billing_cycle': subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('recurring', {}).get('interval', 'monthly'),
+            'subscription.currentPeriodStart': datetime.fromtimestamp(current_period_start) if current_period_start else None,
+            'subscription.currentPeriodEnd': datetime.fromtimestamp(current_period_end) if current_period_end else None,
+            'subscription.next_billing_date': datetime.fromtimestamp(current_period_end) if current_period_end else None,
+            'subscription.trial_ends_at': datetime.fromtimestamp(trial_end) if trial_end else None,
+            'subscription.cancelAtPeriodEnd': subscription.get('cancel_at_period_end', False),
+            'subscription.stripeSubscriptionId': subscription.get('id'),
+            'subscription.stripeCustomerId': customer_id
+        }
+
+        update_payload.update({
+            'subscription.startDate': datetime.fromtimestamp(current_period_start) if current_period_start else None,
+            'subscription.endDate': datetime.fromtimestamp(current_period_end) if current_period_end else None
+        })
+
+        if limits:
+            update_payload.update({
+                'usage.limits.workflowsMax': limits.get('nexas_max', 15),
+                'usage.limits.executionsPerMonth': limits.get('executions_per_month', 0),
+                'usage.limits.apiCallsPerMonth': limits.get('api_calls_per_month', 0),
+                'usage.limits.storage_gb': limits.get('storage_gb', 0),
+                'usage.limits.team_members': limits.get('team_members', 1),
+                'usage.limits.tokensPerMonth': limits.get('tokens_per_month', 0)
+            })
+            update_payload.update({
+                'usage.limits.storageLimit': limits.get('storage_gb', 0),
+                'usage.limits.teamMembers': limits.get('team_members', 1)
+            })
+        else:
+            update_payload['usage.limits.workflowsMax'] = 15
+            update_payload['usage.limits.storageLimit'] = 0
+            update_payload['usage.limits.teamMembers'] = 1
+
+        user_ref.update(update_payload)
     
     async def _handle_subscription_deleted(self, event_data: Dict[str, Any]):
         """Handle subscription deletion"""
         subscription = event_data['data']['object']
-        # Handle subscription cancellation
-        pass
+        customer_id = subscription.get('customer')
+        if not customer_id:
+            return
+
+        user_ref = await self._get_user_ref_by_stripe_customer_id(customer_id)
+        if not user_ref:
+            logger.warning(f"No user found for Stripe customer {customer_id}")
+            return
+
+        user_ref.update({
+            'subscription.status': SubscriptionStatus.CANCELED.value,
+            'subscription.cancelAtPeriodEnd': False
+        })
     
     async def _handle_invoice_created(self, event_data: Dict[str, Any]):
         """Handle invoice creation"""
@@ -577,7 +669,7 @@ class BillingService:
         try:
             # Get user's Stripe customer ID
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             if not stripe_customer_id:
                 return {"invoices": [], "total_count": 0, "has_more": False}
@@ -606,7 +698,7 @@ class BillingService:
             
             # Verify user owns this invoice
             user_doc = await self._get_user_document(user_id)
-            if invoice.customer != user_doc.get('stripeCustomerId'):
+            if invoice.customer != self._extract_stripe_customer_id(user_doc):
                 raise HTTPException(status_code=403, detail="Access denied")
             
             return self._format_invoice(invoice)
@@ -623,7 +715,7 @@ class BillingService:
         """Get user's payment methods"""
         try:
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             if not stripe_customer_id:
                 return {"payment_methods": [], "default_payment_method": None}
@@ -648,7 +740,7 @@ class BillingService:
         """Add payment method to user"""
         try:
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             if not stripe_customer_id:
                 raise HTTPException(status_code=400, detail="User has no Stripe customer ID")
@@ -677,7 +769,7 @@ class BillingService:
         try:
             # Verify ownership
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             payment_method = stripe.PaymentMethod.retrieve(payment_method_id)
             if payment_method.customer != stripe_customer_id:
@@ -835,7 +927,7 @@ class BillingService:
         """Create Stripe checkout session"""
         try:
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             plan = await self.get_plan(request.plan_id)
             if not plan:
@@ -872,7 +964,7 @@ class BillingService:
         """Create Stripe billing portal session"""
         try:
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = user_doc.get('stripeCustomerId')
+            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
             
             if not stripe_customer_id:
                 raise HTTPException(status_code=400, detail="User has no Stripe customer ID")

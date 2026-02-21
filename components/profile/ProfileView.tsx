@@ -103,7 +103,7 @@ interface ProfileData {
     timezone: string;
   };
   subscription: {
-    plan: 'Free' | 'Pro' | 'Enterprise';
+    plan: 'Trial' | 'Free' | 'Basic' | 'Pro' | 'Enterprise';
     status: 'active' | 'cancelled' | 'past_due' | 'trialing';
     renewsAt: string;
     usage: {
@@ -203,9 +203,14 @@ export default function ProfileView({ user }: ProfileViewProps) {
       timezone: profileData?.preferences.timezone || ''
     },
     subscription: {
-      plan: (profileData?.subscription.plan ? (profileData.subscription.plan.charAt(0).toUpperCase() + profileData.subscription.plan.slice(1)) as 'Free' | 'Pro' | 'Enterprise' : 'Free'),
-      status: profileData?.subscription.status || 'active',
-      renewsAt: profileData?.subscription.currentPeriodEnd?.toDate().toISOString() || '',
+      plan: (profileData?.subscription.plan
+        ? (profileData.subscription.plan.charAt(0).toUpperCase() + profileData.subscription.plan.slice(1)) as 'Trial' | 'Free' | 'Basic' | 'Pro' | 'Enterprise'
+        : 'Trial'),
+      status: profileData?.subscription.status || 'trialing',
+      renewsAt: profileData?.subscription.currentPeriodEnd?.toDate().toISOString()
+        || profileData?.subscription.trial_ends_at?.toDate().toISOString()
+        || profileData?.subscription.trialEndsAt?.toDate().toISOString()
+        || '',
       usage: {
         workflowExecutions: profileData?.usage.workflowExecutions || 0,
         apiCalls: profileData?.usage.apiCallsThisMonth || 0,
@@ -796,10 +801,104 @@ function SecurityTab({ profile, addToast }: { profile: ProfileData, addToast: (m
 }
 
 function BillingTab({ profile, addToast }: { profile: ProfileData, addToast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
-  const handleUpgradePlan = () => {
-    console.log('Opening upgrade plan modal...');
-    // Here you would open a modal or navigate to upgrade page
-    addToast('Upgrade plan feature coming soon!', 'info');
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handleUpgradePlan = async () => {
+    try {
+      setUpgradeLoading(true);
+      const { auth } = await import('@/lib/firebase');
+      if (!auth.currentUser) {
+        addToast('Please sign in again to upgrade your plan.', 'error');
+        return;
+      }
+
+      const token = await auth.currentUser.getIdToken(true).catch(() => null);
+      if (!token) {
+        addToast('Unable to verify your session. Please sign in again.', 'error');
+        return;
+      }
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+      const planId = process.env.NEXT_PUBLIC_BILLING_PLAN_BASIC_ID || 'plan_basic';
+      const successUrl = `${window.location.origin}/profile?billing=success`;
+      const cancelUrl = `${window.location.origin}/profile?billing=cancel`;
+
+      const response = await fetch(`${backendUrl}/api/billing/checkout/session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          plan_id: planId,
+          billing_cycle: 'monthly',
+          success_url: successUrl,
+          cancel_url: cancelUrl
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to create checkout session');
+      }
+
+      const data = await response.json();
+      if (!data?.checkout_url) {
+        throw new Error('Checkout URL missing from response');
+      }
+
+      window.location.href = data.checkout_url;
+    } catch (error: any) {
+      addToast(error?.message || 'Unable to start checkout. Please try again.', 'error');
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
+  const handleManagePaymentMethod = async () => {
+    try {
+      setPortalLoading(true);
+      const { auth } = await import('@/lib/firebase');
+      if (!auth.currentUser) {
+        addToast('Please sign in again to manage billing.', 'error');
+        return;
+      }
+
+      const token = await auth.currentUser.getIdToken(true).catch(() => null);
+      if (!token) {
+        addToast('Unable to verify your session. Please sign in again.', 'error');
+        return;
+      }
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
+      const returnUrl = `${window.location.origin}/profile?billing=portal`;
+
+      const response = await fetch(`${backendUrl}/api/billing/portal/session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ return_url: returnUrl })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to open billing portal');
+      }
+
+      const data = await response.json();
+      if (!data?.portal_url) {
+        throw new Error('Billing portal URL missing from response');
+      }
+
+      window.location.href = data.portal_url;
+    } catch (error: any) {
+      addToast(error?.message || 'Unable to open billing portal.', 'error');
+    } finally {
+      setPortalLoading(false);
+    }
   };
   const usageData = [
     {
@@ -832,14 +931,24 @@ function BillingTab({ profile, addToast }: { profile: ProfileData, addToast: (me
     <div className="space-y-8">
       {/* Current Plan */}
       <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-6">
           <h3 className="text-xl font-semibold text-white">Current Plan</h3>
-          <Button 
-            className="bg-[#FF6900] hover:bg-[#E55D00] text-white"
-            onClick={handleUpgradePlan}
-          >
-            Upgrade Plan
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              className="bg-white/5 border border-white/15 text-white hover:bg-white/10"
+              onClick={handleManagePaymentMethod}
+              disabled={portalLoading}
+            >
+              {portalLoading ? 'Opening...' : 'Manage Payment Method'}
+            </Button>
+            <Button 
+              className="bg-[#FF6900] hover:bg-[#E55D00] text-white"
+              onClick={handleUpgradePlan}
+              disabled={upgradeLoading}
+            >
+              {upgradeLoading ? 'Redirecting...' : 'Upgrade Plan'}
+            </Button>
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-6 bg-white/5 rounded-xl">
@@ -852,10 +961,15 @@ function BillingTab({ profile, addToast }: { profile: ProfileData, addToast: (me
           </div>
           <div className="text-center p-6 bg-white/5 rounded-xl">
             <h4 className="text-2xl font-bold text-white mb-2">
-              {new Date(profile.subscription.renewsAt).toLocaleDateString()}
+              {profile.subscription.renewsAt
+                ? new Date(profile.subscription.renewsAt).toLocaleDateString()
+                : '—'}
             </h4>
             <p className="text-white/60 text-sm">Renews On</p>
           </div>
+        </div>
+        <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
+          Upgrade to the Basic plan to unlock up to 15 workflows and add your payment method securely via Stripe.
         </div>
       </div>
 

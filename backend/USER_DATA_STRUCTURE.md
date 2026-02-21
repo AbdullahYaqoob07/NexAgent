@@ -44,19 +44,22 @@ When a user signs up, a comprehensive user document is created in Firestore with
   
   // Subscription Details (for /dashboard and billing pages)
   subscription: {
-    plan: "free",  // Options: free, basic, pro, enterprise
-    status: "active",  // active, cancelled, past_due, unpaid, trialing
+    plan: "trial",  // Options: trial, free, basic, pro, enterprise
+    status: "trialing",  // trialing, active, cancelled, past_due, unpaid
     billing_cycle: "monthly",  // monthly, yearly
     startDate: Timestamp,
     endDate: null,
     next_billing_date: null,  // When next payment is due
-    trial_ends_at: null,      // Trial expiration date
+    trial_ends_at: Timestamp + 30 days,  // Trial expiration date (30 days from signup)
     cancelAtPeriodEnd: false,
     stripeCustomerId: null,    // Stripe customer ID (created at signup)
     stripeSubscriptionId: null, // Stripe subscription ID
     created_at: Timestamp,     // When subscription was created
     updated_at: Timestamp      // Last subscription change
   },
+  
+  // NOTE: By default, new users start with a 30-day 'trial' plan
+  // Trial plan allows up to 5 workflows to be created
   
   // Usage Stats (for /dashboard page and billing)
   usage: {

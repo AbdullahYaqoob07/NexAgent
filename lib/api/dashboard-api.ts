@@ -114,11 +114,17 @@ const dashboardApiService = {
       });
       return response.data;
     } catch (error: any) {
-      console.error('❌ Get dashboard overview error:', {
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
+      // Suppress expected errors (network, 401, invalid token)
+      if (error?.error !== 'NETWORK_ERROR' && 
+          error?.message !== 'Network Error' &&
+          error?.status !== 401 &&
+          error?.message !== 'Invalid token') {
+        console.error('❌ Get dashboard overview error:', {
+          message: error?.message,
+          status: error?.response?.status,
+          data: error?.response?.data,
+        });
+      }
       // Return fallback data
       return {
         success: false,
@@ -142,11 +148,17 @@ const dashboardApiService = {
       const response = await apiClient.get<RealTimeMetrics>(`${DASHBOARD_BASE}/real-time`);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Get real-time metrics error:', {
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
+      // Suppress expected errors (network, 401, invalid token)
+      if (error?.error !== 'NETWORK_ERROR' && 
+          error?.message !== 'Network Error' &&
+          error?.status !== 401 &&
+          error?.message !== 'Invalid token') {
+        console.error('❌ Get real-time metrics error:', {
+          message: error?.message,
+          status: error?.response?.status,
+          data: error?.response?.data,
+        });
+      }
       return {
         success: false,
         activeExecutions: 0,
@@ -211,13 +223,19 @@ const dashboardApiService = {
       });
       return response.data;
     } catch (error: any) {
-      console.error('❌ Get alerts error:', {
-        message: error?.message,
-        status: error?.response?.status,
-        statusText: error?.response?.statusText,
-        data: error?.response?.data,
-        url: `${DASHBOARD_BASE}/alerts`,
-      });
+      // Suppress expected errors (network, 401, invalid token)
+      if (error?.error !== 'NETWORK_ERROR' && 
+          error?.message !== 'Network Error' &&
+          error?.status !== 401 &&
+          error?.message !== 'Invalid token') {
+        console.error('❌ Get alerts error:', {
+          message: error?.message,
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+          data: error?.response?.data,
+          url: `${DASHBOARD_BASE}/alerts`,
+        });
+      }
       return {
         success: false,
         alerts: [],
