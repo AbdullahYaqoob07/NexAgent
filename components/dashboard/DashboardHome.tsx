@@ -308,6 +308,7 @@ export default function DashboardHome({}: DashboardHomeProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Marketplace promotion"
+            onClick={dismissMarketplacePromo}
           >
             <motion.div
               initial={{ scale: 0.96, opacity: 0 }}
@@ -315,6 +316,7 @@ export default function DashboardHome({}: DashboardHomeProps) {
               exit={{ scale: 0.96, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="relative w-full max-w-sm max-h-[80vh] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#121212] via-[#0b0b0b] to-[#1a0c02] p-5 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
             >
               <button
                 type="button"
@@ -329,7 +331,10 @@ export default function DashboardHome({}: DashboardHomeProps) {
               </button>
 
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#FF6900]/15">
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#FF6900]/15 aspect-square"
+                  style={{ width: 48, height: 48 }}
+                >
                   <Store className="h-6 w-6 text-[#FF6900]" />
                 </div>
                 <div className="space-y-2">
