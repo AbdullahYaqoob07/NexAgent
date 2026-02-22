@@ -59,7 +59,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "TelegramSend",
     category: "Communication",
     description: "Send message to Telegram bot",
-    icon: "📱",
+    icon: "/assets/canvas/telegram.svg",
     isStartNode: false,
   },
   {
@@ -68,7 +68,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "EmailSend",
     category: "Communication",
     description: "Send email message",
-    icon: "📧",
+    icon: "/assets/canvas/gmail.svg",
     isStartNode: false,
   },
   {
@@ -77,7 +77,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "SlackMessage",
     category: "Communication",
     description: "Send message to Slack channel",
-    icon: "💬",
+    icon: "/assets/canvas/slack.svg",
     isStartNode: false,
   },
   {
@@ -126,7 +126,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "Logger",
     category: "Data",
     description: "Log messages for debugging",
-    icon: "📝",
+    icon: "/assets/canvas/logger-2.png",
     isStartNode: false,
   },
   {
@@ -135,7 +135,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "DataFormatter",
     category: "Data",
     description: "Transform and format data",
-    icon: "🔧",
+    icon: "/assets/canvas/formatter-3.png",
     isStartNode: false,
   },
   {
@@ -144,7 +144,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "JSONParser",
     category: "Data",
     description: "Parse and manipulate JSON data",
-    icon: "{}",
+    icon: "/assets/canvas/json-1.svg",
     isStartNode: false,
   },
 
@@ -155,7 +155,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "GoogleSheets",
     category: "Integrations",
     description: "Read/Write to Google Sheets",
-    icon: "📊",
+    icon: "/assets/canvas/sheets.png",
     isStartNode: false,
   },
   {
@@ -164,7 +164,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "GoogleDrive",
     category: "Integrations",
     description: "Upload/Download files from Google Drive",
-    icon: "☁️",
+    icon: "/assets/canvas/drive.svg",
     isStartNode: false,
   },
   {
@@ -173,7 +173,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "Stripe",
     category: "Integrations",
     description: "Handle Stripe payments and webhooks",
-    icon: "💳",
+    icon: "/assets/canvas/stripe.svg",
     isStartNode: false,
   },
 
@@ -184,7 +184,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "OpenAI",
     category: "AI/ML",
     description: "Use OpenAI API (GPT, DALL-E, etc)",
-    icon: "🤖",
+    icon: "/assets/canvas/openai.svg",
     isStartNode: false,
   },
   {
@@ -193,7 +193,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "ClaudeAI",
     category: "AI/ML",
     description: "Use Anthropic Claude API",
-    icon: "🧠",
+    icon: "/assets/canvas/claude.svg",
     isStartNode: false,
   },
 
@@ -204,7 +204,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "Stopper",
     category: "Utility",
     description: "Workflow completion checkpoint and summary logger",
-    icon: "🏁",
+    icon: "/assets/canvas/stop-1.svg",
     isStartNode: false,
   },
 ];

@@ -39,6 +39,7 @@ interface NodeCategory {
     type: string;
     description: string;
     icon: React.ReactNode;
+    iconText: string;
     category: string;
     isStartNode: boolean;
   }>;
@@ -67,6 +68,7 @@ const getNodeCategories = (nodeDefinitions: NodeDef[]): NodeCategory[] => {
     type: string;
     description: string;
     icon: React.ReactNode;
+    iconText: string;
     category: string;
     isStartNode: boolean;
   }>>();
@@ -77,8 +79,10 @@ const getNodeCategories = (nodeDefinitions: NodeDef[]): NodeCategory[] => {
       categoryMap.set(category, []);
     }
     
-    // Use emoji icon from hardcoded registry
-    const iconDisplay = (
+    // Use emoji icon or SVG from hardcoded registry
+    const iconDisplay = node.icon.startsWith('/') || node.icon.startsWith('http') ? (
+      <img src={node.icon} alt={node.name} className="w-6 h-6 object-contain" />
+    ) : (
       <span className="text-2xl" title={`Icon: ${node.icon}`}>{node.icon}</span>
     );
     
@@ -88,6 +92,7 @@ const getNodeCategories = (nodeDefinitions: NodeDef[]): NodeCategory[] => {
       type: node.type,
       description: node.description,
       icon: iconDisplay,
+      iconText: node.icon,
       category: node.category,
       isStartNode: node.isStartNode
     });
@@ -223,7 +228,7 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
     return false;
   };
 
-  const handleNodeDragStart = (event: React.DragEvent, node: { id: string; name: string; type: string; category: string; isStartNode: boolean }) => {
+  const handleNodeDragStart = (event: React.DragEvent, node: { id: string; name: string; type: string; category: string; isStartNode: boolean; iconText: string }) => {
     // Prevent drag if node is disabled
     if (isNodeDisabled(node)) {
       event.preventDefault();
@@ -236,7 +241,8 @@ const WorkflowSidebar = forwardRef<WorkflowSidebarHandle, WorkflowSidebarProps>(
       id: node.id,
       name: node.name,
       type: node.type,
-      category: node.category
+      category: node.category,
+      icon: node.iconText
     }));
     event.dataTransfer.setData("text/plain", node.name);
     event.dataTransfer.effectAllowed = "move";

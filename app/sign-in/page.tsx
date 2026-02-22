@@ -27,6 +27,8 @@ export default function SignInPage() {
   const [showVerificationWarning, setShowVerificationWarning] = useState(false);
   const [showMFA, setShowMFA] = useState(false);
   const [mfaUid, setMfaUid] = useState<string | null>(null);
+  const [accountLocked, setAccountLocked] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
 
   // If already authenticated (Firebase or backend), don't show sign-in at all
   // BUT: Don't redirect if MFA is required (showMFA will be true)
