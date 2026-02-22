@@ -623,15 +623,39 @@ export class AdvancedWorkflowEngine {
    */
   private getMockNodeResult(node: WorkflowNode, inputData: any): any {
     const mockResponses: Record<string, any> = {
+      // Triggers
       'On Clicking Execute': { triggered: true, timestamp: Date.now() },
+      'ManualTrigger': { triggered: true, timestamp: Date.now() },
+      'ChatInput': { triggered: true, trigger_type: 'chat_input', text: inputData?.text || 'Hello', timestamp: Date.now() },
+      'Scheduling': { triggered: true, trigger_type: 'schedule', timestamp: Date.now() },
+      'Webhook': { triggered: true, trigger_type: 'webhook', timestamp: Date.now() },
+      // Actions
       'HTTP Request': { status: 200, data: { message: 'Success' } },
+      'HTTPRequest': { status: 200, data: { message: 'Success' } },
       'Email': { sent: true, messageId: `msg_${Date.now()}` },
-      'Database': { rows: [{ id: 1, name: 'Test' }], affected: 1 },
+      'EmailSend': { sent: true, messageId: `msg_${Date.now()}` },
+      'TelegramSend': { sent: true, messageId: Date.now(), chatId: node.config?.chatId || '123456789' },
       'Slack': { ok: true, ts: Date.now() },
+      'SlackMessage': { ok: true, ts: Date.now() },
+      'Logger': { logged: true, level: 'info', message: node.config?.message || inputData },
+      // Logic
+      'Database': { rows: [{ id: 1, name: 'Test' }], affected: 1 },
       'OpenAI': { response: 'AI generated response', tokens: 100 },
+      'ClaudeAI': { response: 'Claude AI response', tokens: 52 },
       'If': { branch: 'true', result: inputData },
+      'Conditional': { branch: 'true', condition: true, result: inputData },
+      'Loop': { completed: true, iterations: 3, items: inputData },
+      'Delay': { waited: true, duration: node.config?.duration || 1000 },
+      'Stopper': { stopped: true, timestamp: Date.now() },
+      // Data
       'Transform': { transformed: inputData, success: true },
-      'Save': { saved: true, location: 'memory', data: inputData }
+      'DataFormatter': { formatted: true, data: inputData },
+      'JSONParser': { parsed: true, data: typeof inputData === 'string' ? JSON.parse(inputData || '{}') : inputData },
+      'Save': { saved: true, location: 'memory', data: inputData },
+      // Integrations
+      'GoogleSheets': { success: true, operation: 'read', rows: [['A1', 'B1']] },
+      'GoogleDrive': { success: true, operation: 'list', files: [{ name: 'file.pdf' }] },
+      'Stripe': { success: true, paymentId: `pi_${Date.now()}`, amount: 1000 },
     };
     
     return mockResponses[node.type] || { 

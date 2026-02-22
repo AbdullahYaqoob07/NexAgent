@@ -98,6 +98,90 @@ class OpenAIExecutor(BaseNodeExecutor):
             raise
 
 
+class ClaudeAIExecutor(BaseNodeExecutor):
+    """
+    Claude AI Node - Anthropic Claude completions
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return ["prompt"]
+    
+    def _validate_custom_config(self) -> List[str]:
+        errors = []
+        config = self.config.config
+        
+        api_key = config.get("apiKey") or self.context.api_keys.get("anthropic")
+        if not api_key:
+            errors.append("Anthropic API key required")
+        
+        model = config.get("model", "claude-3-sonnet-20240229")
+        valid_models = ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307", "claude-3-5-sonnet-20241022"]
+        if model not in valid_models:
+            errors.append(f"Invalid model. Must be one of: {', '.join(valid_models)}")
+        
+        temperature = config.get("temperature", 0.7)
+        if not isinstance(temperature, (int, float)) or temperature < 0 or temperature > 1:
+            errors.append("Temperature must be between 0 and 1")
+        
+        return errors
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Execute Anthropic Claude API call.
+        """
+        config = self.config.config
+        prompt = config.get("prompt")
+        model = config.get("model", "claude-3-sonnet-20240229")
+        temperature = config.get("temperature", 0.7)
+        max_tokens = config.get("maxTokens", 1024)
+        api_key = config.get("apiKey") or self.context.api_keys.get("anthropic")
+        
+        if not api_key:
+            raise ValueError("Anthropic API key not found")
+        
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ]
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        raise Exception(f"Claude API error: {response.status} - {error_text}")
+                    
+                    data = await response.json()
+                    
+                    content_blocks = data.get("content", [])
+                    response_text = ""
+                    for block in content_blocks:
+                        if block.get("type") == "text":
+                            response_text += block.get("text", "")
+                    
+                    return {
+                        "success": True,
+                        "model": model,
+                        "response": response_text,
+                        "usage": data.get("usage", {}),
+                        "stop_reason": data.get("stop_reason"),
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+        except Exception as e:
+            logger.error(f"Claude API call failed: {str(e)}")
+            raise
+
+
 class TextAnalysisExecutor(BaseNodeExecutor):
     """
     Text Analysis Node - Analyzes text

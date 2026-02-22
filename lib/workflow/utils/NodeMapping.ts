@@ -107,6 +107,189 @@ export const NODE_MAPPINGS: NodeMapping[] = [
       { id: 'trigger_data', name: 'Trigger Data', type: 'object', required: true }
     ]
   },
+  {
+    displayName: 'Scheduling',
+    nodeType: 'schedule_trigger',
+    category: 'trigger',
+    defaultConfig: { cron: '0 */5 * * * *', timezone: 'UTC' },
+    inputs: [
+      { id: 'cron', name: 'Cron Expression', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'schedule_data', name: 'Schedule Data', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'ChatInput',
+    nodeType: 'chat_input',
+    category: 'trigger',
+    defaultConfig: { placeholder: 'Enter message...' },
+    inputs: [],
+    outputs: [
+      { id: 'text', name: 'Text', type: 'string', required: true },
+      { id: 'user_data', name: 'User Data', type: 'object', required: false }
+    ]
+  },
+
+  // Actions (NodeRegistry types)
+  {
+    displayName: 'HTTPRequest',
+    nodeType: 'http_request_action',
+    category: 'action',
+    defaultConfig: { url: 'https://api.example.com', method: 'GET' },
+    inputs: [
+      { id: 'url', name: 'URL', type: 'string', required: true },
+      { id: 'method', name: 'Method', type: 'string', required: false }
+    ],
+    outputs: [
+      { id: 'response_data', name: 'Response Data', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'EmailSend',
+    nodeType: 'email_send',
+    category: 'action',
+    defaultConfig: { to: '', subject: '', body: '' },
+    inputs: [
+      { id: 'to', name: 'To Email', type: 'string', required: true },
+      { id: 'subject', name: 'Subject', type: 'string', required: true },
+      { id: 'body', name: 'Body', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'email_result', name: 'Email Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'TelegramSend',
+    nodeType: 'telegram_send',
+    category: 'action',
+    defaultConfig: { chatId: '', message: '' },
+    inputs: [
+      { id: 'chatId', name: 'Chat ID', type: 'string', required: true },
+      { id: 'message', name: 'Message', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'telegram_result', name: 'Telegram Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'SlackMessage',
+    nodeType: 'slack_message',
+    category: 'action',
+    defaultConfig: { channel: '#general', text: '' },
+    inputs: [
+      { id: 'channel', name: 'Channel', type: 'string', required: true },
+      { id: 'text', name: 'Message', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'slack_result', name: 'Slack Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'Logger',
+    nodeType: 'logger',
+    category: 'action',
+    defaultConfig: { message: '', level: 'info' },
+    inputs: [
+      { id: 'message', name: 'Message', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'log_result', name: 'Log Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'GoogleSheets',
+    nodeType: 'google_sheets',
+    category: 'action',
+    defaultConfig: { spreadsheetId: '', range: 'Sheet1!A1:Z100', operation: 'read' },
+    inputs: [
+      { id: 'spreadsheetId', name: 'Spreadsheet ID', type: 'string', required: true },
+      { id: 'range', name: 'Range', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'sheets_result', name: 'Sheets Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'GoogleDrive',
+    nodeType: 'google_drive',
+    category: 'action',
+    defaultConfig: { operation: 'list', folderId: '' },
+    inputs: [
+      { id: 'operation', name: 'Operation', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'drive_result', name: 'Drive Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'Stripe',
+    nodeType: 'stripe',
+    category: 'action',
+    defaultConfig: { operation: 'create_payment', amount: 0, currency: 'usd' },
+    inputs: [
+      { id: 'operation', name: 'Operation', type: 'string', required: true },
+      { id: 'amount', name: 'Amount', type: 'number', required: true }
+    ],
+    outputs: [
+      { id: 'stripe_result', name: 'Stripe Result', type: 'object', required: true }
+    ]
+  },
+
+  // Logic (NodeRegistry types)
+  {
+    displayName: 'Conditional',
+    nodeType: 'conditional',
+    category: 'logic',
+    defaultConfig: { condition: true, trueValue: 'true', falseValue: 'false' },
+    inputs: [
+      { id: 'condition', name: 'Condition', type: 'boolean', required: true }
+    ],
+    outputs: [
+      { id: 'result', name: 'Result', type: 'any', required: true }
+    ]
+  },
+
+  // AI/ML (NodeRegistry types)
+  {
+    displayName: 'ClaudeAI',
+    nodeType: 'claude_ai',
+    category: 'ai_ml',
+    defaultConfig: { model: 'claude-3-sonnet-20240229', prompt: '', temperature: 0.7 },
+    inputs: [
+      { id: 'prompt', name: 'Prompt', type: 'string', required: true },
+      { id: 'model', name: 'Model', type: 'string', required: false }
+    ],
+    outputs: [
+      { id: 'completion', name: 'Completion', type: 'string', required: true }
+    ]
+  },
+
+  // Data (NodeRegistry types)
+  {
+    displayName: 'DataFormatter',
+    nodeType: 'data_formatter',
+    category: 'data',
+    defaultConfig: { format: 'json', template: '' },
+    inputs: [
+      { id: 'data', name: 'Input Data', type: 'any', required: true }
+    ],
+    outputs: [
+      { id: 'formatted_data', name: 'Formatted Data', type: 'any', required: true }
+    ]
+  },
+  {
+    displayName: 'JSONParser',
+    nodeType: 'json_parse',
+    category: 'data',
+    defaultConfig: { jsonString: '{}' },
+    inputs: [
+      { id: 'json_string', name: 'JSON String', type: 'string', required: true }
+    ],
+    outputs: [
+      { id: 'parsed_data', name: 'Parsed Data', type: 'object', required: true }
+    ]
+  },
 
   // Actions
   {
@@ -527,10 +710,21 @@ export const NODE_MAPPINGS: NodeMapping[] = [
 ];
 
 /**
- * Get node mapping by display name
+ * Get node mapping by display name (with fallback to engine nodeTypeMapping aliases)
  */
 export function getNodeMapping(displayName: string): NodeMapping | undefined {
-  return NODE_MAPPINGS.find(mapping => mapping.displayName === displayName);
+  // Exact match first
+  const exact = NODE_MAPPINGS.find(mapping => mapping.displayName === displayName);
+  if (exact) return exact;
+
+  // Case-insensitive match
+  const lower = displayName.toLowerCase();
+  const caseInsensitive = NODE_MAPPINGS.find(
+    mapping => mapping.displayName.toLowerCase() === lower
+  );
+  if (caseInsensitive) return caseInsensitive;
+
+  return undefined;
 }
 
 /**

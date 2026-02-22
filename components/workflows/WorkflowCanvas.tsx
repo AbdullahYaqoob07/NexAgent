@@ -918,6 +918,8 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       <NodeConfigModal
         node={selectedNodeForConfig}
         isOpen={isConfigModalOpen}
+        nodes={nodes}
+        connections={connections}
         onClose={() => {
           setIsConfigModalOpen(false);
           setSelectedNodeForConfig(null);

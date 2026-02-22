@@ -1,22 +1,27 @@
 """
-Node Executors Package - Only 20 core implemented node executors
+Node Executors Package - All core implemented node executors
 """
 try:
     from .base import BaseNodeExecutor
     
-    # Triggers (3)
+    # Triggers (4)
     from .triggers import (
         ScheduleTriggerExecutor,
         WebhookTriggerExecutor,
-        ManualTriggerExecutor
+        ManualTriggerExecutor,
+        ChatInputExecutor
     )
     
-    # Actions (4)
+    # Actions (8)
     from .actions import (
         LoggerExecutor,
         HttpRequestExecutor,
         EmailExecutor,
         SlackExecutor,
+        TelegramExecutor,
+        GoogleSheetsExecutor,
+        GoogleDriveExecutor,
+        StripeExecutor,
     )
     
     # Logic (4)
@@ -30,7 +35,7 @@ try:
     # AI/ML (2)
     from .ai_ml import (
         OpenAIExecutor,
-        # ClaudeAIExecutor,  # TODO: Implement
+        ClaudeAIExecutor,
     )
     
     # Data (2)
@@ -49,29 +54,40 @@ except ImportError as e:
     ScheduleTriggerExecutor = None
     WebhookTriggerExecutor = None
     ManualTriggerExecutor = None
+    ChatInputExecutor = None
     LoggerExecutor = None
     HttpRequestExecutor = None
     EmailExecutor = None
     SlackExecutor = None
+    TelegramExecutor = None
+    GoogleSheetsExecutor = None
+    GoogleDriveExecutor = None
+    StripeExecutor = None
     IfConditionExecutor = None
     LoopExecutor = None
     DelayExecutor = None
     StopperExecutor = None
     OpenAIExecutor = None
+    ClaudeAIExecutor = None
     DateFormatterExecutor = None
     JsonParseExecutor = None
 
 __all__ = [
     "BaseNodeExecutor",
-    # Triggers (3)
+    # Triggers (4)
     "ScheduleTriggerExecutor",
     "WebhookTriggerExecutor",
     "ManualTriggerExecutor",
-    # Actions (4)
+    "ChatInputExecutor",
+    # Actions (8)
     "LoggerExecutor",
     "HttpRequestExecutor",
     "EmailExecutor",
     "SlackExecutor",
+    "TelegramExecutor",
+    "GoogleSheetsExecutor",
+    "GoogleDriveExecutor",
+    "StripeExecutor",
     # Logic (4)
     "IfConditionExecutor",
     "LoopExecutor",
@@ -79,6 +95,7 @@ __all__ = [
     "StopperExecutor",
     # AI/ML (2)
     "OpenAIExecutor",
+    "ClaudeAIExecutor",
     # Data (2)
     "DateFormatterExecutor",
     "JsonParseExecutor",

@@ -1470,6 +1470,50 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       },
     },
   },
+
+  // Utilities
+  Stopper: {
+    type: 'Stopper',
+    name: 'Stopper',
+    description: 'Stop workflow execution at this point',
+    category: 'Utilities',
+    fields: [
+      {
+        name: 'reason',
+        label: 'Stop Reason',
+        type: 'text',
+        placeholder: 'Reason for stopping the workflow',
+        description: 'Optional reason for stopping',
+        required: false,
+      },
+    ],
+    outputs: {
+      main: {
+        type: 'main',
+        displayName: 'Main Output',
+        fields: [
+          {
+            name: 'stopped',
+            path: ['stopped'],
+            type: 'boolean',
+            description: 'Whether the workflow was stopped',
+          },
+          {
+            name: 'reason',
+            path: ['reason'],
+            type: 'string',
+            description: 'The reason the workflow was stopped',
+          },
+          {
+            name: 'stoppedAt',
+            path: ['stoppedAt'],
+            type: 'string',
+            description: 'Timestamp when the workflow was stopped',
+          },
+        ],
+      },
+    },
+  },
 };
 
 /**

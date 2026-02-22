@@ -587,10 +587,10 @@ export default function NodeConfigModal({
     let validationErrors: string[] = [];
     
     if (nodeDefinition?.type === 'Email' || nodeDefinition?.name === 'Email' || 
-        node?.type === 'Send Email' || node?.type === 'Email') {
+        node?.type === 'Send Email' || node?.type === 'Email' || node?.type === 'EmailSend') {
       validationErrors = validateEmailNode();
     } else if (nodeDefinition?.type === 'Slack' || nodeDefinition?.name === 'Slack' || 
-               node?.type === 'Slack Message' || node?.type === 'Slack' || node?.type === 'Send Slack Message') {
+               node?.type === 'Slack Message' || node?.type === 'Slack' || node?.type === 'Send Slack Message' || node?.type === 'SlackMessage') {
       validationErrors = validateSlackNode();
     }
     
@@ -756,7 +756,43 @@ export default function NodeConfigModal({
   // Get mock test result based on node type
   const getMockTestResult = (nodeType: string, nodeConfig: any) => {
     const mockResults: Record<string, any> = {
+      // Triggers
+      'ManualTrigger': {
+        triggered: true,
+        timestamp: new Date().toISOString(),
+        executionId: `exec_${Date.now()}`
+      },
+      'On Clicking Execute': {
+        triggered: true,
+        timestamp: new Date().toISOString(),
+        executionId: `exec_${Date.now()}`
+      },
+      'ChatInput': {
+        triggered: true,
+        trigger_type: 'chat_input',
+        text: nodeConfig.text || 'Hello from test!',
+        timestamp: new Date().toISOString()
+      },
+      'Scheduling': {
+        triggered: true,
+        trigger_type: 'schedule',
+        cron: nodeConfig.cron || '0 */5 * * *',
+        next_run: new Date(Date.now() + 300000).toISOString()
+      },
+      'Webhook': {
+        triggered: true,
+        trigger_type: 'webhook',
+        url: nodeConfig.url || 'https://api.example.com/webhook',
+        timestamp: new Date().toISOString()
+      },
+      // Communication / Actions
       'HTTP Request': {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+        data: { users: [{ id: 1, name: 'John Doe' }] },
+        url: nodeConfig.url || 'https://api.example.com'
+      },
+      'HTTPRequest': {
         status: 200,
         headers: { 'content-type': 'application/json' },
         data: { users: [{ id: 1, name: 'John Doe' }] },
@@ -768,10 +804,17 @@ export default function NodeConfigModal({
         to: nodeConfig.to || 'test@example.com',
         subject: nodeConfig.subject || 'Test Email'
       },
-      'Database': {
-        query: nodeConfig.query || 'SELECT * FROM users',
-        rows: [{ id: 1, name: 'Test User', email: 'test@example.com' }],
-        affectedRows: 1
+      'EmailSend': {
+        sent: true,
+        messageId: `msg_${Date.now()}`,
+        to: nodeConfig.to || 'test@example.com',
+        subject: nodeConfig.subject || 'Test Email'
+      },
+      'TelegramSend': {
+        sent: true,
+        messageId: Date.now(),
+        chatId: nodeConfig.chatId || '123456789',
+        message: nodeConfig.message || 'Test message'
       },
       'Slack': {
         ok: true,
@@ -779,6 +822,75 @@ export default function NodeConfigModal({
         ts: Date.now().toString(),
         message: { text: nodeConfig.text || 'Hello from NexAgent!' }
       },
+      'SlackMessage': {
+        ok: true,
+        channel: nodeConfig.channel || '#general',
+        ts: Date.now().toString(),
+        message: { text: nodeConfig.text || 'Hello from NexAgent!' }
+      },
+      'Logger': {
+        logged: true,
+        level: nodeConfig.level || 'info',
+        message: nodeConfig.message || 'Log entry',
+        timestamp: new Date().toISOString()
+      },
+      // Logic
+      'Conditional': {
+        evaluated: true,
+        condition: nodeConfig.condition ?? true,
+        branch: 'true',
+        result: 'Condition met'
+      },
+      'Loop': {
+        completed: true,
+        iterations: 3,
+        items: [{ index: 0 }, { index: 1 }, { index: 2 }]
+      },
+      'Delay': {
+        completed: true,
+        duration: nodeConfig.duration || 1000,
+        message: `Waited ${(nodeConfig.duration || 1000) / 1000}s`
+      },
+      'Stopper': {
+        stopped: true,
+        reason: nodeConfig.description || 'Workflow stopped',
+        timestamp: new Date().toISOString()
+      },
+      // Data
+      'DataFormatter': {
+        formatted: true,
+        format: nodeConfig.format || 'json',
+        result: { sample: 'formatted data' }
+      },
+      'JSONParser': {
+        parsed: true,
+        data: { sample: 'value', nested: { key: 'parsed result' } }
+      },
+      'Database': {
+        query: nodeConfig.query || 'SELECT * FROM users',
+        rows: [{ id: 1, name: 'Test User', email: 'test@example.com' }],
+        affectedRows: 1
+      },
+      // Integrations
+      'GoogleSheets': {
+        success: true,
+        operation: nodeConfig.operation || 'read',
+        data: [['Name', 'Email'], ['John', 'john@test.com']],
+        range: nodeConfig.range || 'Sheet1!A1:B2'
+      },
+      'GoogleDrive': {
+        success: true,
+        operation: nodeConfig.operation || 'list',
+        files: [{ id: 'file1', name: 'Document.pdf', size: 1024 }]
+      },
+      'Stripe': {
+        success: true,
+        operation: nodeConfig.operation || 'create_payment',
+        paymentId: `pi_${Date.now()}`,
+        amount: nodeConfig.amount || 1000,
+        currency: nodeConfig.currency || 'usd'
+      },
+      // AI/ML
       'OpenAI': {
         model: nodeConfig.model || 'gpt-3.5-turbo',
         prompt: nodeConfig.prompt || 'Test prompt',
@@ -786,10 +898,12 @@ export default function NodeConfigModal({
         tokensUsed: 45,
         cost: 0.00009
       },
-      'On Clicking Execute': {
-        triggered: true,
-        timestamp: new Date().toISOString(),
-        executionId: `exec_${Date.now()}`
+      'ClaudeAI': {
+        model: nodeConfig.model || 'claude-3-sonnet-20240229',
+        prompt: nodeConfig.prompt || 'Test prompt',
+        response: 'This is a test response from Claude AI.',
+        tokensUsed: 52,
+        cost: 0.00012
       }
     };
     
@@ -844,6 +958,27 @@ export default function NodeConfigModal({
     );
   };
 
+  // Get all upstream (ancestor) node IDs by walking backward through connections
+  const getUpstreamNodeIds = (targetNodeId: string, conns: any[]): Set<string> => {
+    const upstream = new Set<string>();
+    const queue = [targetNodeId];
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      for (const conn of conns) {
+        if (conn.to === currentId && !upstream.has(conn.from)) {
+          upstream.add(conn.from);
+          queue.push(conn.from);
+        }
+      }
+    }
+    return upstream;
+  };
+
+  // Compute upstream node IDs for the current node
+  const upstreamNodeIds = node?.id
+    ? getUpstreamNodeIds(node.id, workflowData.connections || [])
+    : new Set<string>();
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="w-full max-w-5xl bg-slate-950 rounded-2xl shadow-2xl overflow-hidden flex max-h-[90vh]">
@@ -856,14 +991,14 @@ export default function NodeConfigModal({
             </h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {workflowData.nodes && workflowData.nodes.length > 0 ? (
+            {workflowData.nodes && workflowData.nodes.length > 0 && upstreamNodeIds.size > 0 ? (
               workflowData.nodes.map((n: any) => {
-                // Don't show current node
-                if (n.id === node?.id) return null;
+                // Only show upstream (ancestor) nodes
+                if (!upstreamNodeIds.has(n.id)) return null;
                 
                 // Get node definition to show its outputs
                 const nodeDef = getNodeDefinitionByType(n.type);
-                const nodeLabel = n.label || nodeDef?.name || n.type;
+                const nodeLabel = n.label || n.name || nodeDef?.name || n.type;
                 
                 // Get output definitions
                 const outputs = nodeDef?.outputs;
@@ -972,7 +1107,11 @@ export default function NodeConfigModal({
                 );
               })
             ) : (
-              <p className="text-xs text-gray-500 text-center py-8">Add nodes to see variables</p>
+              <div className="text-center py-8">
+                <Braces className="w-8 h-8 mx-auto mb-2 text-slate-600" />
+                <p className="text-xs text-gray-500">No previous nodes connected</p>
+                <p className="text-xs text-gray-600 mt-1">Connect upstream nodes to see their output fields here</p>
+              </div>
             )}
             <div className="pt-4 border-t border-slate-700">
               <p className="text-xs text-gray-500 space-y-2">

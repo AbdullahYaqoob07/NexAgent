@@ -156,3 +156,48 @@ class ManualTriggerExecutor(BaseNodeExecutor):
             "triggered_by": self.context.global_config.get("user_id", "unknown")
         }
 
+
+class ChatInputExecutor(BaseNodeExecutor):
+    """
+    Chat Input Trigger Node - Accepts user text input to start a workflow
+    """
+    
+    def get_required_config_fields(self) -> List[str]:
+        return []
+    
+    async def _execute_impl(self, input_data: Any) -> Any:
+        """
+        Chat input trigger execution.
+        Captures user text input and passes it downstream.
+        """
+        config = self.config.config
+        input_label = config.get("inputLabel", "Message")
+        placeholder = config.get("placeholder", "Type your message...")
+        max_characters = config.get("maxCharacters", 1000)
+        
+        # Get the text from input_data or config
+        text = ""
+        if isinstance(input_data, dict):
+            text = input_data.get("text", input_data.get("message", input_data.get("demoInput", "")))
+        elif isinstance(input_data, str):
+            text = input_data
+        
+        # Use config text if no input provided
+        if not text:
+            text = config.get("defaultText", config.get("text", "Hello from Chat Input"))
+        
+        # Truncate if exceeds max characters
+        if max_characters and len(text) > max_characters:
+            text = text[:max_characters]
+        
+        return {
+            "triggered": True,
+            "trigger_type": "chat_input",
+            "text": text,
+            "inputLabel": input_label,
+            "characterCount": len(text),
+            "maxCharacters": max_characters,
+            "timestamp": datetime.utcnow().isoformat(),
+            "triggered_at": datetime.utcnow().isoformat()
+        }
+

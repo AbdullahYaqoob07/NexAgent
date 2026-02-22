@@ -587,7 +587,7 @@ async def execute_workflow(
         
         # Check if this workflow has a Schedule node - if so, register with scheduler
         schedule_nodes = [n for n in workflow_data.get("nodes", []) 
-                         if n.get("type") in ["Schedule", "ScheduleTriggerNode", "ScheduleEvent"]]
+                         if n.get("type") in ["Schedule", "Scheduling", "ScheduleTriggerNode", "ScheduleEvent"]]
         
         if schedule_nodes and len(schedule_nodes) > 0:
             # This is a scheduled workflow - register with scheduler instead of executing immediately

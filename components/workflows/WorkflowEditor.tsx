@@ -672,10 +672,10 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       workflow.nodes = workflow.nodes.map((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
-        // Check if this is a Schedule node
-        const isSchedule = nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent' ||
-          (getNodeMapping(nodeType)?.engineType === 'ScheduleTriggerNode' || 
-           getNodeMapping(nodeType)?.sidebarType === 'Schedule');
+        // Check if this is a Schedule node (covers all known Schedule type aliases)
+        const isSchedule = nodeType === 'Schedule' || nodeType === 'Scheduling' || 
+          nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent' ||
+          getNodeMapping(nodeType)?.nodeType === 'schedule_trigger';
         
         if (isSchedule && n.config) {
           // Always update timezone to user's local timezone (even if already set)
@@ -691,17 +691,14 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       
       const hasScheduleNode = workflow.nodes.some((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
-        // Direct type check
-        if (nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent') {
+        // Direct type check (covers all known Schedule type aliases)
+        if (nodeType === 'Schedule' || nodeType === 'Scheduling' || 
+            nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent') {
           return true;
         }
         // Check via node mapping
         const mapping = getNodeMapping(nodeType);
-        if (mapping && (mapping.engineType === 'ScheduleTriggerNode' || mapping.sidebarType === 'Schedule')) {
-          return true;
-        }
-        // Also check for ScheduleEvent
-        if (nodeType === 'ScheduleEvent') {
+        if (mapping && mapping.nodeType === 'schedule_trigger') {
           return true;
         }
         return false;

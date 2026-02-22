@@ -74,17 +74,22 @@ class WorkflowOrchestrator:
         self._register_node_types()
     
     def _register_node_types(self):
-        """Register all 20 nodes from src/workflows"""
+        """Register all node types from src/workflows"""
         from .nodes import (
             # Triggers
             ScheduleTriggerExecutor,
             WebhookTriggerExecutor,
             ManualTriggerExecutor,
+            ChatInputExecutor,
             # Actions
             LoggerExecutor,
             HttpRequestExecutor,
             EmailExecutor,
             SlackExecutor,
+            TelegramExecutor,
+            GoogleSheetsExecutor,
+            GoogleDriveExecutor,
+            StripeExecutor,
             # Logic
             IfConditionExecutor,
             LoopExecutor,
@@ -92,6 +97,7 @@ class WorkflowOrchestrator:
             StopperExecutor,
             # AI/ML
             OpenAIExecutor,
+            ClaudeAIExecutor,
             # Data
             JsonParseExecutor,
             DateFormatterExecutor,
@@ -136,10 +142,10 @@ class WorkflowOrchestrator:
         self.executor_factory.register_executor("Slack", SlackExecutor)
         self.executor_factory.register_executor("SlackNode", SlackExecutor)
         
-        # 8. TelegramSend - TODO: Implement TelegramExecutor
-        # self.executor_factory.register_executor("Telegram Send", TelegramExecutor)
-        # self.executor_factory.register_executor("TelegramSend", TelegramExecutor)
-        # self.executor_factory.register_executor("Telegram", TelegramExecutor)
+        # 8. TelegramSend
+        self.executor_factory.register_executor("Telegram Send", TelegramExecutor)
+        self.executor_factory.register_executor("TelegramSend", TelegramExecutor)
+        self.executor_factory.register_executor("Telegram", TelegramExecutor)
         
         # ===== LOGIC (4) =====
         # 9. Conditional
@@ -165,9 +171,10 @@ class WorkflowOrchestrator:
         self.executor_factory.register_executor("OpenAI", OpenAIExecutor)
         self.executor_factory.register_executor("OpenAINode", OpenAIExecutor)
         
-        # 14. ClaudeAI - TODO: Implement ClaudeAIExecutor
-        # self.executor_factory.register_executor("Claude AI", ClaudeAIExecutor)
-        # self.executor_factory.register_executor("ClaudeAI", ClaudeAIExecutor)
+        # 14. ClaudeAI
+        self.executor_factory.register_executor("Claude AI", ClaudeAIExecutor)
+        self.executor_factory.register_executor("ClaudeAI", ClaudeAIExecutor)
+        self.executor_factory.register_executor("Claude", ClaudeAIExecutor)
         
         # ===== DATA (2) =====
         # 15. JSONParser
@@ -182,21 +189,22 @@ class WorkflowOrchestrator:
         self.executor_factory.register_executor("DateFormatterNode", DateFormatterExecutor)
         
         # ===== ECOMMERCE/INTEGRATIONS (4) =====
-        # 17. Stripe - TODO: Implement StripeExecutor
-        # self.executor_factory.register_executor("Stripe", StripeExecutor)
-        # self.executor_factory.register_executor("StripeNode", StripeExecutor)
+        # 17. Stripe
+        self.executor_factory.register_executor("Stripe", StripeExecutor)
+        self.executor_factory.register_executor("Stripe Payment", StripeExecutor)
+        self.executor_factory.register_executor("StripeNode", StripeExecutor)
         
-        # 18. Google Sheets - TODO: Implement GoogleSheetsExecutor
-        # self.executor_factory.register_executor("Google Sheets", GoogleSheetsExecutor)
-        # self.executor_factory.register_executor("GoogleSheets", GoogleSheetsExecutor)
+        # 18. Google Sheets
+        self.executor_factory.register_executor("Google Sheets", GoogleSheetsExecutor)
+        self.executor_factory.register_executor("GoogleSheets", GoogleSheetsExecutor)
         
-        # 19. Google Drive - TODO: Implement GoogleDriveExecutor
-        # self.executor_factory.register_executor("Google Drive", GoogleDriveExecutor)
-        # self.executor_factory.register_executor("GoogleDrive", GoogleDriveExecutor)
+        # 19. Google Drive
+        self.executor_factory.register_executor("Google Drive", GoogleDriveExecutor)
+        self.executor_factory.register_executor("GoogleDrive", GoogleDriveExecutor)
         
-        # 20. Chat Input - TODO: Implement ChatInputExecutor
-        # self.executor_factory.register_executor("Chat Input", ChatInputExecutor)
-        # self.executor_factory.register_executor("ChatInput", ChatInputExecutor)
+        # 20. Chat Input
+        self.executor_factory.register_executor("Chat Input", ChatInputExecutor)
+        self.executor_factory.register_executor("ChatInput", ChatInputExecutor)
         
         logger.info(f"Registered {len(self.executor_factory.get_registered_types())} node types")
         logger.info(f"Backend knows about all 20 nodes from src/workflows/")

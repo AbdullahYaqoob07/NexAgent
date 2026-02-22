@@ -47,6 +47,14 @@ import { StringManipulationNode } from './nodes/StringManipulationNode';
 import { NumberFormatterNode } from './nodes/NumberFormatterNode';
 import { DateFormatterNode } from './nodes/DateFormatterNode';
 import { StopperNode } from './nodes/StopperNode';
+// Missing node types from NodeRegistry
+import { ChatInputNode } from './nodes/ChatInputNode';
+import { TelegramSendNode } from './nodes/TelegramSendNode';
+import { DataFormatterNode } from './nodes/DataFormatterNode';
+import { GoogleSheetsNode } from './nodes/GoogleSheetsNode';
+import { GoogleDriveNode } from './nodes/GoogleDriveNode';
+import { StripeNode } from './nodes/StripeNode';
+import { ClaudeAINode } from './nodes/ClaudeAINode';
 
 /**
  * Central mapping registry for sidebar node types to engine node classes
@@ -66,7 +74,14 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'ScheduleTriggerNode',
     nodeClass: ScheduleTriggerNode,
     category: 'trigger',
-    aliases: ['Schedule Event']
+    aliases: ['Schedule Event', 'Scheduling']
+  },
+  {
+    sidebarType: 'Chat Input',
+    engineType: 'ChatInputNode',
+    nodeClass: ChatInputNode,
+    category: 'trigger',
+    aliases: ['ChatInput', 'Chat']
   },
   {
     sidebarType: 'Webhook',
@@ -119,7 +134,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'HttpNode',
     nodeClass: HttpNode,
     category: 'action',
-    aliases: ['HTTP Request Action', 'Http', 'API Request']
+    aliases: ['HTTP Request Action', 'Http', 'API Request', 'HTTPRequest']
   },
   {
     sidebarType: 'Database Query',
@@ -133,14 +148,21 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'EmailNode',
     nodeClass: EmailNode,
     category: 'action',
-    aliases: ['Email']
+    aliases: ['Email', 'EmailSend']
+  },
+  {
+    sidebarType: 'Telegram Send',
+    engineType: 'TelegramSendNode',
+    nodeClass: TelegramSendNode,
+    category: 'action',
+    aliases: ['TelegramSend', 'Telegram']
   },
   {
     sidebarType: 'Slack Message',
     engineType: 'SlackNode',
     nodeClass: SlackNode,
     category: 'action',
-    aliases: ['Slack']
+    aliases: ['Slack', 'SlackMessage']
   },
   {
     sidebarType: 'Save',
@@ -179,7 +201,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'IfNode',
     nodeClass: IfNode,
     category: 'logic',
-    aliases: ['If', 'Conditional']
+    aliases: ['If', 'Conditional', 'Condition']
   },
   {
     sidebarType: 'Switch',
@@ -213,6 +235,13 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     nodeClass: OpenAINode,
     category: 'ai_ml',
     aliases: ['OpenAI', 'GPT', 'ChatGPT']
+  },
+  {
+    sidebarType: 'Claude AI',
+    engineType: 'ClaudeAINode',
+    nodeClass: ClaudeAINode,
+    category: 'ai_ml',
+    aliases: ['ClaudeAI', 'Claude', 'Anthropic']
   },
   {
     sidebarType: 'Text Analysis',
@@ -257,7 +286,8 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     sidebarType: 'JSON Parse',
     engineType: 'JsonParseNode',
     nodeClass: JsonParseNode,
-    category: 'data'
+    category: 'data',
+    aliases: ['JSONParser', 'JSON Parser']
   },
   {
     sidebarType: 'XML Parse',
@@ -276,6 +306,36 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'DataFilterNode',
     nodeClass: DataFilterNode,
     category: 'data'
+  },
+  {
+    sidebarType: 'Data Formatter',
+    engineType: 'DataFormatterNode',
+    nodeClass: DataFormatterNode,
+    category: 'data',
+    aliases: ['DataFormatter']
+  },
+
+  // Integrations
+  {
+    sidebarType: 'Google Sheets',
+    engineType: 'GoogleSheetsNode',
+    nodeClass: GoogleSheetsNode,
+    category: 'action',
+    aliases: ['GoogleSheets']
+  },
+  {
+    sidebarType: 'Google Drive',
+    engineType: 'GoogleDriveNode',
+    nodeClass: GoogleDriveNode,
+    category: 'action',
+    aliases: ['GoogleDrive']
+  },
+  {
+    sidebarType: 'Stripe Payment',
+    engineType: 'StripeNode',
+    nodeClass: StripeNode,
+    category: 'action',
+    aliases: ['Stripe']
   },
 
   // Ecommerce
