@@ -467,34 +467,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       // Get workflow data from canvas
       const workflowData = canvasRef.current.getWorkflowData();
       
-      // Validate workflow before execution
-      try {
-        const { validateWorkflow, formatValidationErrors } = await import('@/lib/workflow/utils/validateWorkflow');
-        const validationErrors = validateWorkflow(workflowData);
-        
-        if (validationErrors.length > 0) {
-          const errorMessage = formatValidationErrors(validationErrors);
-          setExecutionError(errorMessage);
-          
-          // Highlight error nodes
-          const errorNodeIds = validationErrors.map(e => e.nodeId).filter(id => id && id !== 'workflow');
-          setErrorNodeIds(errorNodeIds);
-          try { canvasRef.current?.setErrorNodes?.(errorNodeIds); } catch {}
-          
-          addToast('Please fix configuration errors before executing', 'error');
-          setIsExecuting(false);
-          return;
-        }
-      } catch (validationError) {
-        // If validation itself fails, show a user-friendly error
-        const errorMsg = validationError instanceof Error 
-          ? `Validation error: ${validationError.message}` 
-          : 'Failed to validate workflow. Please check that all nodes are properly configured.';
-        setExecutionError(errorMsg);
-        addToast(errorMsg, 'error');
-        setIsExecuting(false);
-        return;
-      }
+      // ─── WORKFLOW EXECUTION ───
+      // Canvas data is minimal (just nodes + connections) - backend will validate
+      // the full v2 schema after retrieving from Firestore.
 
       // Validation: ensure proper connections
       const nodesArr = workflowData.nodes;
@@ -877,57 +852,54 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           }
         );
         
-        // Process node logs from backend execution to update UI with simulated real-time feedback
+        // Process node logs from backend execution in actual execution order
         if (execution.nodeLogs && execution.nodeLogs.length > 0) {
-          // Simple approach: Just iterate through nodes in order and simulate execution
-          const workflowNodeIds = workflow.nodes.map(n => n.id);
-          
-          for (let i = 0; i < workflowNodeIds.length; i++) {
-            const nodeId = workflowNodeIds[i];
+          // Iterate through nodeLogs in the order they were executed by the backend
+          for (const log of execution.nodeLogs) {
+            const nodeId = log.nodeId || log.node_id; // Handle both camelCase and snake_case
             const node = workflowNodes.find(n => n.id === nodeId);
-            const nodeType = node?.type || 'Unknown';
-            const nodeName = node?.name || nodeId;
+            const nodeType = node?.type || log.nodeType || 'Unknown';
+            const nodeName = node?.name || log.nodeName || nodeId;
             
             // Update active node visualization
-            setActiveNodeId(nodeId);
-            try { canvasRef.current?.setExecutingNode(nodeId); } catch {}
+            setActiveNodeId(nodeId || null);
+            try { canvasRef.current?.setExecutingNode(nodeId || null); } catch {}
             
-            // Add step start message to output
+            // Log is already from execution, just format and display it
+            // nodeLogs come from backend in correct order so we don't need to guess
             setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Executing node: ${nodeName}`]);
             
-            // For delay nodes, simulate the delay
-            if (nodeType === 'Delay' || nodeType === 'DelayNode') {
-              // Simulate the actual 3-second delay
-              await new Promise(resolve => setTimeout(resolve, 3000));
-            } else {
-              // Minimal delay for other nodes to make transitions visible but not slow
-              await new Promise(resolve => setTimeout(resolve, 100));
+            // Add small delay to avoid overwhelming the display
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Add step complete message
+            if (log.status === 'success') {
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Completed node: ${nodeName}`]);
+            } else if (log.status === 'failed') {
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] FAILED node: ${nodeName}`]);
             }
             
-            // Add step complete message to output
-            setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Completed node: ${nodeName}`]);
-            
-            // For HTTP nodes, add mock network request data for demonstration
-            if (nodeType === 'HTTP Request' || nodeType === 'HttpNode' || nodeType === 'HTTP Request Action') {
-              const mockNetworkReq = {
-                id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-                timestamp: new Date().toISOString(),
-                method: 'GET',
-                url: 'https://jsonplaceholder.typicode.com/posts',
-                status: 200,
-                statusText: 'OK',
-                duration: Math.floor(Math.random() * 200) + 100, // 100-300ms
-                headers: {},
-                responseHeaders: {
-                  'content-type': 'application/json; charset=utf-8',
-                  'content-length': '1234'
-                },
-                requestBody: '',
-                responseBody: '[{"id": 1, "title": "Sample post"}, ...]',
-                nodeId: nodeId,
-                nodeName: nodeName
-              };
-              setNetworkRequests(prev => [...prev.slice(-49), mockNetworkReq]);
+            // For HTTP nodes, add network request data if available
+            if ((nodeType === 'HTTP Request' || nodeType === 'HttpNode' || nodeType === 'HTTP Request Action') && log.output) {
+              const output = log.output;
+              if (output.status || output.url) {
+                const networkReq = {
+                  id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                  timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),
+                  method: output.method || 'GET',
+                  url: output.url || 'Unknown URL',
+                  status: output.status || 0,
+                  statusText: output.statusText || 'Unknown',
+                  duration: log.duration || log.executionTime || 0,
+                  headers: output.requestHeaders || {},
+                  responseHeaders: output.headers || {},
+                  requestBody: output.requestBody,
+                  responseBody: output.data,
+                  nodeId: nodeId,
+                  nodeName: nodeName
+                };
+                setNetworkRequests(prev => [...prev.slice(-49), networkReq]);
+              }
             }
             
             // Minimal delay after completion to make transitions visible

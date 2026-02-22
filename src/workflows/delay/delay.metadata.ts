@@ -8,6 +8,7 @@ import type { NodeMetadata } from '@/lib/workflow/types/metadata';
 export const DELAY_METADATA: NodeMetadata = {
   // Core identification
   type: 'Delay',
+  aliases: ['DelayNode', 'delay'],
   schemaVersion: 1,
   name: 'Delay',
   category: 'Logic',
@@ -34,18 +35,21 @@ export const DELAY_METADATA: NodeMetadata = {
       label: 'Delayed',
       type: 'trigger',
       description: 'Fires after the delay completes',
+      executorKey: 'delayedData',
     },
     {
       id: 'delayedUntil',
       label: 'Delayed Until',
       type: 'date',
       description: 'Timestamp when delay completed',
+      executorKey: 'timestamp',
     },
     {
       id: 'duration',
       label: 'Duration',
       type: 'number',
       description: 'Duration in seconds that was delayed',
+      executorKey: 'delayDuration',
     },
   ],
 

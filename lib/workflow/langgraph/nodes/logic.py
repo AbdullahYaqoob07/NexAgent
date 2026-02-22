@@ -717,10 +717,24 @@ class DelayExecutor(BaseNodeExecutor):
     
     async def _execute_impl(self, input_data: Any) -> Any:
         """
-        Wait for specified duration (in seconds).
+        Wait for specified duration.
+        
+        Auto-detects units:
+        - If duration <= 60: treats as seconds
+        - If duration > 60 and <= 3600000: treats as milliseconds and converts to seconds
+        - If duration > 3600000: treats as seconds (max 1 hour)
         """
         config = self.config.config
-        duration_seconds = float(config.get("duration", 1))  # Default 1 second
+        duration_raw = float(config.get("duration", 5))  # Default 5 seconds
+        
+        # Auto-detect units
+        if duration_raw > 60 and duration_raw <= 3600000:
+            # Likely milliseconds, convert to seconds
+            duration_seconds = duration_raw / 1000
+            logger.info(f"Auto-detected milliseconds: {duration_raw}ms → {duration_seconds}s")
+        else:
+            # Treat as seconds
+            duration_seconds = duration_raw
         
         start_time = datetime.utcnow()
         duration_ms = duration_seconds * 1000

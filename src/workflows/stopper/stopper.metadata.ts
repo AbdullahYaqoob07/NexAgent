@@ -8,6 +8,7 @@ import type { NodeMetadata } from '@/lib/workflow/types/metadata';
 export const STOPPER_METADATA: NodeMetadata = {
   // Core identification
   type: 'Stopper',
+  aliases: ['StopperNode', 'stopper'],
   schemaVersion: 1,
   name: 'Stopper',
   category: 'Logic',
@@ -46,18 +47,21 @@ export const STOPPER_METADATA: NodeMetadata = {
       label: 'Status',
       type: 'string',
       description: 'Workflow completion status (success or error)',
+      executorKey: 'status',
     },
     {
       id: 'message',
       label: 'Message',
       type: 'string',
       description: 'Completion message',
+      executorKey: 'message',
     },
     {
       id: 'timestamp',
       label: 'Timestamp',
       type: 'date',
       description: 'When the workflow was stopped',
+      executorKey: 'timestamp',
     },
   ],
 
