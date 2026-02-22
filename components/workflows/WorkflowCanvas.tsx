@@ -26,6 +26,7 @@ import {
   X
 } from "lucide-react";
 import { getNodeMapping } from "@/lib/workflow/utils/NodeMapping";
+import { getNodeByType } from "@/lib/workflow/NodeRegistry";
 import { getBrandLogo, getBrandColor } from "@/lib/workflow/utils/BrandLogoMapping";
 import NodeConfigModal from "./NodeConfigModal";
 import { WorkflowNode as WorkflowNodeType } from "@/lib/workflow/types";
@@ -57,6 +58,7 @@ interface WorkflowNode {
   x: number;
   y: number;
   config?: any; // For custom node configurations like fork outputs
+  icon?: string;
 }
 
 interface Connection {
@@ -252,6 +254,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       name: nodeName,
       x: Math.max(0, x - 80), // Center the node on cursor with bounds
       y: Math.max(0, y - 40),
+      icon: nodeData?.icon,
       // Store additional metadata from dynamic nodes
       ...(nodeData && {
         nodeDefinitionId: nodeData.id,
@@ -648,6 +651,14 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     return <LogoComponent size={NODE_SIZE} />;
   };
 
+  const getNodeIcon = (node: WorkflowNode): string | null => {
+    if (node.icon) {
+      return node.icon;
+    }
+    const registryNode = getNodeByType(node.type);
+    return registryNode?.icon ?? null;
+  };
+
   return (
     <div 
       ref={canvasRef}
@@ -728,6 +739,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         const isFirstNode = index === 0;
         const nodeMapping = getNodeMapping(node.type);
         const isTrigger = nodeMapping?.category === 'trigger';
+        const nodeIcon = getNodeIcon(node);
         
         return (
         <div
@@ -769,7 +781,15 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
             >
               {/* Brand Logo */}
               <div className="absolute inset-0 flex items-center justify-center">
-                {getBrandLogoComponent(node.type, node)}
+                {nodeIcon ? (
+                  nodeIcon.startsWith('/') || nodeIcon.startsWith('http') ? (
+                    <img src={nodeIcon} alt="node icon" className="w-8 h-8 object-contain" />
+                  ) : (
+                    <span className="text-4xl" title={`Icon: ${nodeIcon}`}>{nodeIcon}</span>
+                  )
+                ) : (
+                  getBrandLogoComponent(node.type, node)
+                )}
               </div>
               
               {/* Execution indicator */}
