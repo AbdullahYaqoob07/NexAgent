@@ -29,6 +29,13 @@ sys.path.insert(0, str(project_root))
 from lib.workflow.langgraph.orchestrator import WorkflowOrchestrator
 from lib.workflow.langgraph.error_recovery import CheckpointType
 from lib.workflow.langgraph.scheduler import get_scheduler
+from app.schemas.workflow_schema import (
+    WorkflowV2,
+    LangGraphWorkflow,
+    resolve_node_config,
+    map_executor_output,
+    VariableContext
+)
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +111,15 @@ async def create_workflow(
         )
         
         if not result['success']:
+            # Check if it's a validation error
+            if result.get('status_code') == 422:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        'message': 'Workflow validation failed',
+                        'errors': result.get('validation_errors', [])
+                    }
+                )
             # Check if it's a workflow limit error
             if result.get('limit_reached'):
                 raise HTTPException(
@@ -347,6 +363,14 @@ async def update_workflow(
         )
         
         if not result['success']:
+            if result.get('status_code') == 422:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        'message': 'Workflow validation failed',
+                        'errors': result.get('validation_errors', [])
+                    }
+                )
             if result.get('error') == 'Unauthorized':
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -553,30 +577,51 @@ async def execute_workflow(
                 detail="Workflow not found or access denied"
             )
         
-        # Prepare workflow data for execution
-        # Convert the workflow structure to match what our orchestrator expects
-        # Convert edges (backend format) to connections (orchestrator format)
-        edges = workflow.get("edges", [])
-        connections = []
-        for edge in edges:
-            # Backend edges use: source, target, sourceHandle, targetHandle
-            # Orchestrator expects: sourceNodeId, targetNodeId, sourcePortId, targetPortId
-            connection = {
-                "id": edge.get("id", f"conn_{len(connections)}"),
-                "sourceNodeId": edge.get("source") or edge.get("sourceNodeId"),
-                "targetNodeId": edge.get("target") or edge.get("targetNodeId"),
-                "sourcePortId": edge.get("sourceHandle") or edge.get("sourcePortId", "output"),
-                "targetPortId": edge.get("targetHandle") or edge.get("targetPortId", "input"),
-                "enabled": edge.get("enabled", True),
-                "condition": edge.get("condition")
-            }
-            connections.append(connection)
+        # ─── RE-VALIDATE BEFORE EXECUTION (Safety net) ───
+        # This catches any config that slipped through frontend validation
+        try:
+            # Add schema version if missing
+            if 'schemaVersion' not in workflow:
+                workflow['schemaVersion'] = 2
+            workflow_v2 = WorkflowV2(**workflow)
+        except ValidationError as e:
+            # Pydantic validation failed - format errors for user
+            error_details = []
+            for err in e.errors():
+                field_path = '.'.join(str(loc) for loc in err['loc'])
+                message = err['msg']
+                error_details.append({
+                    'field': field_path,
+                    'message': message,
+                    'code': err.get('type', 'validation_error')
+                })
+            
+            logger.error(f"Workflow {workflow_id} failed schema validation: {error_details}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    'message': 'Workflow configuration is invalid. Please check your node settings.',
+                    'errors': error_details
+                }
+            )
+        
+        # Transform to LangGraph format with proper port handling (no hardcoded ports)
+        langgraph_workflow = LangGraphWorkflow.from_workflow(workflow_v2)
+        
+        # Convert Pydantic models to dicts for orchestrator compatibility
+        # Use by_alias=True to convert snake_case back to camelCase for orchestrator
+        # Use exclude_none=True to avoid None values
+        nodes_as_dicts = [node.model_dump(by_alias=True, exclude_none=False) for node in langgraph_workflow.nodes]
+        connections_as_dicts = [conn.model_dump(by_alias=True, exclude_none=False) for conn in langgraph_workflow.connections]
+        
+        logger.info(f"First connection keys: {list(connections_as_dicts[0].keys()) if connections_as_dicts else 'no connections'}")
+        logger.info(f"First connection: {connections_as_dicts[0] if connections_as_dicts else 'no connections'}")
         
         workflow_data = {
             "id": workflow_id,
-            "name": workflow["name"],
-            "nodes": workflow.get("nodes", []),
-            "connections": connections,
+            "name": langgraph_workflow.name,
+            "nodes": nodes_as_dicts,
+            "connections": connections_as_dicts,
             "config": request.config or workflow.get("config", {})
         }
                 
@@ -727,6 +772,18 @@ async def execute_workflow(
         
         # Execute workflow normally (no schedule node or manual execution)
         logger.info(f"Executing workflow {workflow_id} for user {user_id}")
+        
+        # Note: resolve_node_config() and map_executor_output() should be called inside 
+        # the orchestrator's node execution loop. Build a context that could be used there:
+        execution_context = VariableContext(
+            trigger=request.input or {},
+            node_outputs={},
+            variables=workflow_v2.variables or {},
+            execution_id=workflow_id
+        )
+        
+        # TODO: Pass execution_context to orchestrator when it supports variable resolution
+        # For now, the orchestrator executes with vanilla node configs
         result = await orchestrator.execute_workflow(
             workflow_data=workflow_data,
             initial_input=request.input

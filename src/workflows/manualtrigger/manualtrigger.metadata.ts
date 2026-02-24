@@ -8,6 +8,7 @@ import type { NodeMetadata } from '@/lib/workflow/types/metadata';
 export const MANUAL_TRIGGER_METADATA: NodeMetadata = {
   // Core identification
   type: 'ManualTrigger',
+  aliases: ['Manual Trigger', 'OnClickExecuteTriggerNode', 'manual_trigger'],
   schemaVersion: 1,
   name: 'Manual Trigger',
   category: 'Triggers',
@@ -24,12 +25,14 @@ export const MANUAL_TRIGGER_METADATA: NodeMetadata = {
       label: 'Timestamp',
       type: 'date',
       description: 'Timestamp when the workflow was triggered',
+      executorKey: 'timestamp',
     },
     {
       id: 'executionId',
       label: 'Execution ID',
       type: 'string',
       description: 'Unique ID for this workflow execution',
+      executorKey: 'executionId',
     },
   ],
 

@@ -7,7 +7,7 @@
 export interface NodeInput {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'password' | 'email' | 'url';
+  type: 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'password' | 'email' | 'url' | 'json' | 'trigger';
   required: boolean;
   default?: string | number | boolean;
   validation?: {
@@ -25,11 +25,13 @@ export interface NodeOutput {
   label: string;
   type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'date' | 'trigger' | 'json';
   description?: string;
+  executorKey?: string; // Maps to actual key returned by executor (for handling mismatches)
 }
 
 export interface NodeMetadata {
   // Core identification
   type: string; // Unique node type ID (lowercase, e.g., 'delay')
+  aliases?: string[]; // Alternative names that resolve to this type (e.g., ['DelayNode', 'delay'])
   schemaVersion: number; // For version tracking during deployment
   name: string; // Display name (e.g., 'Delay')
   category: 'Triggers' | 'Communication' | 'Logic' | 'Data' | 'AI' | 'Ecommerce'; // Node category

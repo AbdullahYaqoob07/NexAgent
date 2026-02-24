@@ -2,6 +2,8 @@ import logging
 from typing import Optional, Dict, Any, List
 from firebase_admin import firestore
 from datetime import datetime
+from pydantic import ValidationError
+from app.schemas.workflow_schema import WorkflowV2
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +28,34 @@ class WorkflowService:
         Create a new workflow
         """
         try:
+            # Validate workflow structure with WorkflowV2 schema
+            workflow_dict = {
+                'id': 'temp_id',  # Will be replaced by Firestore ID
+                'userId': user_id,
+                'name': name,
+                'description': description,
+                'canBeListed': can_be_listed,
+                'nodes': nodes or [],
+                'edges': edges or [],
+                'variables': variables or {},
+                'status': 'draft',
+                'version': 1,
+                'createdAt': datetime.now().isoformat(),
+                'updatedAt': datetime.now().isoformat(),
+                'lastExecutedAt': None,
+                'executionCount': 0,
+                'tags': [],
+                'isPublic': False,
+                'collaborators': [],
+                'schemaVersion': 2
+            }
+            try:
+                WorkflowV2(**workflow_dict)
+            except ValidationError as e:
+                # Return validation errors
+                errors = [{'field': err['loc'][0], 'message': err['msg']} for err in e.errors()]
+                logger.warning(f"Workflow validation failed: {errors}")
+                return {'success': False, 'error': 'Validation failed', 'validation_errors': errors, 'status_code': 422}
             # Check user's workflow limit based on their plan
             user_ref = self.db.collection(self.users_collection).document(user_id)
             user_doc = user_ref.get()
@@ -225,6 +255,18 @@ class WorkflowService:
             # Verify ownership
             if workflow_data.get('userId') != user_id:
                 return {'success': False, 'error': 'Unauthorized'}
+            
+            # Validate updated workflow structure with WorkflowV2 schema
+            merged_data = {**workflow_data, **updates}
+            if 'schemaVersion' not in merged_data:
+                merged_data['schemaVersion'] = 2
+            try:
+                WorkflowV2(**merged_data)
+            except ValidationError as e:
+                # Return validation errors
+                errors = [{'field': str(err['loc']), 'message': err['msg']} for err in e.errors()]
+                logger.warning(f"Workflow validation failed on update: {errors}")
+                return {'success': False, 'error': 'Validation failed', 'validation_errors': errors, 'status_code': 422}
             
             # Update workflow
             updates['updatedAt'] = firestore.SERVER_TIMESTAMP
