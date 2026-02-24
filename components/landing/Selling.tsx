@@ -2,8 +2,21 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useAuth } from "@/lib/AuthContext";
+import { useRouter } from "next/navigation";
 
 const Selling = () => {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleGetStarted = () => {
+    if (user) {
+      router.push('/workflows');
+    } else {
+      router.push('/sign-in');
+    }
+  };
+
   return (
     <section className="relative py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -48,7 +61,7 @@ const Selling = () => {
                 </p>
               </div>
               <div className="mt-auto">
-                <button 
+                <button onClick={handleGetStarted}
                   className="bg-[#161616] hover:bg-[#2A2A2A] text-white px-6 py-3 rounded-full font-medium transition-all duration-300 border border-[#312F2F] hover:border-[#4A4A4A] hover:shadow-lg hover:scale-105"
                   style={{ fontFamily: 'Poppins, sans-serif' }}
                 >

@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Workflow, Plus, Trash2, Edit, Clock } from 'lucide-react';
+import { Workflow, Plus, Trash2, Edit, Clock, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { workflowService } from '@/lib/api/services/workflowService';
@@ -155,7 +155,7 @@ export default function WorkflowsPage() {
                   {/* Overlay for better text visibility */}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
                   
-                  {/* Top badges */}
+                  {/* Top left status badge */}
                   <div className="absolute top-3 left-3 z-10">
                     <div className={`px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium ${
                       workflow.status === 'active' ? 'bg-green-500/20 text-green-400' :
@@ -166,11 +166,19 @@ export default function WorkflowsPage() {
                     </div>
                   </div>
                   
-                  {/* Top right info badge */}
-                  <div className="absolute top-3 right-3 z-10">
+                  {/* Top right: nodes badge and Share button */}
+                  <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
                     <div className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
                       {workflow.nodes?.length || 0} nodes
                     </div>
+                    <Link href="/marketplace">
+                      <button 
+                        className="p-2 rounded-lg bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 transition-colors"
+                        title="Share to marketplace"
+                      >
+                        <Share className="w-4 h-4" />
+                      </button>
+                    </Link>
                   </div>
                   
                   {/* Bottom stats badge */}
@@ -196,25 +204,22 @@ export default function WorkflowsPage() {
                       Updated {formatDistanceToNow(new Date(workflow.updatedAt), { addSuffix: true })}
                     </div>
                     
-                    {/* Action buttons */}
+                    {/* Action buttons - only Edit and Delete */}
                     <div className="flex items-center gap-2">
                       <Link href={`/workflows/editor?id=${workflow.id}`} className="flex-1">
-                        <button className="w-full px-3 py-2 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center justify-center gap-1.5 transition-colors">
+                        <button className="w-full px-4 py-2.5 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center justify-center gap-2 transition-colors">
                           <Edit className="w-4 h-4" /> Edit
                         </button>
                       </Link>
-                      <button 
-                        onClick={() => handleDelete(workflow.id)}
-                        disabled={deleting === workflow.id}
-                        className="px-3 py-2 text-sm rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 inline-flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                      >
-                        <Trash2 className="w-4 h-4" /> Delete
-                      </button>
-                      <Link href="/marketplace" className="flex-1">
-                        <button className="w-full px-3 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center justify-center gap-1.5 transition-colors">
-                          <Workflow className="w-4 h-4" /> Share
+                      <div className="flex-1">
+                        <button 
+                          onClick={() => handleDelete(workflow.id)}
+                          disabled={deleting === workflow.id}
+                          className="w-full px-4 py-2.5 text-sm rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 className="w-4 h-4" /> Delete
                         </button>
-                      </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
