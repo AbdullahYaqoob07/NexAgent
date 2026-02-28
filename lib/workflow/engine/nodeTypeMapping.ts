@@ -244,7 +244,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'JsonParser',
     nodeClass: JsonParseNode,
     category: 'data',
-    aliases: ['JSON Parser', 'JsonParseNode']
+    aliases: ['JSON Parser', 'JsonParseNode', 'JSONParser']  // 'JSONParser' = NodeRegistry sidebar type
   },
   {
     sidebarType: 'String Manipulation',

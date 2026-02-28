@@ -50,6 +50,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const terminalRef = useRef<HTMLDivElement>(null);
   const [schedulerStatus, setSchedulerStatus] = useState<{scheduled: boolean; status: string | null}>({scheduled: false, status: null});
   const [outputTab, setOutputTab] = useState<'output' | 'network'>('output');
+  const [lastNodeOutputs, setLastNodeOutputs] = useState<Record<string, Record<string, any>>>({});
   const [networkRequests, setNetworkRequests] = useState<Array<{
     id: string;
     timestamp: string;
@@ -872,6 +873,16 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         _wave.running = false;
         await new Promise(r => setTimeout(r, 550));
 
+        // Store node outputs so variable picker can show actual values
+        if (execution.nodeLogs && execution.nodeLogs.length > 0) {
+          const outputMap: Record<string, Record<string, any>> = {};
+          for (const log of execution.nodeLogs) {
+            const nid = log.nodeId || (log as any).node_id;
+            if (nid && log.output) outputMap[nid] = log.output;
+          }
+          setLastNodeOutputs(outputMap);
+        }
+
         // Replay node execution in order using actual backend timing
         if (execution.nodeLogs && execution.nodeLogs.length > 0) {
           for (const log of execution.nodeLogs) {
@@ -895,6 +906,11 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             // Mark done
             if (log.status === 'success' || (log as any).status === 'completed') {
               setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ ${nodeName} (${Math.round(actualMs)}ms)`]);
+              // Show Logger node message in terminal
+              if ((nodeType === 'Logger' || log.nodeType === 'Logger') && log.output?.message) {
+                const level = (log.output.level || 'info').toUpperCase();
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📝 [${level}] ${log.output.message}`]);
+              }
             } else if (log.status === 'failed') {
               setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ ${nodeName}: ${log.error || 'failed'}`]);
             }
@@ -1031,6 +1047,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               onNodeCountChange={setCanvasNodeCount}
               executingNodeId={activeNodeId}
               errorNodeIds={errorNodeIds}
+              lastNodeOutputs={lastNodeOutputs}
             />
           </div>
 

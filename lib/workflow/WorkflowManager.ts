@@ -186,17 +186,18 @@ export class WorkflowManager {
           await this.saveWorkflow(workflow);
           
           // Execute workflow through backend API
+          const executionStartTime = Date.now();
           const response = await workflowService.executeWorkflow(workflow.id, {
             input: input,
             config: {}
           });
-          
+
           // Convert backend response to WorkflowExecution format
           const execution: WorkflowExecution = {
-            id: `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: `exec_${executionStartTime}_${Math.random().toString(36).substr(2, 9)}`,
             workflowId: workflow.id,
-            status: response.status === 'success' ? 'completed' : 'failed',
-            startTime: Date.now(),
+            status: response.status === 'completed' || response.status === 'success' ? 'completed' : 'failed',
+            startTime: executionStartTime,
             endTime: Date.now(),
             duration: response.execution_time_ms || 0,
             input: input,

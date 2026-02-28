@@ -909,22 +909,14 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     category: 'Data',
     fields: [
       {
-        name: 'json',
+        name: 'json_string',
         label: 'JSON Input',
         type: 'textarea',
-        placeholder: '{{$node.http_request.response}}',
-        description: 'JSON string to parse',
+        placeholder: '{{$node.http_request.response_body}}',
+        description: 'JSON string to parse. Supports {{$node.x.y}} expressions.',
         required: true,
         rows: 4,
         group: 'Input',
-      },
-      {
-        name: 'path',
-        label: 'JSON Path (optional)',
-        type: 'text',
-        placeholder: 'data.user.name',
-        description: 'Extract specific path from JSON',
-        group: 'Extraction',
       },
     ],
     outputs: {
@@ -940,28 +932,16 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
             description: 'The complete parsed JSON object',
           },
           {
-            name: 'extractedValue',
-            path: ['extractedValue'],
-            type: 'json',
-            description: 'Value extracted via JSON path (if path provided)',
+            name: 'keys',
+            path: ['keys'],
+            type: 'array',
+            description: 'Top-level keys of the parsed object',
           },
           {
-            name: 'isValid',
-            path: ['isValid'],
+            name: 'is_array',
+            path: ['is_array'],
             type: 'boolean',
-            description: 'Whether JSON was valid and parsed successfully',
-          },
-        ],
-      },
-      error: {
-        type: 'error',
-        displayName: 'Error Output',
-        fields: [
-          {
-            name: 'error',
-            path: ['error'],
-            type: 'string',
-            description: 'JSON parse error message',
+            description: 'Whether the parsed value is an array',
           },
         ],
       },
@@ -974,7 +954,7 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     category: 'Data',
     fields: [
       {
-        name: 'logLevel',
+        name: 'level',
         label: 'Log Level',
         type: 'select',
         description: 'Severity level',
@@ -1025,6 +1005,60 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
             path: ['timestamp'],
             type: 'date',
             description: 'When the message was logged',
+          },
+        ],
+      },
+    },
+  },
+
+  'Variable Setter': {
+    type: 'Variable Setter',
+    name: 'Variable Setter',
+    description: 'Store a value in a workflow variable for later use',
+    category: 'Data',
+    fields: [
+      {
+        name: 'variable_name',
+        label: 'Variable Name',
+        type: 'text',
+        placeholder: 'myVariable',
+        description: 'Name of the variable to set (use {{$vars.myVariable}} to read it later)',
+        required: true,
+        group: 'Variable',
+      },
+      {
+        name: 'value',
+        label: 'Value',
+        type: 'textarea',
+        placeholder: '{{$node.json_parser.parsed}}',
+        description: 'Value to store. Supports {{$node.x.y}} expressions.',
+        required: true,
+        rows: 3,
+        group: 'Variable',
+      },
+    ],
+    outputs: {
+      main: {
+        type: 'main',
+        displayName: 'Main Output',
+        fields: [
+          {
+            name: 'variable_name',
+            path: ['variable_name'],
+            type: 'string',
+            description: 'Name of the variable that was set',
+          },
+          {
+            name: 'value',
+            path: ['value'],
+            type: 'json',
+            description: 'Value that was stored',
+          },
+          {
+            name: 'set_at',
+            path: ['set_at'],
+            type: 'string',
+            description: 'Timestamp when the variable was set',
           },
         ],
       },

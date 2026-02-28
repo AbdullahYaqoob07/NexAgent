@@ -130,6 +130,15 @@ export const HARDCODED_NODES: NodeDef[] = [
     isStartNode: false,
   },
   {
+    id: "variablesetter",
+    name: "Variable Setter",
+    type: "Variable Setter",
+    category: "Data",
+    description: "Store a value in a workflow variable for later use",
+    icon: "📌",
+    isStartNode: false,
+  },
+  {
     id: "dataformatter",
     name: "Data Formatter",
     type: "DataFormatter",

@@ -164,6 +164,34 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     ]
   },
   {
+    displayName: 'Logger',
+    nodeType: 'logger',
+    category: 'action',
+    defaultConfig: { message: '', level: 'info', include_input: false },
+    inputs: [
+      { id: 'message', name: 'Message', type: 'string', required: false },
+      { id: 'level', name: 'Log Level', type: 'string', required: false }
+    ],
+    outputs: [
+      { id: 'logged', name: 'Logged', type: 'boolean', required: true },
+      { id: 'message', name: 'Message', type: 'string', required: true }
+    ]
+  },
+  {
+    displayName: 'Variable Setter',
+    nodeType: 'variable_setter',
+    category: 'action',
+    defaultConfig: { variable_name: '', value: '' },
+    inputs: [
+      { id: 'variable_name', name: 'Variable Name', type: 'string', required: true },
+      { id: 'value', name: 'Value', type: 'any', required: true }
+    ],
+    outputs: [
+      { id: 'variable_name', name: 'Variable Name', type: 'string', required: true },
+      { id: 'value', name: 'Value Set', type: 'object', required: true }
+    ]
+  },
+  {
     displayName: 'Save',
     nodeType: 'save_action',
     category: 'action',
@@ -325,7 +353,7 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     displayName: 'JSON Parse',
     nodeType: 'json_parse',
     category: 'data',
-    defaultConfig: { jsonString: '{"test": "value"}' },
+    defaultConfig: { json_string: '{"test": "value"}' },
     inputs: [
       { id: 'json_string', name: 'JSON String', type: 'string', required: true }
     ],

@@ -50,6 +50,7 @@ interface NodeConfigModalProps {
   workflowId?: string;
   nodes?: any[];
   connections?: any[];
+  lastNodeOutputs?: Record<string, Record<string, any>>;
 }
 
 // Dynamic node categories from API
@@ -79,6 +80,7 @@ export default function NodeConfigModal({
   workflowId,
   nodes: providedNodes = [],
   connections: providedConnections = [],
+  lastNodeOutputs = {},
 }: NodeConfigModalProps) {
   // State management
   const [config, setConfig] = useState<Record<string, any>>({});
@@ -117,27 +119,33 @@ export default function NodeConfigModal({
       case 'password':
       case 'string':
         return (
-          <div className="relative">
+          <div
+            className="relative"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'copy';
+              const input = e.currentTarget.querySelector('input');
+              input?.classList.add('ring-2', 'ring-purple-500');
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                const input = e.currentTarget.querySelector('input');
+                input?.classList.remove('ring-2', 'ring-purple-500');
+              }
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const input = e.currentTarget.querySelector('input');
+              input?.classList.remove('ring-2', 'ring-purple-500');
+              const varPath = e.dataTransfer.getData('text/plain');
+              if (varPath) onChange((value || '') + varPath);
+            }}
+          >
             <Input
               type={type === 'password' ? 'password' : 'text'}
               value={value || ''}
               onChange={(e) => onChange(e.target.value)}
               onFocus={() => setVariablePickerField(fieldName || '')}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('ring-2', 'ring-purple-500');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('ring-2', 'ring-purple-500');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('ring-2', 'ring-purple-500');
-                const varPath = e.dataTransfer.getData('text/plain');
-                if (varPath) {
-                  onChange((value || '') + varPath);
-                }
-              }}
               placeholder={placeholder}
               className="bg-slate-800 border-slate-700 text-white pr-10 transition-all"
             />
@@ -158,29 +166,52 @@ export default function NodeConfigModal({
         
       case 'textarea':
         return (
-          <Textarea
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            onFocus={() => setVariablePickerField(fieldName || '')}
+          <div
+            className="relative"
             onDragOver={(e) => {
               e.preventDefault();
-              e.currentTarget.classList.add('ring-2', 'ring-purple-500');
+              e.dataTransfer.dropEffect = 'copy';
+              // Highlight the textarea
+              const ta = e.currentTarget.querySelector('textarea');
+              ta?.classList.add('ring-2', 'ring-purple-500');
             }}
             onDragLeave={(e) => {
-              e.currentTarget.classList.remove('ring-2', 'ring-purple-500');
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                const ta = e.currentTarget.querySelector('textarea');
+                ta?.classList.remove('ring-2', 'ring-purple-500');
+              }
             }}
             onDrop={(e) => {
               e.preventDefault();
-              e.currentTarget.classList.remove('ring-2', 'ring-purple-500');
+              const ta = e.currentTarget.querySelector('textarea');
+              ta?.classList.remove('ring-2', 'ring-purple-500');
               const varPath = e.dataTransfer.getData('text/plain');
-              if (varPath) {
-                onChange((value || '') + varPath);
-              }
+              if (varPath) onChange((value || '') + varPath);
             }}
-            placeholder={placeholder}
-            className="bg-slate-800 border-slate-700 text-white transition-all"
-            rows={4}
-          />
+          >
+            <Textarea
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              onFocus={() => {
+                setVariablePickerField(fieldName || '');
+              }}
+              placeholder={placeholder}
+              className="bg-slate-800 border-slate-700 text-white transition-all pr-9"
+              rows={4}
+            />
+            {fieldName && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-2 h-6 w-6 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+                onClick={() => openVariablePicker(fieldName)}
+                title="Pick variable from previous nodes"
+              >
+                <Braces className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
         );
         
       case 'number':
@@ -846,7 +877,10 @@ export default function NodeConfigModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl bg-slate-950 rounded-2xl shadow-2xl overflow-hidden flex max-h-[90vh]">
+      <div
+        className="w-full max-w-5xl bg-slate-950 rounded-2xl shadow-2xl overflow-hidden flex max-h-[90vh]"
+        onDragOver={(e) => e.preventDefault()}
+      >
         {/* Variables Panel - Left Sidebar */}
         <div className="w-72 border-r border-slate-700 bg-slate-900 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-slate-700">
@@ -886,10 +920,30 @@ export default function NodeConfigModal({
                 const renderFields = (fields: any[], basePath: string[] = []) => {
                   return fields.map((field: any) => {
                     const fullPath = [...basePath, field.name];
-                    const varPath = `{{$node["${n.id}"].${fullPath.join('.')}}}`;
-                    
+                    const varPath = `{{$node.${n.id}.${fullPath.join('.')}}}`;
+
+                    // Get actual execution value for this field path
+                    const nodeOutput = lastNodeOutputs?.[n.id];
+                    const actualValue = nodeOutput
+                      ? fullPath.reduce((obj: any, key: string) => (obj != null && typeof obj === 'object' ? obj[key] : undefined), nodeOutput)
+                      : undefined;
+
+                    // Expand object/json fields into nested keys using real execution data
+                    const expandedChildren: any[] =
+                      (field.type === 'object' || field.type === 'json') &&
+                      actualValue != null &&
+                      typeof actualValue === 'object' &&
+                      !Array.isArray(actualValue)
+                        ? Object.entries(actualValue).map(([key, val]) => ({
+                            name: key,
+                            path: [...fullPath, key],
+                            type: Array.isArray(val) ? 'array' : val != null && typeof val === 'object' ? 'object' : typeof val,
+                            description: String(val).substring(0, 60),
+                          }))
+                        : field.children || [];
+
                     return (
-                      <div key={field.path.join('.')}>
+                      <div key={fullPath.join('.')}>
                         <div
                           draggable
                           onDragStart={(e) => {
@@ -906,22 +960,26 @@ export default function NodeConfigModal({
                             }
                           }}
                           className="block w-full text-left px-2 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 rounded border border-slate-700 text-gray-300 hover:text-white transition-colors cursor-move hover:cursor-grab active:cursor-grabbing"
-                          title={`${field.description} | Drag to insert`}
+                          title={`${field.description ?? ''} | Drag to insert`}
                         >
                           <div className="flex items-center gap-1.5">
                             <span className="text-gray-500">{getTypeIcon(field.type)}</span>
                             <code className="text-purple-300 flex-1 truncate font-mono">{field.name}</code>
                             <span className="text-gray-600 text-xs bg-slate-700 px-1.5 py-0.5 rounded whitespace-nowrap">{field.type}</span>
                           </div>
-                          {field.description && (
+                          {/* Show actual value preview for scalar fields */}
+                          {actualValue != null && typeof actualValue !== 'object' && (
+                            <div className="text-amber-400/70 text-xs mt-0.5 ml-5 font-mono truncate">= {String(actualValue)}</div>
+                          )}
+                          {field.description && typeof actualValue === 'object' && (
                             <div className="text-gray-500 text-xs mt-1 ml-5">{field.description}</div>
                           )}
                         </div>
-                        
-                        {/* Render nested children if object */}
-                        {field.children && field.children.length > 0 && (
+
+                        {/* Render nested children from actual execution data */}
+                        {expandedChildren.length > 0 && (
                           <div className="ml-3 mt-1 space-y-1 border-l border-slate-700 pl-2">
-                            {renderFields(field.children, fullPath)}
+                            {renderFields(expandedChildren, fullPath)}
                           </div>
                         )}
                       </div>
@@ -1192,6 +1250,7 @@ export default function NodeConfigModal({
           workflowConnections={workflowData.connections}
           currentNodeId={node.id}
           workflowId={currentWorkflowId}
+          lastNodeOutputs={lastNodeOutputs}
           onSelect={(variablePath) => {
             setConfig(prev => ({
               ...prev,

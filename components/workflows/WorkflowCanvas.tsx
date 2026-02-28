@@ -38,6 +38,7 @@ interface WorkflowCanvasProps {
   onNodeCountChange?: (count: number) => void;
   executingNodeId?: string | null; // externally-controlled active node
   errorNodeIds?: string[]; // nodes to highlight as invalid
+  lastNodeOutputs?: Record<string, Record<string, any>>; // nodeId → output from last execution
 }
 
 export interface WorkflowCanvasRef {
@@ -69,7 +70,7 @@ interface Connection {
   toPoint: 'input';
 }
 
-const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers, onNodeCountChange, executingNodeId: executingNodeIdProp, errorNodeIds: errorNodeIdsProp }, ref) => {
+const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers, onNodeCountChange, executingNodeId: executingNodeIdProp, errorNodeIds: errorNodeIdsProp, lastNodeOutputs }, ref) => {
   // Canvas ref for precise measurements
   const canvasRef = useRef<HTMLDivElement>(null);
   
@@ -988,7 +989,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         onDelete={() => {
           if (selectedNodeForConfig) {
             setNodes(prev => prev.filter(node => node.id !== selectedNodeForConfig.id));
-            setConnections(prev => prev.filter(conn => 
+            setConnections(prev => prev.filter(conn =>
               conn.from !== selectedNodeForConfig.id && conn.to !== selectedNodeForConfig.id
             ));
             setIsConfigModalOpen(false);
@@ -996,6 +997,9 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
             onNodeSelect(null);
           }
         }}
+        nodes={nodes}
+        connections={connections}
+        lastNodeOutputs={lastNodeOutputs}
       />
 
       {/* Custom Fork Configuration Modal */}
