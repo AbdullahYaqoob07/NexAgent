@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Ensure backend/ root is in sys.path so that `nodes.*` and `executor.*` are importable
+_backend_dir = Path(__file__).parent.parent  # …/backend/
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -5,6 +13,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.api.v1.auth import router as auth_router
 from app.api.v1.workflows import router as workflow_router
+from app.api.v1.nodes import router as nodes_router
 from app.api.v1.notifications import router as notification_router
 from app.api.v1.marketplace import router as marketplace_router
 from app.api.v1.templates import router as template_router
@@ -113,6 +122,7 @@ async def health_check():
 # Include routers
 app.include_router(auth_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(workflow_router, prefix=f"/api/{settings.API_VERSION}")
+app.include_router(nodes_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(notification_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(marketplace_router, prefix=f"/api/{settings.API_VERSION}")
 app.include_router(template_router, prefix=f"/api/{settings.API_VERSION}")
@@ -147,7 +157,15 @@ async def startup_event():
     logger.info(f"API Version: {settings.API_VERSION}")
     logger.info(f"CORS Origins from config: {settings.CORS_ORIGINS}")
     logger.info(f"CORS Origins after processing: {cors_origins}")
-    
+
+    # Initialise the node registry (auto-discovers all BaseNode subclasses)
+    try:
+        from nodes.registry import get_registry
+        registry = get_registry()
+        logger.info(f"NodeRegistry initialised: {len(registry)} node types registered")
+    except Exception as exc:
+        logger.error(f"Failed to initialise NodeRegistry: {exc}")
+
     # Start scheduled backup task
     asyncio.create_task(scheduled_backup_task())
     logger.info("Scheduled backup task started (runs every 24 hours)")

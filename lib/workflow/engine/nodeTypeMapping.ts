@@ -56,24 +56,24 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   // Triggers
   {
     sidebarType: 'Manual Trigger',
-    engineType: 'OnClickExecuteTriggerNode',
+    engineType: 'ManualTrigger',
     nodeClass: OnClickExecuteTriggerNode,
     category: 'trigger',
-    aliases: ['On Clicking Execute', 'Manual', 'On Click Execute', 'ManualTrigger']
+    aliases: ['On Clicking Execute', 'Manual', 'On Click Execute', 'OnClickExecuteTriggerNode']
   },
   {
     sidebarType: 'Schedule',
-    engineType: 'ScheduleTriggerNode',
+    engineType: 'Schedule',
     nodeClass: ScheduleTriggerNode,
     category: 'trigger',
-    aliases: ['Schedule Event']
+    aliases: ['Schedule Event', 'ScheduleTriggerNode']
   },
   {
     sidebarType: 'Webhook',
-    engineType: 'WebhookTriggerNode',
+    engineType: 'Webhook',
     nodeClass: WebhookTriggerNode,
     category: 'trigger',
-    aliases: ['Incoming Webhook']
+    aliases: ['Incoming Webhook', 'WebhookTriggerNode']
   },
   {
     sidebarType: 'Shopify Trigger',
@@ -104,22 +104,24 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   // Actions
   {
     sidebarType: 'Logger',
-    engineType: 'LoggerNode',
+    engineType: 'Logger',
     nodeClass: LoggerNode,
-    category: 'action'
+    category: 'action',
+    aliases: ['LoggerNode']
   },
   {
     sidebarType: 'Variable Setter',
-    engineType: 'VariableSetterNode',
+    engineType: 'SetVariable',
     nodeClass: VariableSetterNode,
-    category: 'action'
+    category: 'action',
+    aliases: ['VariableSetterNode']
   },
   {
     sidebarType: 'HTTP Request',
-    engineType: 'HttpNode',
+    engineType: 'HttpRequest',
     nodeClass: HttpNode,
     category: 'action',
-    aliases: ['HTTP Request Action', 'Http', 'API Request']
+    aliases: ['HTTP Request Action', 'Http', 'API Request', 'HttpNode']
   },
   {
     sidebarType: 'Database Query',
@@ -130,17 +132,17 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
   {
     sidebarType: 'Send Email',
-    engineType: 'EmailNode',
+    engineType: 'SendEmail',
     nodeClass: EmailNode,
     category: 'action',
-    aliases: ['Email']
+    aliases: ['Email', 'EmailNode']
   },
   {
     sidebarType: 'Slack Message',
-    engineType: 'SlackNode',
+    engineType: 'SlackMessage',
     nodeClass: SlackNode,
     category: 'action',
-    aliases: ['Slack']
+    aliases: ['Slack', 'SlackNode']
   },
   {
     sidebarType: 'Save',
@@ -176,10 +178,10 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
   {
     sidebarType: 'If Condition',
-    engineType: 'IfNode',
+    engineType: 'IfCondition',
     nodeClass: IfNode,
     category: 'logic',
-    aliases: ['If', 'Conditional']
+    aliases: ['If', 'Conditional', 'IfNode']
   },
   {
     sidebarType: 'Switch',
@@ -189,9 +191,10 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
   {
     sidebarType: 'Loop',
-    engineType: 'LoopNode',
+    engineType: 'Loop',
     nodeClass: LoopNode,
-    category: 'logic'
+    category: 'logic',
+    aliases: ['LoopNode']
   },
   {
     sidebarType: 'Merge',
@@ -201,18 +204,19 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   },
   {
     sidebarType: 'Delay',
-    engineType: 'DelayNode',
+    engineType: 'Delay',
     nodeClass: DelayNode,
-    category: 'logic'
+    category: 'logic',
+    aliases: ['DelayNode']
   },
 
   // AI/ML
   {
     sidebarType: 'OpenAI GPT',
-    engineType: 'OpenAINode',
+    engineType: 'OpenAI',
     nodeClass: OpenAINode,
     category: 'ai_ml',
-    aliases: ['OpenAI', 'GPT', 'ChatGPT']
+    aliases: ['OpenAI', 'GPT', 'ChatGPT', 'OpenAINode']
   },
   {
     sidebarType: 'Text Analysis',
@@ -236,10 +240,18 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
 
   // Data
   {
+    sidebarType: 'JSON Parse',
+    engineType: 'JsonParser',
+    nodeClass: JsonParseNode,
+    category: 'data',
+    aliases: ['JSON Parser', 'JsonParseNode']
+  },
+  {
     sidebarType: 'String Manipulation',
-    engineType: 'StringManipulationNode',
+    engineType: 'DataFormatter',
     nodeClass: StringManipulationNode,
-    category: 'data'
+    category: 'data',
+    aliases: ['StringManipulationNode']
   },
   {
     sidebarType: 'Number Formatter',
@@ -251,12 +263,6 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     sidebarType: 'Date Formatter',
     engineType: 'DateFormatterNode',
     nodeClass: DateFormatterNode,
-    category: 'data'
-  },
-  {
-    sidebarType: 'JSON Parse',
-    engineType: 'JsonParseNode',
-    nodeClass: JsonParseNode,
     category: 'data'
   },
   {
@@ -334,10 +340,10 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
   // Utility
   {
     sidebarType: 'Stopper',
-    engineType: 'StopperNode',
+    engineType: 'Stopper',
     nodeClass: StopperNode,
     category: 'logic',
-    aliases: ['Stop', 'End']
+    aliases: ['Stop', 'End', 'StopperNode']
   }
 ];
 

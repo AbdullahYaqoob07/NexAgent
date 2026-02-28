@@ -13,42 +13,44 @@ from app.services.workflow_service import workflow_service
 from typing import Optional, Any, Dict, List
 from datetime import datetime
 import logging
+import uuid
 
-# Import LangGraph orchestrator
+# Ensure backend/ is in sys.path so that nodes.* and executor.* are importable
 import sys
-import os
 from pathlib import Path
 
-# Add project root to Python path
-# File is at: backend/app/api/v1/workflows.py
-# We need to go up 4 levels to reach project root
-backend_dir = Path(__file__).parent.parent.parent.parent
-project_root = backend_dir.parent
-sys.path.insert(0, str(project_root))
+backend_dir = Path(__file__).parent.parent.parent.parent  # …/backend/
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
-from lib.workflow.langgraph.orchestrator import WorkflowOrchestrator
-from lib.workflow.langgraph.error_recovery import CheckpointType
-from lib.workflow.langgraph.scheduler import get_scheduler
-from app.schemas.workflow_schema import (
-    WorkflowV2,
-    LangGraphWorkflow,
-    resolve_node_config,
-    map_executor_output,
-    VariableContext
-)
+# New workflow engine
+from executor.engine import WorkflowEngine, WorkflowDefinition
+from executor.context import ExecutionContext
+from nodes.registry import get_registry
+
+# Scheduler
+try:
+    from services.scheduler import get_scheduler
+    _SCHEDULER_AVAILABLE = True
+except Exception:
+    _SCHEDULER_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
-# Global orchestrator instance
-orchestrator = WorkflowOrchestrator(
-    api_keys={},  # Will be populated with actual API keys
-    enable_checkpointing=True,
-    enable_circuit_breakers=True,
-    checkpoint_storage_dir="./checkpoints"
-)
+# Global workflow engine instance (shared, thread-safe)
+_engine: Optional[WorkflowEngine] = None
+
+
+def get_engine() -> WorkflowEngine:
+    global _engine
+    if _engine is None:
+        _engine = WorkflowEngine(get_registry())
+    return _engine
+
+
 security = HTTPBearer()
 
 
@@ -557,273 +559,143 @@ async def execute_workflow(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Execute a workflow using LangGraph orchestrator
-    
-    Requires authentication via Bearer token
-    User must own the workflow
+    Execute a workflow using the NexAgent WorkflowEngine.
+
+    Requires authentication via Bearer token.
+    User must own the workflow.
     """
     try:
         user_id = current_user['uid']
-        
-        # Get workflow
+
+        # ── Load workflow ──────────────────────────────────────────────
         workflow = await workflow_service.get_workflow_by_id(
             workflow_id=workflow_id,
             user_id=user_id
         )
-        
         if not workflow:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Workflow not found or access denied"
             )
-        
-        # ─── RE-VALIDATE BEFORE EXECUTION (Safety net) ───
-        # This catches any config that slipped through frontend validation
-        try:
-            # Add schema version if missing
-            if 'schemaVersion' not in workflow:
-                workflow['schemaVersion'] = 2
-            workflow_v2 = WorkflowV2(**workflow)
-        except ValidationError as e:
-            # Pydantic validation failed - format errors for user
-            error_details = []
-            for err in e.errors():
-                field_path = '.'.join(str(loc) for loc in err['loc'])
-                message = err['msg']
-                error_details.append({
-                    'field': field_path,
-                    'message': message,
-                    'code': err.get('type', 'validation_error')
-                })
-            
-            logger.error(f"Workflow {workflow_id} failed schema validation: {error_details}")
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail={
-                    'message': 'Workflow configuration is invalid. Please check your node settings.',
-                    'errors': error_details
-                }
-            )
-        
-        # Transform to LangGraph format with proper port handling (no hardcoded ports)
-        langgraph_workflow = LangGraphWorkflow.from_workflow(workflow_v2)
-        
-        # Convert Pydantic models to dicts for orchestrator compatibility
-        # Use by_alias=True to convert snake_case back to camelCase for orchestrator
-        # Use exclude_none=True to avoid None values
-        nodes_as_dicts = [node.model_dump(by_alias=True, exclude_none=False) for node in langgraph_workflow.nodes]
-        connections_as_dicts = [conn.model_dump(by_alias=True, exclude_none=False) for conn in langgraph_workflow.connections]
-        
-        logger.info(f"First connection keys: {list(connections_as_dicts[0].keys()) if connections_as_dicts else 'no connections'}")
-        logger.info(f"First connection: {connections_as_dicts[0] if connections_as_dicts else 'no connections'}")
-        
-        workflow_data = {
-            "id": workflow_id,
-            "name": langgraph_workflow.name,
-            "nodes": nodes_as_dicts,
-            "connections": connections_as_dicts,
-            "config": request.config or workflow.get("config", {})
-        }
-                
-        # Log workflow data for debugging
-        logger.info(f"Prepared workflow data for scheduler - Nodes: {len(workflow_data.get('nodes', []))}, Connections: {len(workflow_data.get('connections', []))}")
-        for i, node in enumerate(workflow_data.get('nodes', [])):
-            logger.info(f"Node {i}: {node.get('type', 'unknown')} - {node.get('name', 'unnamed')}")
-        
-        # Check if this workflow has a Schedule node - if so, register with scheduler
-        schedule_nodes = [n for n in workflow_data.get("nodes", []) 
-                         if n.get("type") in ["Schedule", "ScheduleTriggerNode", "ScheduleEvent"]]
-        
-        if schedule_nodes and len(schedule_nodes) > 0:
-            # This is a scheduled workflow - register with scheduler instead of executing immediately
+
+        # ── Build WorkflowDefinition ───────────────────────────────────
+        # Firestore stores nodes + edges (old key); new engine uses connections.
+        # WorkflowConnection.from_dict() handles both formats automatically.
+        from executor.engine import WorkflowConnection, WorkflowNode
+        raw_nodes = workflow.get("nodes", [])
+        raw_connections = workflow.get("connections") or workflow.get("edges", [])
+
+        wf_nodes = [WorkflowNode(id=n.get("id", ""), type=n.get("type", ""), name=n.get("name", ""), config=n.get("config", {})) for n in raw_nodes]
+        wf_connections = [WorkflowConnection.from_dict(c) for c in raw_connections]
+        wf_def = WorkflowDefinition(id=workflow_id, name=workflow.get("name", ""), nodes=wf_nodes, connections=wf_connections)
+
+        # ── Check for Schedule node → register with scheduler ──────────
+        schedule_nodes = [n for n in wf_nodes if n.type in ("Schedule", "ScheduleTriggerNode", "ScheduleEvent")]
+
+        if schedule_nodes and _SCHEDULER_AVAILABLE:
             schedule_node = schedule_nodes[0]
-            cron = schedule_node.get("config", {}).get("cron")
-            # Get timezone from config, default to UTC if not set
-            timezone = schedule_node.get("config", {}).get("timezone", "UTC")
-            
-            # Log schedule node config for debugging
-            logger.info(f"Schedule node config: {schedule_node.get('config', {})}")
-            logger.info(f"Scheduling workflow {workflow_id} with cron '{cron}' in timezone '{timezone}'")
-            
-            # Log current time for debugging cron calculation
-            try:
-                import pytz
-                tz = pytz.timezone(timezone)
-                current_time = datetime.now(tz)
-                logger.info(f"Current time in {timezone}: {current_time}")
-            except:
-                logger.info(f"Current UTC time: {datetime.utcnow()}")
-            
+            cron = (schedule_node.config or {}).get("cron")
+            tz = (schedule_node.config or {}).get("timezone", "UTC")
+
             if cron:
                 scheduler = get_scheduler()
-                
-                # Normalize cron expression first (6-field to 5-field)
                 try:
-                    normalized_cron = scheduler.normalize_cron(cron)
-                    cron = normalized_cron  # Use normalized version
-                except ValueError as e:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid cron expression: {str(e)}"
-                    )
-                
-                # Check if croniter is available and validate
-                try:
-                    from croniter import croniter
-                    croniter(cron)  # Validate normalized cron expression
-                except ImportError:
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail="croniter library is required for scheduled workflows. Please install it: pip install croniter"
-                    )
-                except Exception as e:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid cron expression: {str(e)}"
-                    )
-                
-                # Check if job already exists and is running
+                    cron = scheduler.normalize_cron(cron)
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail=f"Invalid cron expression: {exc}")
+
                 existing_job = scheduler.get_job_by_workflow_id(workflow_id)
                 if existing_job and existing_job.status.value == "running":
-                    # Already running, return status
                     return ExecuteWorkflowResponse(
                         status="scheduled",
-                        summary={
-                            "workflow_id": workflow_id,
-                            "status": "scheduled",
-                            "scheduler_job_id": existing_job.job_id,
-                            "next_run": existing_job.next_run.isoformat() if existing_job.next_run else None
-                        },
-                        final_output={"scheduler_job_id": existing_job.job_id, "status": "scheduled"},
-                        node_logs=[],
-                        execution_time_ms=0
+                        summary={"workflow_id": workflow_id, "status": "scheduled",
+                                 "scheduler_job_id": existing_job.job_id,
+                                 "next_run": existing_job.next_run.isoformat() if existing_job.next_run else None},
+                        final_output={"scheduler_job_id": existing_job.job_id},
+                        node_logs=[], execution_time_ms=0,
                     )
-                
-                # Create executor function
+
+                engine = get_engine()
+
                 async def execute_scheduled_workflow(wf_data: Dict[str, Any], wf_input: Any):
-                    return await orchestrator.execute_workflow(wf_data, wf_input)
-                
-                # Remove existing job if any
+                    """Called by scheduler on each cron tick."""
+                    ctx = ExecutionContext(
+                        execution_id=str(uuid.uuid4()),
+                        workflow_id=workflow_id,
+                        user_id=user_id,
+                        variables=workflow.get("variables") or {},
+                    )
+                    raw_c = wf_data.get("connections") or wf_data.get("edges", [])
+                    sched_nodes = [WorkflowNode(**n) for n in wf_data.get("nodes", [])]
+                    sched_conns = [WorkflowConnection.from_dict(c) for c in raw_c]
+                    sched_def = WorkflowDefinition(id=workflow_id, name=wf_data.get("name", ""), nodes=sched_nodes, connections=sched_conns)
+                    result = await engine.execute(sched_def, wf_input or {}, ctx)
+                    return {"status": result.status, "node_logs": [log.dict() for log in result.logs], "final_output": result.final_output}
+
                 if existing_job:
                     scheduler.remove_job(existing_job.job_id)
-                
-                try:
-                    logger.info(f"Registering scheduler job for workflow {workflow_id} with cron: {cron}")
-                    logger.info(f"Workflow data keys: {list(workflow_data.keys()) if workflow_data else 'None'}")
-                    job_id = scheduler.register_job(
-                        workflow_id=workflow_id,
-                        workflow_data=workflow_data,
-                        cron=cron,
-                        timezone=timezone,
-                        executor_func=execute_scheduled_workflow
-                    )
-                    logger.info(f"Scheduler job registered: {job_id}")
-                    
-                    # Start the scheduler
-                    logger.info(f"Starting scheduler for job: {job_id}")
-                    await scheduler.start_scheduler(job_id)
-                    logger.info(f"Scheduler started successfully for job: {job_id}")
-                    
-                    # Verify job is running
-                    job = scheduler.get_job(job_id)
-                    if job:
-                        logger.info(f"Job {job_id} status after start: {job.status}")
-                    else:
-                        logger.error(f"Job {job_id} not found after registration")
-                    
-                    job = scheduler.get_job(job_id)
-                    if not job:
-                        raise HTTPException(
-                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail="Scheduler job was created but could not be retrieved"
-                        )
-                    
-                    logger.info(f"Returning scheduled response for workflow {workflow_id}")
-                    return ExecuteWorkflowResponse(
-                        status="scheduled",
-                        summary={
-                            "workflow_id": workflow_id,
-                            "status": "scheduled",
-                            "scheduler_job_id": job_id,
-                            "next_run": job.next_run.isoformat() if job.next_run else None
-                        },
-                        final_output={"scheduler_job_id": job_id, "status": "scheduled"},
-                        node_logs=[],
-                        execution_time_ms=0
-                    )
-                except ValueError as e:
-                    # Cron validation error from register_job
-                    logger.error(f"Cron validation error: {str(e)}")
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid cron expression: {str(e)}"
-                    )
-                except HTTPException:
-                    raise
-                except Exception as e:
-                    import traceback
-                    error_traceback = traceback.format_exc()
-                    logger.error(f"Failed to register scheduler job: {str(e)}")
-                    logger.error(f"Error traceback: {error_traceback}")
-                    raise HTTPException(
-                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail=f"Failed to schedule workflow: {str(e)}"
-                    )
-        
-        # Execute workflow normally (no schedule node or manual execution)
-        logger.info(f"Executing workflow {workflow_id} for user {user_id}")
-        
-        # Note: resolve_node_config() and map_executor_output() should be called inside 
-        # the orchestrator's node execution loop. Build a context that could be used there:
-        execution_context = VariableContext(
-            trigger=request.input or {},
-            node_outputs={},
-            variables=workflow_v2.variables or {},
-            execution_id=workflow_id
+
+                workflow_data_for_scheduler = {"id": workflow_id, "name": workflow.get("name", ""), "nodes": raw_nodes, "connections": raw_connections}
+                job_id = scheduler.register_job(workflow_id=workflow_id, workflow_data=workflow_data_for_scheduler, cron=cron, timezone=tz, executor_func=execute_scheduled_workflow)
+                await scheduler.start_scheduler(job_id)
+                job = scheduler.get_job(job_id)
+
+                return ExecuteWorkflowResponse(
+                    status="scheduled",
+                    summary={"workflow_id": workflow_id, "status": "scheduled", "scheduler_job_id": job_id,
+                             "next_run": job.next_run.isoformat() if job and job.next_run else None},
+                    final_output={"scheduler_job_id": job_id},
+                    node_logs=[], execution_time_ms=0,
+                )
+
+        # ── Execute workflow immediately ───────────────────────────────
+        logger.info("Executing workflow %s for user %s", workflow_id, user_id)
+
+        context = ExecutionContext(
+            execution_id=str(uuid.uuid4()),
+            workflow_id=workflow_id,
+            user_id=user_id,
+            variables=workflow.get("variables") or {},
         )
-        
-        # TODO: Pass execution_context to orchestrator when it supports variable resolution
-        # For now, the orchestrator executes with vanilla node configs
-        result = await orchestrator.execute_workflow(
-            workflow_data=workflow_data,
-            initial_input=request.input
-        )
-        
-        # Convert node_logs from snake_case to camelCase for frontend
-        if result.get("node_logs"):
-            converted_logs = []
-            for log in result["node_logs"]:
-                converted_log = {
-                    "nodeId": log.get("node_id", ""),
-                    "nodeName": log.get("node_name", log.get("node_id", "Unknown")),
-                    "nodeType": log.get("node_type", "unknown"),
-                    "status": log.get("status", "unknown"),
-                    "output": log.get("output"),
-                    "error": log.get("error"),
-                    "executionTimeMs": log.get("execution_time_ms", 0),
-                    "startedAt": log.get("started_at", ""),
-                    "completedAt": log.get("completed_at", ""),
-                    "metadata": log.get("metadata", {})
-                }
-                converted_logs.append(converted_log)
-            result["node_logs"] = converted_logs
-        
-        # Update execution count
+
+        engine = get_engine()
+        result = await engine.execute(wf_def, request.input or {}, context)
+
+        # Convert NodeLog objects to frontend-friendly camelCase dicts
+        node_logs = [
+            {
+                "nodeId": log.node_id,
+                "nodeName": log.node_name,
+                "nodeType": log.node_type,
+                "status": log.status,
+                "output": log.output,
+                "error": log.error,
+                "executionTimeMs": log.duration_ms,
+                "startedAt": log.started_at,
+                "completedAt": log.finished_at,
+            }
+            for log in result.logs
+        ]
+
         await workflow_service.increment_execution_count(workflow_id)
-        
-        logger.info(f"Workflow {workflow_id} execution completed with status: {result['status']}")
-        return ExecuteWorkflowResponse(**result)
-        
+
+        logger.info("Workflow %s completed with status: %s", workflow_id, result.status)
+        return ExecuteWorkflowResponse(
+            status=result.status,
+            final_output=result.final_output,
+            node_logs=node_logs,
+            execution_time_ms=result.duration_ms,
+            error=result.error,
+        )
+
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as exc:
         import traceback
-        error_traceback = traceback.format_exc()
-        logger.error(f"Execute workflow error: {str(e)}")
-        logger.error(f"Error traceback: {error_traceback}")
+        logger.error("Execute workflow error: %s\n%s", exc, traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to execute workflow: {str(e)}"
+            detail=f"Failed to execute workflow: {exc}"
         )
 
 

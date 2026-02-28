@@ -246,9 +246,10 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     displayName: 'Delay',
     nodeType: 'delay',
     category: 'logic',
-    defaultConfig: { duration: 1000 },
+    defaultConfig: { duration: 1, unit: 'seconds' },
     inputs: [
-      { id: 'duration', name: 'Duration (ms)', type: 'number', required: true }
+      { id: 'duration', name: 'Duration', type: 'number', required: true },
+      { id: 'unit', name: 'Unit', type: 'string', required: false }
     ],
     outputs: [
       { id: 'delay_result', name: 'Delay Result', type: 'object', required: true }

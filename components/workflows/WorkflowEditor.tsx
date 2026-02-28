@@ -785,16 +785,32 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
       // Execute workflow using the backend API (LangGraph engine)
       console.log('Executing workflow with backend API:', workflow);
-      
+
+      // Wave flag must live outside the try so the catch block can stop it too
+      const _wave = { running: true };
+
       try {
         // Add execution start message to output
         setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Starting workflow execution via backend...`]);
-        
-        // Pre-activate first node to ensure visible feedback immediately
-        try { setActiveNodeId(workflow.nodes[0]?.id || null); } catch {}
-        // Minimal delay to ensure UI update is visible
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
+
+        // ── Canvas wave animation ─────────────────────────────────────────────
+        // Cycles through every node (~500 ms each) so the canvas shows activity
+        // while we await the backend. Replaced by the accurate per-node replay
+        // once the response arrives.
+        ;(async () => {
+          let i = 0;
+          while (_wave.running && workflow.nodes.length > 0) {
+            const nodeId = workflow.nodes[i % workflow.nodes.length]?.id;
+            setActiveNodeId(nodeId || null);
+            try { canvasRef.current?.setExecutingNode(nodeId || null); } catch {}
+            await new Promise(r => setTimeout(r, 500));
+            i++;
+          }
+          setActiveNodeId(null);
+          try { canvasRef.current?.setExecutingNode(null); } catch {}
+        })();
+        // ─────────────────────────────────────────────────────────────────────
+
         const execution = await workflowManager.executeWorkflow(
           workflow,
           { demoInput: 'Hello from workflow editor!' },
@@ -852,45 +868,49 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           }
         );
         
-        // Process node logs from backend execution in actual execution order
+        // Stop the wave and let its last step settle before the accurate replay
+        _wave.running = false;
+        await new Promise(r => setTimeout(r, 550));
+
+        // Replay node execution in order using actual backend timing
         if (execution.nodeLogs && execution.nodeLogs.length > 0) {
-          // Iterate through nodeLogs in the order they were executed by the backend
           for (const log of execution.nodeLogs) {
-            const nodeId = log.nodeId || log.node_id; // Handle both camelCase and snake_case
+            const nodeId = log.nodeId || (log as any).node_id;
             const node = workflowNodes.find(n => n.id === nodeId);
             const nodeType = node?.type || log.nodeType || 'Unknown';
             const nodeName = node?.name || log.nodeName || nodeId;
-            
-            // Update active node visualization
+
+            // Light up the node
             setActiveNodeId(nodeId || null);
             try { canvasRef.current?.setExecutingNode(nodeId || null); } catch {}
-            
-            // Log is already from execution, just format and display it
-            // nodeLogs come from backend in correct order so we don't need to guess
-            setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Executing node: ${nodeName}`]);
-            
-            // Add small delay to avoid overwhelming the display
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Add step complete message
-            if (log.status === 'success') {
-              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Completed node: ${nodeName}`]);
+            setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ▶ ${nodeName}`]);
+
+            // Hold the loader for the actual execution duration so the UX matches reality.
+            // Min 300ms so every node is visibly highlighted; cap at 5s so long delays
+            // don't force an equally long UI replay after the fact.
+            const actualMs: number = (log as any).executionTimeMs ?? log.duration ?? 0;
+            const displayMs = Math.min(Math.max(actualMs, 300), 5000);
+            await new Promise(resolve => setTimeout(resolve, displayMs));
+
+            // Mark done
+            if (log.status === 'success' || (log as any).status === 'completed') {
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ ${nodeName} (${Math.round(actualMs)}ms)`]);
             } else if (log.status === 'failed') {
-              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] FAILED node: ${nodeName}`]);
+              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ ${nodeName}: ${log.error || 'failed'}`]);
             }
-            
-            // For HTTP nodes, add network request data if available
+
+            // HTTP network tab tracking (unchanged)
             if ((nodeType === 'HTTP Request' || nodeType === 'HttpNode' || nodeType === 'HTTP Request Action') && log.output) {
               const output = log.output;
               if (output.status || output.url) {
                 const networkReq = {
                   id: `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-                  timestamp: log.timestamp ? new Date(log.timestamp).toISOString() : new Date().toISOString(),
+                  timestamp: (log as any).startedAt ?? new Date().toISOString(),
                   method: output.method || 'GET',
                   url: output.url || 'Unknown URL',
                   status: output.status || 0,
                   statusText: output.statusText || 'Unknown',
-                  duration: log.duration || log.executionTime || 0,
+                  duration: actualMs,
                   headers: output.requestHeaders || {},
                   responseHeaders: output.headers || {},
                   requestBody: output.requestBody,
@@ -901,12 +921,12 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                 setNetworkRequests(prev => [...prev.slice(-49), networkReq]);
               }
             }
-            
-            // Minimal delay after completion to make transitions visible
-            await new Promise(resolve => setTimeout(resolve, 50));
+
+            // Brief gap between nodes
+            await new Promise(resolve => setTimeout(resolve, 150));
           }
-          
-          // Clear active node after execution
+
+          // All nodes done — clear the running indicator
           setActiveNodeId(null);
           try { canvasRef.current?.setExecutingNode(null); } catch {}
         }
@@ -920,6 +940,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         setActiveNodeId(null);
         setLastExecutionId(execution.id);
       } catch (error) {
+        _wave.running = false;
         console.error('Workflow execution error:', error);
         setExecutionError(error instanceof Error ? error.message : 'Unknown error occurred');
         // Add error message to output
