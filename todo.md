@@ -9,22 +9,17 @@
 - [x] **ManualTrigger** — instant trigger, no config required
 - [x] **Delay** — sleeps N seconds/minutes/ms; unit aliases fixed; 1-hour cap
 - [x] **Stopper** — marks workflow end; no external deps
-
----
-
-## 🔵 Next Up (no external dependencies)
-
-- [x] **Logger** — logs a message/value; optional include_input
+- [x] **Logger** — logs a message/value; output shown in terminal
 - [x] **SetVariable** — writes to context.variables; readable via {{$vars.name}}
 - [x] **JsonParser** — parses JSON string → object; keys + is_array outputs
 
 ---
 
-## 🟡 Pure Logic / Control Flow
+## 🟡 Pure Logic / Control Flow (in progress)
 
-- [ ] **IfCondition** — evaluates left op right; routes to true/false branch
-- [ ] **DataFormatter** — string/number/date transformations
-- [ ] **Loop** — iterates over array; passes current_item to child nodes
+- [ ] **IfCondition** — evaluates left op right; true/false branch routing via connection badge
+- [ ] **DataFormatter** — string/number/date transformations; input + operation config
+- [ ] **Loop** — iterates over array; engine runs body per-item; current_item via {{$node.id.current_item}}
 
 ---
 

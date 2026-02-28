@@ -213,6 +213,23 @@ class WorkflowEngine:
 
             final_output = node_output
 
+            # Special handling for Loop nodes — iterate body once per item
+            if node.type == "Loop":
+                items = node_output.get("items", [])
+                if items:
+                    success, loop_error = await self._execute_loop_body(
+                        node.id, items, nodes_by_id, outgoing, context
+                    )
+                    if not success:
+                        overall_status = "failed"
+                        overall_error = loop_error
+                        break
+                # Mark all loop-body nodes as visited so main queue skips them
+                for nid in self._collect_reachable_nodes(node.id, outgoing):
+                    visited.add(nid)
+                final_output = node_output
+                continue
+
             # Determine next nodes
             next_nodes = self._resolve_next(node.id, node_output, outgoing)
             for next_id in next_nodes:
@@ -305,6 +322,77 @@ class WorkflowEngine:
             output=output,
         )
         return output, log
+
+    async def _execute_loop_body(
+        self,
+        loop_node_id: str,
+        items: List[Any],
+        nodes_by_id: Dict[str, "WorkflowNode"],
+        outgoing: Dict[str, List[tuple]],
+        context: ExecutionContext,
+    ) -> tuple[bool, Optional[str]]:
+        """Execute all downstream nodes once per loop item."""
+        for i, item in enumerate(items):
+            is_last = i == len(items) - 1
+
+            # Update the loop node's context output for this iteration
+            iter_output: Dict[str, Any] = {
+                "items": items,
+                "total": len(items),
+                "current_item": item,
+                "index": i,
+                "is_last": is_last,
+            }
+            context.store_output(loop_node_id, iter_output)
+
+            # BFS through loop body for this iteration
+            body_queue: List[tuple] = [
+                (target_id, iter_output)
+                for target_id, _ in outgoing.get(loop_node_id, [])
+            ]
+            body_visited: set = set()
+
+            while body_queue:
+                current_id, prev_output = body_queue.pop(0)
+                if current_id in body_visited:
+                    continue
+                body_visited.add(current_id)
+
+                node = nodes_by_id.get(current_id)
+                if node is None or node.type == "Loop":
+                    # Don't recurse into nested loops here
+                    continue
+
+                node_output, log = await self._execute_node(node, prev_output, context)
+                context.append_log(log)
+
+                if log.status == NodeStatus.FAILED:
+                    return False, log.error
+
+                next_nodes = self._resolve_next(node.id, node_output, outgoing)
+                for next_id in next_nodes:
+                    if next_id not in body_visited:
+                        body_queue.append((next_id, node_output))
+
+        return True, None
+
+    def _collect_reachable_nodes(
+        self,
+        from_node_id: str,
+        outgoing: Dict[str, List[tuple]],
+    ) -> set:
+        """BFS to collect all node IDs reachable from from_node_id (exclusive)."""
+        reachable: set = set()
+        queue = [target for target, _ in outgoing.get(from_node_id, [])]
+        while queue:
+            nid = queue.pop(0)
+            if nid in reachable:
+                continue
+            reachable.add(nid)
+            for target, _ in outgoing.get(nid, []):
+                if target not in reachable:
+                    queue.append(target)
+        return reachable
 
     def _resolve_next(
         self,

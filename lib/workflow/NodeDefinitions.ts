@@ -692,21 +692,51 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   // Logic
   Conditional: {
     type: 'Conditional',
-    name: 'Conditional',
-    description: 'Branch workflow based on conditions',
+    name: 'If Condition',
+    description: 'Branch workflow execution based on a comparison. Connect two downstream nodes — click the T/F badge on each connection to mark it as the true or false branch.',
     category: 'Logic',
     fields: [
       {
-        name: 'condition',
-        label: 'Condition',
+        name: 'left',
+        label: 'Left Value',
+        type: 'textarea',
+        placeholder: '{{$node.prev.status_code}}',
+        description: 'Left side of comparison. Supports {{$node.x.y}} expressions.',
+        required: true,
+        rows: 2,
+        group: 'Condition',
+      },
+      {
+        name: 'operator',
+        label: 'Operator',
         type: 'select',
-        description: 'Logical operator',
+        description: 'Comparison operator',
         required: true,
         options: [
-          { label: 'AND (all must be true)', value: 'AND' },
-          { label: 'OR (any can be true)', value: 'OR' },
+          { label: '== equals', value: '==' },
+          { label: '!= not equals', value: '!=' },
+          { label: '> greater than', value: '>' },
+          { label: '< less than', value: '<' },
+          { label: '>= greater or equal', value: '>=' },
+          { label: '<= less or equal', value: '<=' },
+          { label: 'contains', value: 'contains' },
+          { label: 'does not contain', value: 'not_contains' },
+          { label: 'starts with', value: 'starts_with' },
+          { label: 'ends with', value: 'ends_with' },
+          { label: 'is empty', value: 'is_empty' },
+          { label: 'is not empty', value: 'is_not_empty' },
+          { label: 'matches regex', value: 'regex' },
         ],
-        group: 'Settings',
+        group: 'Condition',
+      },
+      {
+        name: 'right',
+        label: 'Right Value',
+        type: 'textarea',
+        placeholder: '200',
+        description: 'Right side of comparison (not needed for is_empty / is_not_empty).',
+        rows: 2,
+        group: 'Condition',
       },
     ],
     outputs: {
@@ -715,16 +745,28 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         displayName: 'Main Output',
         fields: [
           {
-            name: 'matched',
-            path: ['matched'],
-            type: 'boolean',
-            description: 'Whether condition evaluated to true',
+            name: 'branch',
+            path: ['branch'],
+            type: 'string',
+            description: '"true" or "false" — engine routes the connection whose T/F badge matches',
           },
           {
-            name: 'matchedBranch',
-            path: ['matchedBranch'],
+            name: 'result',
+            path: ['result'],
+            type: 'boolean',
+            description: 'Boolean result of the comparison',
+          },
+          {
+            name: 'left',
+            path: ['left'],
             type: 'string',
-            description: 'Name of the branch that matched (true/false)',
+            description: 'Left value used in comparison',
+          },
+          {
+            name: 'right',
+            path: ['right'],
+            type: 'string',
+            description: 'Right value used in comparison',
           },
         ],
       },
@@ -733,51 +775,64 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   Loop: {
     type: 'Loop',
     name: 'Loop',
-    description: 'Repeat actions for each item',
+    description: 'Iterate over an array. For each item, all connected downstream nodes execute once. Reference the current item via {{$node.<loopId>.current_item}}.',
     category: 'Logic',
     fields: [
       {
-        name: 'array',
-        label: 'Array to Loop',
-        type: 'text',
-        placeholder: '{{$node.fetch_items.items}}',
-        description: 'Array variable to iterate over',
-        required: true,
-        group: 'Loop',
+        name: 'items',
+        label: 'Items (array)',
+        type: 'textarea',
+        placeholder: '{{$node.json_parser.parsed}}',
+        description: 'Array to iterate over. Use {{$node.x.y}} to reference a previous node\'s output.',
+        required: false,
+        rows: 3,
+        group: 'Input',
       },
       {
-        name: 'itemName',
-        label: 'Item Variable Name',
+        name: 'items_path',
+        label: 'Items Path (alternative)',
         type: 'text',
-        placeholder: 'item',
-        description: 'Variable name for current item',
-        required: true,
-        group: 'Loop',
+        placeholder: 'response_body.users',
+        description: 'Dot-notation path into the previous node\'s output to find the array. Use this OR Items above.',
+        required: false,
+        group: 'Input',
       },
     ],
     outputs: {
       main: {
         type: 'main',
-        displayName: 'Main Output',
+        displayName: 'Per-Iteration Output',
         dynamic: true,
         fields: [
           {
-            name: 'currentItem',
-            path: ['currentItem'],
+            name: 'current_item',
+            path: ['current_item'],
             type: 'json',
-            description: 'The current item being processed in loop',
+            description: 'The item for the current iteration',
           },
           {
             name: 'index',
             path: ['index'],
             type: 'number',
-            description: 'Zero-based index of current item',
+            description: 'Zero-based index of current iteration',
           },
           {
-            name: 'iteration',
-            path: ['iteration'],
+            name: 'is_last',
+            path: ['is_last'],
+            type: 'boolean',
+            description: 'True when this is the last iteration',
+          },
+          {
+            name: 'total',
+            path: ['total'],
             type: 'number',
-            description: 'One-based iteration number',
+            description: 'Total number of items in the array',
+          },
+          {
+            name: 'items',
+            path: ['items'],
+            type: 'array',
+            description: 'The full array being iterated',
           },
         ],
       },
@@ -832,71 +887,95 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   DataFormatter: {
     type: 'DataFormatter',
     name: 'Data Formatter',
-    description: 'Transform and format data',
+    description: 'Transform a value using common string, number, or date operations.',
     category: 'Data',
     fields: [
       {
-        name: 'formatType',
-        label: 'Format Type',
-        type: 'select',
-        description: 'Transformation type',
+        name: 'input',
+        label: 'Input Value',
+        type: 'textarea',
+        placeholder: '{{$node.prev.message}}',
+        description: 'The value to format. Supports {{$node.x.y}} expressions.',
         required: true,
-        options: [
-          { label: 'JSON to String', value: 'json_to_string' },
-          { label: 'String to JSON', value: 'string_to_json' },
-          { label: 'Uppercase', value: 'uppercase' },
-          { label: 'Lowercase', value: 'lowercase' },
-          { label: 'Trim Whitespace', value: 'trim' },
-          { label: 'Custom Expression', value: 'custom' },
-        ],
-        group: 'Format',
+        rows: 3,
+        group: 'Input',
       },
       {
-        name: 'input',
-        label: 'Input Data',
-        type: 'textarea',
-        placeholder: '{{$node.previous_node.output}}',
-        description: 'Data to format',
+        name: 'operation',
+        label: 'Operation',
+        type: 'select',
+        description: 'Transformation to apply',
         required: true,
-        rows: 4,
-        group: 'Data',
+        options: [
+          { label: 'Uppercase', value: 'uppercase' },
+          { label: 'Lowercase', value: 'lowercase' },
+          { label: 'Trim whitespace', value: 'trim' },
+          { label: 'Capitalize', value: 'capitalize' },
+          { label: 'Reverse string', value: 'reverse' },
+          { label: 'Replace text', value: 'replace' },
+          { label: 'Format number', value: 'number_format' },
+          { label: 'Format date', value: 'date_format' },
+          { label: 'Convert to string', value: 'to_string' },
+          { label: 'Convert to number', value: 'to_number' },
+        ],
+        group: 'Operation',
+      },
+      {
+        name: 'find',
+        label: 'Find (for replace)',
+        type: 'text',
+        placeholder: 'old text',
+        description: 'Text to find — used only with "Replace text" operation.',
+        group: 'Replace Options',
+      },
+      {
+        name: 'replace_with',
+        label: 'Replace With',
+        type: 'text',
+        placeholder: 'new text',
+        description: 'Replacement text — used only with "Replace text" operation.',
+        group: 'Replace Options',
+      },
+      {
+        name: 'decimal_places',
+        label: 'Decimal Places',
+        type: 'number',
+        placeholder: '2',
+        description: 'Number of decimal places — used only with "Format number" operation.',
+        validation: { min: 0, max: 20 },
+        group: 'Number Options',
+      },
+      {
+        name: 'date_format',
+        label: 'Date Format',
+        type: 'text',
+        placeholder: '%Y-%m-%d %H:%M:%S',
+        description: 'strftime format string — used only with "Format date" operation.',
+        group: 'Date Options',
       },
     ],
     outputs: {
       main: {
         type: 'main',
         displayName: 'Main Output',
-        dynamic: true,
         fields: [
           {
             name: 'formatted',
             path: ['formatted'],
             type: 'string',
-            description: 'The formatted output (type depends on format type)',
+            description: 'The formatted/transformed value',
           },
           {
-            name: 'formatType',
-            path: ['formatType'],
+            name: 'original',
+            path: ['original'],
             type: 'string',
-            description: 'The format type that was applied',
-          },
-          {
-            name: 'originalInput',
-            path: ['originalInput'],
-            type: 'json',
             description: 'The original input before formatting',
           },
-        ],
-      },
-      error: {
-        type: 'error',
-        displayName: 'Error Output',
-        fields: [
           {
-            name: 'error',
-            path: ['error'],
+            name: 'operation',
+            path: ['operation'],
             type: 'string',
-            description: 'Error message if formatting failed',
+            description: 'The operation that was applied',
           },
         ],
       },
@@ -1506,22 +1585,53 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   },
 };
 
+// Aliases: maps alternate type strings (engine types, sidebarTypes) → canonical NODE_DEFINITIONS key
+const TYPE_ALIASES: Record<string, string> = {
+  // IfCondition
+  'IfCondition': 'Conditional',
+  'If Condition': 'Conditional',
+  'IfNode': 'Conditional',
+  // DataFormatter (comes back from backend as 'String Manipulation')
+  'String Manipulation': 'DataFormatter',
+  'StringManipulationNode': 'DataFormatter',
+  // Loop
+  'LoopNode': 'Loop',
+  // SetVariable
+  'SetVariable': 'Variable Setter',
+  // JSONParser
+  'JsonParser': 'JSONParser',
+  'JSON Parse': 'JSONParser',
+};
+
 /**
- * Get node definition by type
+ * Get node definition by type — resolves aliases and engine type names.
  */
 export function getNodeDefinitionByType(nodeType: string): NodeDefinition | null {
-  // Try exact match
-  let definition: NodeDefinition | undefined = NODE_DEFINITIONS[nodeType];
+  if (!nodeType) return null;
 
-  // Try case-insensitive match
-  if (!definition) {
-    const key = Object.keys(NODE_DEFINITIONS).find(
-      (k) => k.toLowerCase() === nodeType.toLowerCase()
-    );
-    definition = key ? NODE_DEFINITIONS[key] : undefined;
+  // 1. Exact match
+  let definition: NodeDefinition | undefined = NODE_DEFINITIONS[nodeType];
+  if (definition) return definition;
+
+  // 2. Known alias → canonical key
+  const canonical = TYPE_ALIASES[nodeType];
+  if (canonical) {
+    definition = NODE_DEFINITIONS[canonical];
+    if (definition) return definition;
   }
 
-  return definition || null;
+  // 3. Case-insensitive match across all keys + aliases
+  const lowerType = nodeType.toLowerCase();
+  const aliasKey = Object.keys(TYPE_ALIASES).find(k => k.toLowerCase() === lowerType);
+  if (aliasKey) {
+    definition = NODE_DEFINITIONS[TYPE_ALIASES[aliasKey]];
+    if (definition) return definition;
+  }
+
+  const defKey = Object.keys(NODE_DEFINITIONS).find(k => k.toLowerCase() === lowerType);
+  if (defKey) return NODE_DEFINITIONS[defKey];
+
+  return null;
 }
 
 /**

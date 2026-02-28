@@ -392,6 +392,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           sourcePortId: conn.fromPoint || 'output',
           targetNodeId: conn.to,
           targetPortId: conn.toPoint || 'input',
+          condition: conn.condition,
           type: 'default' as any,
           enabled: true
         })),
@@ -629,6 +630,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           sourcePortId: conn.fromPoint || 'output',
           targetNodeId: conn.to,
           targetPortId: conn.toPoint || 'input',
+          condition: conn.condition,
           type: 'default' as any,
           enabled: true
         })),
@@ -910,6 +912,20 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               if ((nodeType === 'Logger' || log.nodeType === 'Logger') && log.output?.message) {
                 const level = (log.output.level || 'info').toUpperCase();
                 setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 📝 [${level}] ${log.output.message}`]);
+              }
+              // Show IfCondition result
+              if ((nodeType === 'IfCondition' || nodeType === 'Conditional') && log.output?.branch !== undefined) {
+                const branch = log.output.branch;
+                const emoji = branch === 'true' ? '✅' : '❌';
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔀 Branch: ${emoji} ${branch.toUpperCase()} (${log.output.left} ${log.output.operator} ${log.output.right})`]);
+              }
+              // Show DataFormatter result
+              if ((nodeType === 'DataFormatter' || nodeType === 'String Manipulation') && log.output?.formatted !== undefined) {
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔧 Formatted: "${log.output.formatted}" (${log.output.operation})`]);
+              }
+              // Show Loop progress
+              if (nodeType === 'Loop' && log.output?.total !== undefined) {
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔁 Loop: ${log.output.total} items`]);
               }
             } else if (log.status === 'failed') {
               setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ ${nodeName}: ${log.error || 'failed'}`]);

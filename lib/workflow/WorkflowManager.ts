@@ -110,7 +110,10 @@ export class WorkflowManager {
       connections: workflow.connections.map(conn => ({
         id: conn.id,
         sourceNodeId: conn.sourceNodeId,
+        sourcePortId: conn.sourcePortId,
         targetNodeId: conn.targetNodeId,
+        targetPortId: conn.targetPortId,
+        condition: conn.condition,
         enabled: conn.enabled
       })),
       settings: {

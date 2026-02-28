@@ -28,6 +28,7 @@ export interface WorkflowConnection {
   sourcePortId: string;
   targetNodeId: string;
   targetPortId: string;
+  condition?: 'true' | 'false'; // IfCondition branch routing
   enabled: boolean;
 }
 

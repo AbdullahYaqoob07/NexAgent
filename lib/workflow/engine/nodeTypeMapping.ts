@@ -251,7 +251,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'DataFormatter',
     nodeClass: StringManipulationNode,
     category: 'data',
-    aliases: ['StringManipulationNode']
+    aliases: ['StringManipulationNode', 'DataFormatter', 'Data Formatter']
   },
   {
     sidebarType: 'Number Formatter',

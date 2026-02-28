@@ -68,6 +68,7 @@ interface Connection {
   to: string;
   fromPoint: string; // Can be 'output', 'output_1', 'output_2', etc.
   toPoint: 'input';
+  condition?: 'true' | 'false'; // For IfCondition branching
 }
 
 const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ selectedNode, onNodeSelect, onOpenTriggers, onNodeCountChange, executingNodeId: executingNodeIdProp, errorNodeIds: errorNodeIdsProp, lastNodeOutputs }, ref) => {
@@ -343,12 +344,21 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
       );
       
       if (!existingConnection) {
+        // Auto-assign true/false condition for IfCondition source nodes
+        const sourceNode = nodes.find(n => n.id === isConnecting.nodeId);
+        const isIfCondition = sourceNode?.type === 'Conditional' || sourceNode?.type === 'IfCondition';
+        let condition: 'true' | 'false' | undefined;
+        if (isIfCondition) {
+          const existingFromSource = connections.filter(c => c.from === isConnecting.nodeId);
+          condition = existingFromSource.some(c => c.condition === 'true') ? 'false' : 'true';
+        }
         const newConnection: Connection = {
           id: `conn_${Date.now()}`,
           from: isConnecting.nodeId,
           to: nodeId,
           fromPoint: isConnecting.point,
-          toPoint: point
+          toPoint: point,
+          ...(condition !== undefined && { condition }),
         };
         setConnections(prev => [...prev, newConnection]);
       }
@@ -618,9 +628,50 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         >
           ×
         </text>
+
+        {/* T/F condition badge for IfCondition connections */}
+        {connection.condition && (() => {
+          const midX = (startX + endX) / 2;
+          const midY = (startY + endY) / 2;
+          const badgeColor = connection.condition === 'true' ? '#22c55e' : '#ef4444';
+          return (
+            <g
+              onClick={(e) => {
+                e.stopPropagation();
+                setConnections(prev => prev.map(c =>
+                  c.id === connection.id
+                    ? { ...c, condition: c.condition === 'true' ? 'false' : 'true' }
+                    : c
+                ));
+              }}
+              style={{ cursor: 'pointer' }}
+              title="Click to toggle true/false branch"
+            >
+              <rect
+                x={midX - 12}
+                y={midY - 10}
+                width="24"
+                height="20"
+                rx="4"
+                fill={badgeColor}
+                opacity="0.95"
+              />
+              <text
+                x={midX}
+                y={midY + 1}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                className="fill-white font-bold select-none"
+                style={{ fontSize: '11px', fontWeight: 700, pointerEvents: 'none' }}
+              >
+                {connection.condition === 'true' ? 'T' : 'F'}
+              </text>
+            </g>
+          );
+        })()}
       </g>
     );
-  }, [nodes, getConnectionPoint]);
+  }, [nodes, getConnectionPoint, setConnections]);
 
   // Helper functions for fork nodes
   const isForkNode = (nodeType: string): boolean => {
