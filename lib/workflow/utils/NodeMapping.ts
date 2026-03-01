@@ -137,17 +137,20 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     ]
   },
   {
-    displayName: 'Email',
-    nodeType: 'email_send',
+    displayName: 'SendEmail',
+    nodeType: 'SendEmail',
     category: 'action',
-    defaultConfig: { to: 'test@example.com', subject: 'Test Email', body: 'Hello' },
+    defaultConfig: {},
     inputs: [
-      { id: 'to', name: 'To Email', type: 'string', required: true },
+      { id: 'to', name: 'To', type: 'string', required: true },
       { id: 'subject', name: 'Subject', type: 'string', required: true },
       { id: 'body', name: 'Body', type: 'string', required: true }
     ],
     outputs: [
-      { id: 'email_result', name: 'Email Result', type: 'object', required: true }
+      { id: 'sent', name: 'Sent', type: 'boolean', required: false },
+      { id: 'message_id', name: 'Message ID', type: 'string', required: false },
+      { id: 'sent_at', name: 'Sent At', type: 'string', required: false },
+      { id: 'to', name: 'Recipients', type: 'string', required: false }
     ]
   },
   {
@@ -161,6 +164,34 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     ],
     outputs: [
       { id: 'slack_result', name: 'Slack Result', type: 'object', required: true }
+    ]
+  },
+  {
+    displayName: 'Logger',
+    nodeType: 'logger',
+    category: 'action',
+    defaultConfig: { message: '', level: 'info', include_input: false },
+    inputs: [
+      { id: 'message', name: 'Message', type: 'string', required: false },
+      { id: 'level', name: 'Log Level', type: 'string', required: false }
+    ],
+    outputs: [
+      { id: 'logged', name: 'Logged', type: 'boolean', required: true },
+      { id: 'message', name: 'Message', type: 'string', required: true }
+    ]
+  },
+  {
+    displayName: 'Variable Setter',
+    nodeType: 'variable_setter',
+    category: 'action',
+    defaultConfig: { variable_name: '', value: '' },
+    inputs: [
+      { id: 'variable_name', name: 'Variable Name', type: 'string', required: true },
+      { id: 'value', name: 'Value', type: 'any', required: true }
+    ],
+    outputs: [
+      { id: 'variable_name', name: 'Variable Name', type: 'string', required: true },
+      { id: 'value', name: 'Value Set', type: 'object', required: true }
     ]
   },
   {
@@ -246,9 +277,10 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     displayName: 'Delay',
     nodeType: 'delay',
     category: 'logic',
-    defaultConfig: { duration: 1000 },
+    defaultConfig: { duration: 1, unit: 'seconds' },
     inputs: [
-      { id: 'duration', name: 'Duration (ms)', type: 'number', required: true }
+      { id: 'duration', name: 'Duration', type: 'number', required: true },
+      { id: 'unit', name: 'Unit', type: 'string', required: false }
     ],
     outputs: [
       { id: 'delay_result', name: 'Delay Result', type: 'object', required: true }
@@ -324,7 +356,7 @@ export const NODE_MAPPINGS: NodeMapping[] = [
     displayName: 'JSON Parse',
     nodeType: 'json_parse',
     category: 'data',
-    defaultConfig: { jsonString: '{"test": "value"}' },
+    defaultConfig: { json_string: '{"test": "value"}' },
     inputs: [
       { id: 'json_string', name: 'JSON String', type: 'string', required: true }
     ],
@@ -527,10 +559,42 @@ export const NODE_MAPPINGS: NodeMapping[] = [
 ];
 
 /**
- * Get node mapping by display name
+ * Maps canvas node types (from NodeRegistry.ts) to NodeMapping displayNames.
+ * NodeRegistry stores types like "Scheduling", "HTTPRequest", "Webhook" which
+ * don't always match the displayName in NODE_MAPPINGS ("Schedule", "HTTP Request", etc.)
+ *
+ * IMPORTANT: Only add aliases here when the canvas type differs from the NodeMapping
+ * displayName AND the mismatch causes trigger/fork detection to fail. Don't add
+ * aliases for action/data nodes unless they break something — those nodes fall through
+ * to the FALLBACK path in convertCanvasNodeToWorkflowNode which preserves their type.
+ */
+const CANVAS_TYPE_ALIASES: Record<string, string> = {
+  // Triggers — these need correct category detection for workflow validation
+  'Scheduling': 'Schedule',
+  'ScheduleEvent': 'Schedule',
+  'ScheduleTriggerNode': 'Schedule',
+  'Webhook': 'Incoming Webhook',
+  'WebhookTrigger': 'Incoming Webhook',
+  'WebhookTriggerNode': 'Incoming Webhook',
+  // Actions — safe aliases where both paths lead to the same engine type
+  'HTTPRequest': 'HTTP Request',
+  'HttpRequest': 'HTTP Request',
+  'HttpNode': 'HTTP Request',
+  // EmailSend canvas type → SendEmail backend type
+  'EmailSend': 'SendEmail',
+};
+
+/**
+ * Get node mapping by display name or canvas type alias.
  */
 export function getNodeMapping(displayName: string): NodeMapping | undefined {
-  return NODE_MAPPINGS.find(mapping => mapping.displayName === displayName);
+  // Direct lookup first
+  const direct = NODE_MAPPINGS.find(mapping => mapping.displayName === displayName);
+  if (direct) return direct;
+  // Alias lookup: canvas stores types like "Scheduling", "HTTPRequest", "Webhook"
+  const canonical = CANVAS_TYPE_ALIASES[displayName];
+  if (canonical) return NODE_MAPPINGS.find(mapping => mapping.displayName === canonical);
+  return undefined;
 }
 
 /**

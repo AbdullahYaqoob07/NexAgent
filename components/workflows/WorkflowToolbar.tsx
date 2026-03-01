@@ -1,21 +1,17 @@
 "use client";
 
 import React from "react";
-import { 
-  Play, 
-  Save, 
-  Undo, 
-  Redo, 
-  Settings, 
+import {
+  Play,
+  Save,
+  Settings,
   Download,
   Upload,
   Home,
   ChevronDown,
   Bot,
-  Minimize2,
-  Maximize2,
-  X,
-  Square
+  Square,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -26,22 +22,32 @@ interface WorkflowToolbarProps {
   assistantMinimized?: boolean;
   onExecute?: () => void;
   onSave?: () => void;
+  onExport?: () => void;
+  onImport?: () => void;
+  onPublish?: () => void;
+  canPublish?: boolean;
   isExecuting?: boolean;
   workflowName: string;
   onRenameWorkflow: (name: string) => void;
   isScheduled?: boolean;
+  isWebhookListening?: boolean;
 }
 
-export function WorkflowToolbar({ 
-  showAssistant = true, 
+export function WorkflowToolbar({
+  showAssistant = true,
   onToggleAssistant,
   assistantMinimized = false,
   onExecute,
   onSave,
+  onExport,
+  onImport,
+  onPublish,
+  canPublish = false,
   isExecuting = false,
   workflowName,
   onRenameWorkflow,
-  isScheduled = false
+  isScheduled = false,
+  isWebhookListening = false,
 }: WorkflowToolbarProps) {
   const router = useRouter();
 
@@ -68,24 +74,7 @@ export function WorkflowToolbar({
       {/* Center Section - Actions */}
       <div className="flex items-center gap-2">
         <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 px-3"
-        >
-          <Undo className="w-4 h-4" />
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 px-3"
-        >
-          <Redo className="w-4 h-4" />
-        </Button>
-        
-        <div className="w-px h-6 bg-zinc-700 mx-2" />
-        
-        <Button
+          onClick={onImport}
           variant="ghost"
           size="sm"
           className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 px-3 gap-2"
@@ -93,8 +82,9 @@ export function WorkflowToolbar({
           <Upload className="w-4 h-4" />
           <span className="text-sm">Import</span>
         </Button>
-        
+
         <Button
+          onClick={onExport}
           variant="ghost"
           size="sm"
           className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 px-3 gap-2"
@@ -102,6 +92,21 @@ export function WorkflowToolbar({
           <Download className="w-4 h-4" />
           <span className="text-sm">Export</span>
         </Button>
+
+        {canPublish && (
+          <>
+            <div className="w-px h-6 bg-zinc-700 mx-1" />
+            <Button
+              onClick={onPublish}
+              variant="ghost"
+              size="sm"
+              className="text-[#FF6900] bg-[#FF6900]/10 hover:bg-[#FF6900]/20 h-8 px-3 gap-2 animate-in fade-in slide-in-from-top-1 duration-300"
+            >
+              <Store className="w-4 h-4" />
+              <span className="text-sm font-medium">Publish</span>
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Right Section - Execute & Settings */}
@@ -142,18 +147,23 @@ export function WorkflowToolbar({
         
         <Button
           onClick={onExecute}
-          disabled={isExecuting && !isScheduled}
+          disabled={isExecuting && !isScheduled && !isWebhookListening}
           size="sm"
           className={`h-8 px-4 gap-2 disabled:opacity-50 ${
-            isScheduled 
-              ? "bg-red-600 hover:bg-red-700 text-white" 
+            isScheduled || isWebhookListening
+              ? "bg-red-600 hover:bg-red-700 text-white"
               : "bg-[#FF6900] hover:bg-[#E55D00] text-white"
           }`}
         >
           {isScheduled ? (
             <>
               <Square className="w-4 h-4" />
-              <span className="text-sm">Stop</span>
+              <span className="text-sm">Stop Scheduler</span>
+            </>
+          ) : isWebhookListening ? (
+            <>
+              <Square className="w-4 h-4" />
+              <span className="text-sm">Stop Listening</span>
             </>
           ) : isExecuting ? (
             <>

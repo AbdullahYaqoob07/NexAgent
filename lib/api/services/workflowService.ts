@@ -165,7 +165,8 @@ export const workflowService = {
     try {
       const response = await apiClient.post<ExecuteWorkflowResponse>(
         `${WORKFLOWS_BASE}/${workflowId}/execute`,
-        data
+        data,
+        { timeout: 300_000 } // 5-minute timeout — workflows can have long Delay nodes
       );
       return response.data;
     } catch (error) {

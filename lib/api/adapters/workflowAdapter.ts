@@ -41,6 +41,7 @@ export function frontendConnectionToBackendEdge(connection: WorkflowConnection):
     target: connection.targetNodeId,
     sourceHandle: connection.sourcePortId,
     targetHandle: connection.targetPortId,
+    condition: connection.condition ?? null,
     enabled: connection.enabled,
   };
 }
@@ -73,6 +74,7 @@ export function backendEdgeToFrontendConnection(backendEdge: BackendWorkflowEdge
     sourcePortId: backendEdge.sourceHandle || backendEdge.sourcePortId || 'output',
     targetNodeId: backendEdge.target || backendEdge.targetNodeId || '',
     targetPortId: backendEdge.targetHandle || backendEdge.targetPortId || 'input',
+    condition: backendEdge.condition || undefined,
     enabled: backendEdge.enabled !== false,
   };
 }
