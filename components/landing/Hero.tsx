@@ -19,6 +19,13 @@ export default function Hero() {
     }
   };
 
+  const handleLearnMore = () => {
+    const element = document.getElementById('features');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section id="hero" className="relative min-h-screen w-full overflow-hidden flex flex-col justify-center">
       {/* Hero Background */}
@@ -107,7 +114,10 @@ export default function Hero() {
             <ArrowRight className="w-5 h-5" />
           </button>
           
-          <button className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-bold px-10 py-4 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg">
+          <button 
+            onClick={handleLearnMore}
+            className="glass border-2 border-white/20 hover:border-[#FF6900]/50 text-white font-bold px-10 py-4 rounded-xl hover-lift transition-all duration-300 flex items-center gap-3 text-lg"
+          >
             <Zap className="w-5 h-5" />
             Learn More
           </button>

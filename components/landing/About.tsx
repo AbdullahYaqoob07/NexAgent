@@ -1,8 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
+import { motion } from "framer-motion";
 
 const AboutUs = () => {
+  const { user } = useAuth();
+  const router = useRouter();
   const metrics = [
     {
       number: "2025",
@@ -30,7 +36,13 @@ const AboutUs = () => {
     }
   ];
 
- 
+const handleGetStarted = () => {
+    if (user) {
+      router.push('/dashboard');
+    } else {
+      router.push('/sign-in');
+    }
+  }; 
 
   return (
     <section id="about" className="py-20 bg-black relative">
@@ -81,11 +93,14 @@ const AboutUs = () => {
         </div>
 
         {/* CTA */}
-        <div className="mt-12 text-center">
-          <button className="bg-[#FF6900] hover:bg-[#e55a00] text-white px-8 py-3 rounded-md font-medium transition-colors duration-200 inline-flex items-center gap-2">
-            Get Started
-            <Image src="/assets/about/Arrow.svg" alt="Arrow" width={16} height={16} />
-          </button>
+        <div className="mt-12 text-center">    
+            <motion.button  
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }} 
+            onClick={handleGetStarted} className="bg-[#FF6900] hover:bg-[#e55a00] text-white px-8 py-3 rounded-md font-medium transition-colors duration-200 inline-flex items-center gap-2">
+              Get Started
+              <Image src="/assets/about/Arrow.svg" alt="Arrow" width={16} height={16} />
+            </motion.button>          
         </div>
       </div>
     </section>

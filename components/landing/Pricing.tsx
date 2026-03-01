@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const plans = [
   {
@@ -63,7 +65,7 @@ const plans = [
   },
 ];
 
-const PricingCard = ({ plan, index, isYearly }: { plan: typeof plans[0], index: number, isYearly: boolean }) => {
+const PricingCard = ({ plan, index, isYearly, onSubscribeClick }: { plan: typeof plans[0], index: number, isYearly: boolean, onSubscribeClick: () => void }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -144,6 +146,7 @@ const PricingCard = ({ plan, index, isYearly }: { plan: typeof plans[0], index: 
             {/* Button with gradient border */}
             <div className="relative bg-gradient-to-b from-[#B48B70] to-[#69462E] p-[1px] rounded-md">
               <Button
+                onClick={onSubscribeClick}
                 className="relative py-4 px-6 rounded-md font-normal text-base transition-all duration-300 flex items-center justify-center gap-2 bg-[#3D210E] hover:bg-[#5A2F17] text-white min-w-[100px] border-0 group-hover:shadow-lg"
               >
                 {plan.cta}
@@ -200,8 +203,113 @@ const BillingToggle = ({ isYearly, setIsYearly }: { isYearly: boolean, setIsYear
   );
 };
 
+const SubscribeModal = ({ isOpen, onClose, planName }: { isOpen: boolean, onClose: () => void, planName: string }) => {
+  const router = useRouter();
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+      />
+      
+      {/* Modal */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.3 }}
+        className="fixed top-3/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md mx-4"
+      >
+        <div className="bg-gradient-to-br from-[#2a2a2a] to-[#1a1a1a] border border-[#FF6900]/30 rounded-2xl p-6 shadow-2xl">
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1 text-white/60 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Content */}
+          <div className="text-center">
+            {/* Icon */}
+            <div className="w-14 h-14 bg-[#FF6900]/20 border border-[#FF6900]/30 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">⭐</span>
+            </div>
+
+            {/* Title */}
+            <h3 className="text-xl font-bold text-white mb-1">
+              Upgrade to {planName}
+            </h3>
+
+            {/* Description */}
+            <p className="text-white/70 text-xs mb-4 leading-relaxed">
+              Sign in to subscribe to the {planName} plan and unlock premium features.
+            </p>
+
+            {/* Benefits preview */}
+            <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-4 text-left">
+              <p className="text-xs text-white/60 mb-2 font-medium">What you'll get:</p>
+              <ul className="space-y-1">
+                <li className="flex items-center gap-2 text-xs text-white/80">
+                  <Check className="w-3 h-3 text-[#FF6900] flex-shrink-0" />
+                  <span>Unlimited premium access</span>
+                </li>
+                <li className="flex items-center gap-2 text-xs text-white/80">
+                  <Check className="w-3 h-3 text-[#FF6900] flex-shrink-0" />
+                  <span>Priority support</span>
+                </li>
+                <li className="flex items-center gap-2 text-xs text-white/80">
+                  <Check className="w-3 h-3 text-[#FF6900] flex-shrink-0" />
+                  <span>Advanced features</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col gap-2">
+              <Link href="/sign-in" className="w-full">
+                <button className="w-full bg-[#FF6900] hover:bg-[#E55D00] text-white font-semibold py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm">
+                  Sign In to Subscribe
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </Link>
+              <Link href="/sign-up" className="w-full">
+                <button className="w-full border border-[#FF6900]/30 hover:border-[#FF6900]/60 text-white font-semibold py-2.5 rounded-lg transition-colors duration-200 text-sm">
+                  Create Account
+                </button>
+              </Link>
+            </div>
+
+            {/* Dismiss option */}
+            <button
+              onClick={onClose}
+              className="mt-3 text-xs text-white/50 hover:text-white/70 transition-colors w-full"
+            >
+              Maybe later
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </>
+  );
+};
+
 const Pricing = () => {
   const [isYearly, setIsYearly] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedPlanName, setSelectedPlanName] = useState('');
+
+  const handleSubscribeClick = (planName: string) => {
+    setSelectedPlanName(planName);
+    setShowModal(true);
+  };
   
   return (
     <section id="pricing" className="relative py-24">
@@ -246,10 +354,22 @@ const Pricing = () => {
         <div className="flex flex-col md:flex-row justify-center items-center gap-6 md:gap-0 mb-16 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
             <div key={index} className={`flex-1 ${index === 1 ? 'md:max-w-[360px]' : 'md:max-w-[320px]'}`}>
-              <PricingCard plan={plan} index={index} isYearly={isYearly} />
+              <PricingCard 
+                plan={plan} 
+                index={index} 
+                isYearly={isYearly}
+                onSubscribeClick={() => handleSubscribeClick(plan.name)}
+              />
             </div>
           ))}
         </div>
+
+        {/* Subscribe Modal */}
+        <SubscribeModal 
+          isOpen={showModal} 
+          onClose={() => setShowModal(false)}
+          planName={selectedPlanName}
+        />
         
         {/* Trust badges */}
         
