@@ -30,8 +30,10 @@
 
 ## 🤖 AI Nodes
 
-- [ ] **OpenAI** — OpenAI API key; prompt → response + tokens_used
-- [ ] **ClaudeAI** — Anthropic API key; prompt → response + stop_reason
+- [ ] **OpenAI** — OpenAI API key (paid); `ManualTrigger → OpenAI(api_key, model=gpt-4o-mini, prompt="Say hello") → Logger(message="{{$node.n2.response}}")`
+- [ ] **ClaudeAI** — Anthropic API key (paid); `ManualTrigger → ClaudeAI(api_key, prompt="Say hello") → Logger(message="{{$node.n2.response}}")`
+- [ ] **Groq** — FREE; get key at console.groq.com; `ManualTrigger → Groq(api_key=gsk_..., model=llama-3.3-70b-versatile, prompt="Say hello") → Logger(message="{{$node.n2.response}}")`
+- [ ] **Gemini** — FREE; get key at aistudio.google.com; `ManualTrigger → Gemini(api_key=AIza..., model=gemini-2.0-flash, prompt="Say hello") → Logger(message="{{$node.n2.response}}")`
 
 ---
 

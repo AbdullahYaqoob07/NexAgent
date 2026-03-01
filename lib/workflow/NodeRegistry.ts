@@ -205,6 +205,24 @@ export const HARDCODED_NODES: NodeDef[] = [
     icon: "/assets/canvas/claude.svg",
     isStartNode: false,
   },
+  {
+    id: "groq",
+    name: "Groq",
+    type: "Groq",
+    category: "AI/ML",
+    description: "Ultra-fast free AI inference (Llama 3, Mixtral, Gemma)",
+    icon: "/assets/canvas/groq.svg",
+    isStartNode: false,
+  },
+  {
+    id: "gemini",
+    name: "Gemini",
+    type: "Gemini",
+    category: "AI/ML",
+    description: "Google Gemini AI models — free tier via AI Studio",
+    icon: "/assets/canvas/gemini.svg",
+    isStartNode: false,
+  },
 
   // ==================== UTILITY ====================
   {
