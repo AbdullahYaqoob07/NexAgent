@@ -50,3 +50,8 @@ backend/nexagent-90391-firebase-adminsdk-fbsvc-c9b35a6472.json
 *firebase-adminsdk*.json
 backend/*firebase-adminsdk*.json
 nexagent-*-firebase-adminsdk-*.json
+
+# Google Service Account keys
+*-service-account*.json
+*-credentials*.json
+n8n-nexagent-*.json
