@@ -139,6 +139,11 @@ class WorkflowEngine:
         # ------------------------------------------------------------------
         # 2. Build adjacency maps
         # ------------------------------------------------------------------
+        logger.info(
+            "🗂️  Workflow '%s' nodes: %s",
+            workflow.name or workflow.id,
+            [(n.id, n.type) for n in workflow.nodes],
+        )
         nodes_by_id: Dict[str, WorkflowNode] = {n.id: n for n in workflow.nodes}
         # outgoing: node_id → list of (target_id, condition)
         outgoing: Dict[str, List[tuple]] = {n.id: [] for n in workflow.nodes}

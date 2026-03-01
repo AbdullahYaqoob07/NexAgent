@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status, Query
+from fastapi import APIRouter, HTTPException, Depends, status, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from app.models.workflow_models import (
@@ -42,6 +42,22 @@ router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
 # Global workflow engine instance (shared, thread-safe)
 _engine: Optional[WorkflowEngine] = None
+
+# In-memory store for webhook execution results (workflow_id → last 10 results)
+# Keyed by workflow_id; each entry: {received_at_ms, execution_id, body, node_logs, ...}
+_webhook_results: Dict[str, List[Dict]] = {}
+_MAX_WEBHOOK_RESULTS = 10
+
+# Per-workflow lock to prevent concurrent scheduler registrations racing to register duplicate jobs
+import asyncio as _asyncio_mod
+_scheduler_register_locks: Dict[str, Any] = {}
+
+
+def _get_scheduler_lock(workflow_id: str):
+    """Return a per-workflow asyncio.Lock for serialising scheduler registration."""
+    if workflow_id not in _scheduler_register_locks:
+        _scheduler_register_locks[workflow_id] = _asyncio_mod.Lock()
+    return _scheduler_register_locks[workflow_id]
 
 
 def get_engine() -> WorkflowEngine:
@@ -590,12 +606,14 @@ async def execute_workflow(
         wf_def = WorkflowDefinition(id=workflow_id, name=workflow.get("name", ""), nodes=wf_nodes, connections=wf_connections)
 
         # ── Check for Schedule node → register with scheduler ──────────
-        schedule_nodes = [n for n in wf_nodes if n.type in ("Schedule", "ScheduleTriggerNode", "ScheduleEvent")]
+        schedule_nodes = [n for n in wf_nodes if n.type in ("Schedule", "ScheduleTriggerNode", "ScheduleEvent", "Scheduling")]
 
         if schedule_nodes and _SCHEDULER_AVAILABLE:
             schedule_node = schedule_nodes[0]
-            cron = (schedule_node.config or {}).get("cron")
-            tz = (schedule_node.config or {}).get("timezone", "UTC")
+            cfg = schedule_node.config or {}
+            # "cron" is the new field name; "frequency" was the old NodeDefinitions key
+            cron = cfg.get("cron") or cfg.get("frequency")
+            tz = cfg.get("timezone", "UTC")
 
             if cron:
                 scheduler = get_scheduler()
@@ -603,17 +621,6 @@ async def execute_workflow(
                     cron = scheduler.normalize_cron(cron)
                 except ValueError as exc:
                     raise HTTPException(status_code=400, detail=f"Invalid cron expression: {exc}")
-
-                existing_job = scheduler.get_job_by_workflow_id(workflow_id)
-                if existing_job and existing_job.status.value == "running":
-                    return ExecuteWorkflowResponse(
-                        status="scheduled",
-                        summary={"workflow_id": workflow_id, "status": "scheduled",
-                                 "scheduler_job_id": existing_job.job_id,
-                                 "next_run": existing_job.next_run.isoformat() if existing_job.next_run else None},
-                        final_output={"scheduler_job_id": existing_job.job_id},
-                        node_logs=[], execution_time_ms=0,
-                    )
 
                 engine = get_engine()
 
@@ -632,12 +639,31 @@ async def execute_workflow(
                     result = await engine.execute(sched_def, wf_input or {}, ctx)
                     return {"status": result.status, "node_logs": [log.dict() for log in result.logs], "final_output": result.final_output}
 
-                if existing_job:
-                    scheduler.remove_job(existing_job.job_id)
+                # Serialise scheduler registration per workflow to prevent duplicate jobs
+                # from concurrent Execute requests arriving simultaneously.
+                async with _get_scheduler_lock(workflow_id):
+                    # Re-check inside the lock (another request may have just registered)
+                    existing_jobs = scheduler.get_jobs_by_workflow_id(workflow_id)
+                    running_job = next((j for j in existing_jobs if j.status.value == "running"), None)
+                    if running_job:
+                        return ExecuteWorkflowResponse(
+                            status="scheduled",
+                            summary={"workflow_id": workflow_id, "status": "scheduled",
+                                     "scheduler_job_id": running_job.job_id,
+                                     "next_run": running_job.next_run.isoformat() if running_job.next_run else None},
+                            final_output={"scheduler_job_id": running_job.job_id},
+                            node_logs=[], execution_time_ms=0,
+                        )
 
-                workflow_data_for_scheduler = {"id": workflow_id, "name": workflow.get("name", ""), "nodes": raw_nodes, "connections": raw_connections}
-                job_id = scheduler.register_job(workflow_id=workflow_id, workflow_data=workflow_data_for_scheduler, cron=cron, timezone=tz, executor_func=execute_scheduled_workflow)
-                await scheduler.start_scheduler(job_id)
+                    # Stop and purge ALL stale jobs before creating a fresh one
+                    for stale in existing_jobs:
+                        await scheduler.stop_scheduler(stale.job_id)
+                        scheduler.jobs.pop(stale.job_id, None)
+
+                    workflow_data_for_scheduler = {"id": workflow_id, "name": workflow.get("name", ""), "nodes": raw_nodes, "connections": raw_connections}
+                    job_id = scheduler.register_job(workflow_id=workflow_id, workflow_data=workflow_data_for_scheduler, cron=cron, timezone=tz, executor_func=execute_scheduled_workflow)
+                    await scheduler.start_scheduler(job_id)
+
                 job = scheduler.get_job(job_id)
 
                 return ExecuteWorkflowResponse(
@@ -697,6 +723,140 @@ async def execute_workflow(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to execute workflow: {exc}"
         )
+
+
+@router.post("/{workflow_id}/webhook")
+async def receive_webhook(
+    workflow_id: str,
+    request: Request,
+):
+    """
+    Inbound Webhook endpoint — no auth required.
+
+    External services call:
+        POST /api/v1/workflows/{workflow_id}/webhook
+        POST /api/v1/workflows/{workflow_id}/webhook?foo=bar
+
+    The raw HTTP body, headers, method, and query params are passed
+    as the workflow's initial input so the Webhook trigger node can
+    surface them via {{$trigger.body}}, {{$trigger.headers}}, etc.
+    """
+    try:
+        # Parse body
+        try:
+            body = await request.json()
+        except Exception:
+            raw = await request.body()
+            body = raw.decode("utf-8", errors="replace") if raw else {}
+
+        headers = dict(request.headers)
+        method = request.method
+        query_params = dict(request.query_params)
+
+        # Load workflow without user-auth (webhook is public)
+        workflow = await workflow_service.get_workflow_by_id(
+            workflow_id=workflow_id,
+            user_id=None  # allow any owner; service must handle None gracefully
+        )
+        if not workflow:
+            raise HTTPException(status_code=404, detail="Workflow not found")
+
+        # Only execute workflows that contain a Webhook trigger node
+        webhook_node_types = {"Webhook", "WebhookTriggerNode", "Incoming Webhook"}
+        raw_nodes = workflow.get("nodes", [])
+        has_webhook = any(n.get("type", "") in webhook_node_types for n in raw_nodes)
+        if not has_webhook:
+            raise HTTPException(status_code=400, detail="Workflow does not have a Webhook trigger node")
+
+        raw_connections = workflow.get("connections") or workflow.get("edges", [])
+        from executor.engine import WorkflowConnection, WorkflowNode
+        wf_nodes = [WorkflowNode(id=n.get("id", ""), type=n.get("type", ""), name=n.get("name", ""), config=n.get("config", {})) for n in raw_nodes]
+        wf_connections = [WorkflowConnection.from_dict(c) for c in raw_connections]
+        wf_def = WorkflowDefinition(id=workflow_id, name=workflow.get("name", ""), nodes=wf_nodes, connections=wf_connections)
+
+        context = ExecutionContext(
+            execution_id=str(uuid.uuid4()),
+            workflow_id=workflow_id,
+            user_id=workflow.get("userId", ""),
+            variables=workflow.get("variables") or {},
+        )
+
+        initial_input = {
+            "body": body,
+            "headers": headers,
+            "method": method,
+            "query_params": query_params,
+        }
+
+        engine = get_engine()
+        result = await engine.execute(wf_def, initial_input, context)
+
+        await workflow_service.increment_execution_count(workflow_id)
+
+        node_logs = [
+            {
+                "nodeId": log.node_id,
+                "nodeType": log.node_type,
+                "status": log.status,
+                "output": log.output,
+                "error": log.error,
+                "executionTimeMs": log.duration_ms,
+            }
+            for log in result.logs
+        ]
+
+        import time
+        execution_record = {
+            "received_at_ms": int(time.time() * 1000),
+            "execution_id": context.execution_id,
+            "status": result.status,
+            "final_output": result.final_output,
+            "node_logs": node_logs,
+            "execution_time_ms": result.duration_ms,
+            "error": result.error,
+            "request": {
+                "method": method,
+                "body": body,
+                "query_params": query_params,
+            },
+        }
+        # Store in memory for frontend polling (keep last N results per workflow)
+        bucket = _webhook_results.setdefault(workflow_id, [])
+        bucket.append(execution_record)
+        if len(bucket) > _MAX_WEBHOOK_RESULTS:
+            del bucket[:-_MAX_WEBHOOK_RESULTS]
+
+        return {
+            "status": result.status,
+            "execution_id": context.execution_id,
+            "workflow_id": workflow_id,
+            "final_output": result.final_output,
+            "node_logs": node_logs,
+            "execution_time_ms": result.duration_ms,
+            "error": result.error,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        import traceback
+        logger.error("Webhook execution error: %s\n%s", exc, traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Webhook execution failed: {exc}")
+
+
+@router.get("/{workflow_id}/webhook/results")
+async def get_webhook_results(
+    workflow_id: str,
+    since_ms: int = Query(default=0, description="Return only results received after this Unix ms timestamp"),
+):
+    """
+    Poll for new webhook execution results.
+    Frontend calls this every few seconds to display incoming webhook requests.
+    Returns results with received_at_ms > since_ms, ordered oldest-first.
+    """
+    all_results = _webhook_results.get(workflow_id, [])
+    new_results = [r for r in all_results if r["received_at_ms"] > since_ms]
+    return {"results": new_results, "total": len(new_results)}
 
 
 @router.post("/{workflow_id}/scheduler/stop")

@@ -1082,27 +1082,51 @@ export default function NodeConfigModal({
               {nodeDefinition?.fields && nodeDefinition.fields.length > 0 && (
                 <div className="space-y-6">
                   <div className="h-px bg-slate-700"></div>
-                  {nodeDefinition.fields.map((field: any, index: number) => (
-                    <div key={field.name || index}>
-                      <div className="flex items-center gap-2 mb-3">
-                        <label className="block text-sm font-semibold text-white">
-                          {field.label || field.name}
-                        </label>
-                        {field.required && <span className="text-red-400">*</span>}
-                        {field.description && (
-                          <span className="text-xs text-gray-400 italic">({field.description})</span>
-                        )}
+                  {(() => {
+                    // Group consecutive halfWidth fields into pairs for 2-column layout
+                    const rows: { type: 'single' | 'pair'; fields: any[] }[] = [];
+                    let i = 0;
+                    const fields = nodeDefinition.fields;
+                    while (i < fields.length) {
+                      if (fields[i].halfWidth && fields[i + 1]?.halfWidth) {
+                        rows.push({ type: 'pair', fields: [fields[i], fields[i + 1]] });
+                        i += 2;
+                      } else {
+                        rows.push({ type: 'single', fields: [fields[i]] });
+                        i += 1;
+                      }
+                    }
+                    const renderFieldBlock = (field: any) => (
+                      <div key={field.name}>
+                        <div className="flex items-center gap-2 mb-3">
+                          <label className="block text-sm font-semibold text-white">
+                            {field.label || field.name}
+                          </label>
+                          {field.required && <span className="text-red-400">*</span>}
+                          {field.description && (
+                            <span className="text-xs text-gray-400 italic">({field.description})</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {renderDynamicField(
+                            field,
+                            config[field.name],
+                            (value) => setConfig({...config, [field.name]: value}),
+                            field.name
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        {renderDynamicField(
-                          field,
-                          config[field.name],
-                          (value) => setConfig({...config, [field.name]: value}),
-                          field.name
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                    return rows.map((row, rowIdx) =>
+                      row.type === 'pair' ? (
+                        <div key={rowIdx} className="grid grid-cols-2 gap-4">
+                          {row.fields.map(renderFieldBlock)}
+                        </div>
+                      ) : (
+                        renderFieldBlock(row.fields[0])
+                      )
+                    );
+                  })()}
                 </div>
               )}
 

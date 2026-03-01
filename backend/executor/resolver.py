@@ -61,7 +61,18 @@ def _resolve_expression(expr: str, context: "ExecutionContext") -> Any:
         if len(parts) < 2:
             return None
         node_id = parts[1]
-        node_output = context.node_outputs.get(node_id, {})
+        if node_id not in context.node_outputs:
+            available = list(context.node_outputs.keys())
+            logger.warning(
+                "⚠️  $node resolver miss — ID '%s' not found. "
+                "Available node IDs: %s",
+                node_id,
+                available,
+            )
+            # Return a clear error marker so outputs show what failed
+            field = ".".join(parts[2:]) if len(parts) > 2 else ""
+            return f"[missing: {node_id}.{field}]" if field else f"[missing: {node_id}]"
+        node_output = context.node_outputs[node_id]
         if len(parts) == 2:
             return node_output
         return _deep_get(node_output, *parts[2:])

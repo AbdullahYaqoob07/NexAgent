@@ -9,44 +9,29 @@
 - [x] **ManualTrigger** — instant trigger, no config required
 - [x] **Delay** — sleeps N seconds/minutes/ms; unit aliases fixed; 1-hour cap
 - [x] **Stopper** — marks workflow end; no external deps
-- [x] **Logger** — logs a message/value; output shown in terminal
-- [x] **SetVariable** — writes to context.variables; readable via {{$vars.name}}
-- [x] **JsonParser** — parses JSON string → object; keys + is_array outputs
+- [x] **Logger** — `ManualTrigger → Logger(message="Hello NexAgent!")` → terminal output: "Hello NexAgent!"
+- [x] **SetVariable** — `ManualTrigger → SetVariable(name="myVar", value="Hello") → Logger(message="{{$vars.myVar}}")` → terminal: "Hello"
+- [x] **JsonParser** — `ManualTrigger → JsonParser(json_string='["a","b","c"]') → Logger(message="{{$node.n2.keys}}")` → parses JSON, keys output logged
+- [x] **DataFormatter** — `ManualTrigger → SetVariable(myText="hello world from nexagent") → DataFormatter(input="{{$vars.myText}}", operation=uppercase) → Logger` → output: "HELLO WORLD FROM NEXAGENT"
+- [x] **IfCondition** — `ManualTrigger → SetVariable(score=85) → IfCondition(left="{{$vars.score}}", operator=">=", right=50) → [T] Logger("PASS") / [F] Logger("FAIL")` → TRUE at 85, FALSE at 20
+- [x] **Loop** — `ManualTrigger → JsonParser('["apple","banana","cherry","date"]') → Loop(items="{{$node.n2.parsed}}") → Logger(message="{{$node.n3.current_item}}")` → 4 iterations: apple, banana, cherry, date
+- [x] **HttpRequest** — `ManualTrigger → HttpRequest(GET, https://jsonplaceholder.typicode.com/todos/1) → Logger(message="{{$node.n2.status_code}}")` → expect 200
+- [x] **Webhook** — `POST /api/v1/workflows/{id}/webhook` with JSON body → triggers workflow; body available as `{{$trigger.body}}`
+- [x] **Schedule** — `Schedule(cron="*/1 * * * *", timezone=UTC) → Logger(message="tick")` → fires every minute; click Execute to register, stop button cancels it
+- [x] **ChatInput** — `ManualTrigger → ChatInput → Logger(message="{{$node.n2.message}}")` → Click Execute → Chat tab opens → type "Hello" → Logger echoes "Hello"
+- [x] **SendEmail** — `ManualTrigger → SendEmail(to, subject, body, smtp_host, smtp_port, smtp_user, smtp_pass) → Logger(message="{{$node.n2.sent}}")` → email arrives, Logger logs `true`; all SMTP fields in node config, no .env fallback
+- [x] **SlackMessage** — `ManualTrigger → SlackMessage(token=xoxb-..., channel=#general, message="Hello") → Logger(message="{{$node.n2.sent}}")` → message appears in Slack; requires `chat:write` scope on bot
+- [x] **TelegramSend** — `ManualTrigger → TelegramSend(token=<botfather-token>, chat_id=<your-id>, message="Hello") → Logger(message="{{$node.n2.sent}}")` → message arrives in Telegram; requires VPN if Telegram is blocked by ISP
+- [x] **Stripe** — `ManualTrigger → Stripe(operation=create_payment_intent, api_key=sk_test_..., amount=1000, currency=usd) → Logger(message="{{$node.n2.payment_id}} | {{$node.n2.status}}")` → Logger shows `pi_xxx | requires_payment_method`
+- [x] **GoogleSheets** — `ManualTrigger → GoogleSheets(operation=read, credentials_json=<paste-json>, spreadsheet_id=<id>, range=Sheet1!A1:Z100) → Logger(message="{{$node.n2.rows_affected}} rows")` → sheet must be shared with service account email
+- [x] **GoogleDrive** — `ManualTrigger → GoogleDrive(operation=list, credentials_json=<paste-json>, folder_id=<id>) → Logger(message="{{$node.n2.operation}}")` → lists files in folder; folder must be shared with service account email
 
 ---
 
-## 🟡 Pure Logic / Control Flow (in progress)
+## 🤖 AI Nodes
 
-- [ ] **IfCondition** — evaluates left op right; true/false branch routing via connection badge
-- [ ] **DataFormatter** — string/number/date transformations; input + operation config
-- [ ] **Loop** — iterates over array; engine runs body per-item; current_item via {{$node.id.current_item}}
-
----
-
-## 🟠 Light External I/O (network, but no auth)
-
-- [ ] **HttpRequest** — GET/POST/PUT/DELETE; headers + body; response_body output
-- [ ] **Webhook** — exposes an inbound HTTP endpoint; body/headers output
-- [ ] **Schedule** — cron-based trigger; timezone support
-- [ ] **ChatInput** — accepts a chat message as workflow input
-
----
-
-## 🔴 Requires Credentials / API Keys
-
-- [ ] **SendEmail** — SMTP or email provider; to/subject/body
-- [ ] **SlackMessage** — Slack Bot Token; channel + message
-- [ ] **TelegramSend** — Bot Token + chat_id
 - [ ] **OpenAI** — OpenAI API key; prompt → response + tokens_used
 - [ ] **ClaudeAI** — Anthropic API key; prompt → response + stop_reason
-
----
-
-## 🟣 Complex Integrations (OAuth2 / payment)
-
-- [ ] **GoogleSheets** — OAuth2 service account; read/write/append
-- [ ] **GoogleDrive** — OAuth2 service account; upload/download/list
-- [ ] **Stripe** — API key; charge/refund/customer ops
 
 ---
 
@@ -57,3 +42,7 @@
 - Type mapping (frontend ↔ backend): `lib/workflow/engine/nodeTypeMapping.ts`
 - Default configs (canvas → workflow): `lib/workflow/utils/NodeMapping.ts`
 - Variable syntax: `{{$trigger.field}}` · `{{$node.nodeId.field}}` · `{{$vars.name}}`
+- ChatInput workflows: clicking Execute auto-opens Chat tab; type to trigger execution
+- Google nodes: service account email is `nexagent@n8n-nexagent.iam.gserviceaccount.com` — share sheets/folders with this address
+- Stripe: `requires_payment_method` is the correct initial status for a new PaymentIntent (not an error)
+- TelegramSend: requires VPN on the backend machine if Telegram is blocked by ISP

@@ -109,4 +109,4 @@ class TelegramSend(BaseNode):
         except NodeExecutionError:
             raise
         except Exception as exc:
-            raise NodeExecutionError(f"Telegram request failed: {exc}", self.definition.type)
+            raise NodeExecutionError(f"Telegram request failed: {type(exc).__name__}: {exc}", self.definition.type)

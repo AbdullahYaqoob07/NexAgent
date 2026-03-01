@@ -9,7 +9,7 @@ class SendEmail(BaseNode):
     definition = NodeDefinition(
         type="SendEmail",
         display_name="Send Email",
-        description="Send an email via SMTP. Requires SMTP credentials configured in the backend.",
+        description="Send an email via SMTP. All credentials must be entered in the node config.",
         category="Actions",
         icon="📧",
         color="#F59E0B",
@@ -37,6 +37,49 @@ class SendEmail(BaseNode):
                 required=True,
                 description="Email body. Supports plain text or HTML.",
                 placeholder="Hi there!",
+            ),
+            NodeParameter(
+                name="smtp_host",
+                display_name="SMTP Host",
+                type=ParameterType.STRING,
+                required=True,
+                default="",
+                description="SMTP server hostname (e.g. smtp.gmail.com).",
+                placeholder="smtp.gmail.com",
+            ),
+            NodeParameter(
+                name="smtp_port",
+                display_name="SMTP Port",
+                type=ParameterType.NUMBER,
+                required=False,
+                default=587,
+                description="SMTP port. 587 for TLS, 465 for SSL.",
+            ),
+            NodeParameter(
+                name="smtp_user",
+                display_name="SMTP Username",
+                type=ParameterType.STRING,
+                required=True,
+                default="",
+                description="SMTP login email address.",
+                placeholder="you@gmail.com",
+            ),
+            NodeParameter(
+                name="smtp_pass",
+                display_name="SMTP Password",
+                type=ParameterType.CREDENTIAL,
+                required=True,
+                description="SMTP password or app password.",
+                is_private=True,
+            ),
+            NodeParameter(
+                name="from_email",
+                display_name="From Email",
+                type=ParameterType.STRING,
+                required=False,
+                default="",
+                description="Sender address. Defaults to SMTP Username if blank.",
+                placeholder="noreply@example.com",
             ),
             NodeParameter(
                 name="from_name",
@@ -75,18 +118,21 @@ class SendEmail(BaseNode):
         from_name = config.get("from_name", "NexAgent")
         is_html = config.get("is_html", False)
 
-        # Get SMTP settings from app config
-        from app.core.config import settings
+        # All SMTP credentials must be provided in the node config — no .env fallback
+        smtp_host = str(config.get("smtp_host") or "").strip()
+        smtp_port = int(config.get("smtp_port") or 587)
+        smtp_user = str(config.get("smtp_user") or "").strip()
+        smtp_pass = str(config.get("smtp_pass") or "").strip()
+        from_email = str(config.get("from_email") or "").strip() or smtp_user
 
-        smtp_host = settings.SMTP_HOST
-        smtp_port = settings.SMTP_PORT
-        smtp_user = settings.SMTP_USERNAME
-        smtp_pass = settings.SMTP_PASSWORD
-        from_email = settings.EMAIL_FROM
-
+        if not smtp_host:
+            raise NodeExecutionError(
+                "SMTP Host is required. Enter it in the node config (e.g. smtp.gmail.com).",
+                self.definition.type,
+            )
         if not smtp_user or not smtp_pass:
             raise NodeExecutionError(
-                "SMTP credentials not configured. Set SMTP_USERNAME and SMTP_PASSWORD in backend .env.",
+                "SMTP Username and Password are required. Enter them in the node config.",
                 self.definition.type,
             )
 
@@ -121,10 +167,7 @@ class SendEmail(BaseNode):
                 "sent_at": self._now_iso(),
                 "to": to,
             }
-        except ImportError:
-            raise NodeExecutionError(
-                "aiosmtplib is not installed. Add 'aiosmtplib' to requirements.txt.",
-                self.definition.type,
-            )
+        except NodeExecutionError:
+            raise
         except Exception as exc:
             raise NodeExecutionError(f"Failed to send email: {exc}", self.definition.type)

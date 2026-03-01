@@ -11,6 +11,7 @@ python-dotenv
 redis
 celery
 httpx
+aiosmtplib
 stripe
 aiohttp
 jinja2

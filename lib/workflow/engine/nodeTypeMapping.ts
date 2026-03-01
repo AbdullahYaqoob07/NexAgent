@@ -66,7 +66,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'Schedule',
     nodeClass: ScheduleTriggerNode,
     category: 'trigger',
-    aliases: ['Schedule Event', 'ScheduleTriggerNode']
+    aliases: ['Schedule Event', 'ScheduleTriggerNode', 'Scheduling', 'ScheduleEvent']
   },
   {
     sidebarType: 'Webhook',
@@ -121,7 +121,7 @@ export const NODE_TYPE_MAPPINGS: NodeTypeMapping[] = [
     engineType: 'HttpRequest',
     nodeClass: HttpNode,
     category: 'action',
-    aliases: ['HTTP Request Action', 'Http', 'API Request', 'HttpNode']
+    aliases: ['HTTP Request Action', 'Http', 'API Request', 'HttpNode', 'HTTPRequest']
   },
   {
     sidebarType: 'Database Query',

@@ -144,137 +144,126 @@ class WorkflowScheduler:
             tz = pytz.UTC
             logger.warning(f"Invalid timezone '{job.timezone}' for job {job_id}, using UTC. Error: {str(e)}")
         
-        # Minimum buffer between executions (1 second) to prevent rapid-fire executions
-        MIN_EXECUTION_BUFFER_SECONDS = 1.0
-        
+        def _make_tz_aware(dt: datetime, tz_obj) -> datetime:
+            """Ensure a datetime is tz-aware using the given pytz timezone."""
+            if dt.tzinfo is None:
+                return tz_obj.localize(dt)
+            return dt
+
+        def _next_cron_run(cron: str, after: datetime, tz_obj) -> datetime:
+            """Return the next tz-aware cron occurrence strictly after `after`."""
+            # Always work with a tz-aware base
+            base = _make_tz_aware(after, tz_obj)
+            cron_obj = croniter(cron, base)
+            candidate = cron_obj.get_next(datetime)
+            candidate = _make_tz_aware(candidate, tz_obj)
+            # Guarantee it's strictly in the future
+            while candidate <= base:
+                candidate = cron_obj.get_next(datetime)
+                candidate = _make_tz_aware(candidate, tz_obj)
+            return candidate
+
         try:
             while not self._shutdown and job.status == SchedulerStatus.RUNNING:
-                # Calculate next run time in the job's timezone
-                if job.next_run is None:
-                    now = datetime.now(tz)
-                    cron_obj = croniter(job.cron, now)
-                    job.next_run = cron_obj.get_next(datetime)
-                    logger.info(f"Job {job_id} next run scheduled for: {job.next_run} (timezone: {job.timezone})")
-                
-                # Wait until next run time (compare timezone-aware datetimes)
-                now = datetime.now(tz)
-                logger.info(f"Job {job_id} checking timing - now: {now}, next_run: {job.next_run}")
-                if job.next_run > now:
-                    wait_seconds = (job.next_run - now).total_seconds()
-                    logger.info(f"Job {job_id} waiting {wait_seconds:.1f} seconds until next run")
-                    if wait_seconds > 0:
+                try:
+                    # ── 1. Determine next_run ──────────────────────────────────
+                    now = _make_tz_aware(datetime.now(tz), tz)
+                    if job.next_run is None:
+                        job.next_run = _next_cron_run(job.cron, now, tz)
+                        logger.info(f"Job {job_id} first next_run: {job.next_run}")
+
+                    # Ensure stored next_run is tz-aware (defensive)
+                    job.next_run = _make_tz_aware(job.next_run, tz)
+
+                    # ── 2. Sleep until next_run ────────────────────────────────
+                    now = _make_tz_aware(datetime.now(tz), tz)
+                    if job.next_run > now:
+                        wait_seconds = (job.next_run - now).total_seconds()
+                        logger.info(f"Job {job_id} sleeping {wait_seconds:.1f}s until {job.next_run}")
                         await asyncio.sleep(wait_seconds)
                     else:
-                        logger.warning(f"Job {job_id} calculated negative wait time: {wait_seconds:.1f}s, skipping sleep")
-                else:
-                    logger.info(f"Job {job_id} next run time {job.next_run} is not in the future compared to now {now}")
-                
-                # Check if still running
-                if job.status != SchedulerStatus.RUNNING:
-                    break
-                
-                # Acquire lock to prevent concurrent executions
-                lock_acquired = False
-                try:
-                    # Simply acquire the lock - this will block if another execution is in progress
-                    # but that's acceptable since we want to serialize executions anyway
-                    await job._execution_lock.acquire()
-                    lock_acquired = True
-                    
-                    # Execute the workflow (lock is now acquired)
-                    logger.info(f"Executing scheduled workflow for job {job_id} with workflow data keys: {list(job.workflow_data.keys()) if job.workflow_data else 'None'}")
-                    job.last_run = datetime.now(tz)
-                    job.run_count += 1
-                    
-                    try:
-                        if job.executor_func:
-                            logger.info(f"Calling executor function for job {job_id}")
-                            # Set flag to indicate this is a scheduled execution
-                            # This prevents ScheduleTrigger nodes from registering new jobs
-                            workflow_data_with_flag = job.workflow_data.copy()
-                            if 'config' not in workflow_data_with_flag:
-                                workflow_data_with_flag['config'] = {}
-                            if 'global_config' not in workflow_data_with_flag:
-                                workflow_data_with_flag['global_config'] = {}
-                            workflow_data_with_flag['global_config']['_is_scheduled_execution'] = True
-                            
-                            execution_result = await job.executor_func(workflow_data_with_flag, {})
-                            # Convert node_logs from snake_case to camelCase for frontend
-                            node_logs = execution_result.get("node_logs", [])
-                            converted_logs = []
-                            for log in node_logs:
-                                converted_log = {
-                                    "nodeId": log.get("node_id", ""),
-                                    "nodeName": log.get("node_name", log.get("node_id", "Unknown")),
-                                    "nodeType": log.get("node_type", "unknown"),
-                                    "status": log.get("status", "unknown"),
-                                    "output": log.get("output"),
-                                    "error": log.get("error"),
-                                    "executionTimeMs": log.get("execution_time_ms", 0),
-                                    "startedAt": log.get("started_at", ""),
-                                    "completedAt": log.get("completed_at", ""),
-                                    "metadata": log.get("metadata", {})
-                                }
-                                converted_logs.append(converted_log)
-                            
-                            # Store execution result for frontend to display
-                            job.last_execution_result = {
-                                "status": execution_result.get("status", "completed"),
-                                "node_logs": converted_logs,
-                                "execution_time_ms": execution_result.get("execution_time_ms", 0),
-                                "error": execution_result.get("error"),
-                                "timestamp": job.last_run.isoformat()
-                            }
-                            logger.info(f"Job {job_id} execution completed: {execution_result.get('status', 'unknown')} with {len(converted_logs)} node logs")
-                        else:
-                            logger.warning(f"No executor function set for job {job_id}")
-                    
-                    except Exception as e:
-                        import traceback
-                        logger.error(f"Error executing scheduled workflow {job_id}: {str(e)}")
-                        logger.error(f"Traceback: {traceback.format_exc()}")
-                        # Continue scheduling even if execution fails
-                    
-                    # Calculate next run time in the job's timezone (outside try/except so it always runs)
-                    if CRONITER_AVAILABLE:
-                        now = datetime.now(tz)
-                        logger.info(f"Job {job_id} calculating next run - current time: {now}, cron: {job.cron}")
-                        cron_obj = croniter(job.cron, now)
-                        next_run_candidate = cron_obj.get_next(datetime)
-                        logger.info(f"Job {job_id} candidate next run: {next_run_candidate}")
-                                            
-                        # Ensure next_run is always in the future with minimum buffer
-                        if next_run_candidate <= now:
-                            # If calculated time is in the past or now, get the next occurrence
-                            logger.warning(f"Job {job_id} candidate time {next_run_candidate} is in past, recalculating")
-                            next_run_candidate = cron_obj.get_next(datetime)
-                            logger.info(f"Job {job_id} recalculated next run: {next_run_candidate}")
-                                            
-                        # Add minimum buffer to prevent rapid executions
-                        min_next_run = now + timedelta(seconds=MIN_EXECUTION_BUFFER_SECONDS)
-                        if next_run_candidate < min_next_run:
-                            job.next_run = min_next_run
-                            logger.info(f"Job {job_id} next run adjusted to minimum buffer: {job.next_run}")
-                        else:
-                            job.next_run = next_run_candidate
-                                            
-                        logger.info(f"Job {job_id} completed. Next run: {job.next_run} (timezone: {job.timezone})")
-                    else:
-                        logger.error("croniter not available, cannot calculate next run")
+                        logger.warning(f"Job {job_id} next_run {job.next_run} is in the past; recalculating")
+                        now = _make_tz_aware(datetime.now(tz), tz)
+                        job.next_run = _next_cron_run(job.cron, now, tz)
+                        wait_seconds = max(1.0, (job.next_run - now).total_seconds())
+                        await asyncio.sleep(wait_seconds)
+
+                    # ── 3. Stop check ──────────────────────────────────────────
+                    if job.status != SchedulerStatus.RUNNING:
                         break
-                finally:
-                    # Always release the lock
-                    if lock_acquired:
+
+                    # ── 4. Execute ─────────────────────────────────────────────
+                    lock_acquired = False
+                    try:
+                        await job._execution_lock.acquire()
+                        lock_acquired = True
+
+                        job.last_run = _make_tz_aware(datetime.now(tz), tz)
+                        job.run_count += 1
+                        logger.info(f"Executing scheduled workflow for job {job_id} (run #{job.run_count})")
+
                         try:
-                            job._execution_lock.release()
-                        except RuntimeError:
-                            # Lock was already released, ignore
-                            pass
-                
+                            if job.executor_func:
+                                workflow_data_with_flag = job.workflow_data.copy()
+                                workflow_data_with_flag.setdefault('global_config', {})['_is_scheduled_execution'] = True
+
+                                execution_result = await job.executor_func(workflow_data_with_flag, {})
+
+                                converted_logs = [
+                                    {
+                                        "nodeId": log.get("node_id", ""),
+                                        "nodeName": log.get("node_name", log.get("node_id", "Unknown")),
+                                        "nodeType": log.get("node_type", "unknown"),
+                                        "status": log.get("status", "unknown"),
+                                        "output": log.get("output"),
+                                        "error": log.get("error"),
+                                        "executionTimeMs": log.get("execution_time_ms", 0),
+                                        "startedAt": log.get("started_at", ""),
+                                        "completedAt": log.get("completed_at", ""),
+                                        "metadata": log.get("metadata", {}),
+                                    }
+                                    for log in execution_result.get("node_logs", [])
+                                ]
+
+                                job.last_execution_result = {
+                                    "status": execution_result.get("status", "completed"),
+                                    "node_logs": converted_logs,
+                                    "execution_time_ms": execution_result.get("execution_time_ms", 0),
+                                    "error": execution_result.get("error"),
+                                    "timestamp": job.last_run.isoformat(),
+                                }
+                                logger.info(f"Job {job_id} execution completed: {execution_result.get('status', 'unknown')}")
+                            else:
+                                logger.warning(f"No executor function set for job {job_id}")
+
+                        except Exception as exec_err:
+                            import traceback as _tb
+                            logger.error(f"Execution error for job {job_id}: {exec_err}\n{_tb.format_exc()}")
+
+                    finally:
+                        if lock_acquired:
+                            try:
+                                job._execution_lock.release()
+                            except RuntimeError:
+                                pass
+
+                    # ── 5. Schedule next run ───────────────────────────────────
+                    now = _make_tz_aware(datetime.now(tz), tz)
+                    job.next_run = _next_cron_run(job.cron, now, tz)
+                    logger.info(f"Job {job_id} next run: {job.next_run}")
+
+                except asyncio.CancelledError:
+                    raise  # propagate to outer handler
+                except Exception as iter_err:
+                    import traceback as _tb
+                    logger.error(f"Scheduler loop iteration error for job {job_id}: {iter_err}\n{_tb.format_exc()}")
+                    # Sleep briefly and retry — do NOT exit the loop
+                    await asyncio.sleep(5)
+
         except asyncio.CancelledError:
             logger.info(f"Scheduler loop for job {job_id} cancelled")
         except Exception as e:
-            logger.error(f"Scheduler loop error for job {job_id}: {str(e)}")
+            logger.error(f"Scheduler loop fatal error for job {job_id}: {str(e)}")
         finally:
             async with self._lock:
                 self.running_tasks.pop(job_id, None)
@@ -308,10 +297,21 @@ class WorkflowScheduler:
         
         logger.info(f"Registering job for workflow {workflow_id} with data keys: {list(workflow_data.keys())}")
         
-        # Check if there are already jobs for this workflow
-        existing_jobs = [job for job in self.jobs.values() if job.workflow_id == workflow_id]
+        # Stop and remove ALL existing jobs for this workflow before registering a new one.
+        # This is the primary guard against duplicate job accumulation — the execute endpoint
+        # also does a stop+pop, but only for the first match; this catches any stragglers.
+        existing_jobs = [job for job in list(self.jobs.values()) if job.workflow_id == workflow_id]
         if existing_jobs:
-            logger.warning(f"Found {len(existing_jobs)} existing jobs for workflow {workflow_id}: {[job.job_id for job in existing_jobs]}")
+            logger.warning(
+                f"Purging {len(existing_jobs)} stale job(s) for workflow {workflow_id} before re-registering: "
+                f"{[j.job_id for j in existing_jobs]}"
+            )
+            for stale in existing_jobs:
+                stale.status = SchedulerStatus.STOPPED  # loop condition guard
+                task = self.running_tasks.pop(stale.job_id, None)
+                if task:
+                    task.cancel()
+                self.jobs.pop(stale.job_id, None)
         
         # Validate required workflow data structure
         required_keys = ['id', 'name', 'nodes', 'connections']
@@ -382,12 +382,20 @@ class WorkflowScheduler:
         """Get job by ID"""
         return self.jobs.get(job_id)
     
+    def get_jobs_by_workflow_id(self, workflow_id: str) -> list:
+        """Return ALL jobs for a workflow_id."""
+        return [job for job in self.jobs.values() if job.workflow_id == workflow_id]
+
     def get_job_by_workflow_id(self, workflow_id: str) -> Optional[ScheduledJob]:
-        """Get job by workflow ID"""
-        for job in self.jobs.values():
-            if job.workflow_id == workflow_id:
+        """Return the active (running) job for a workflow, or the most-recent one."""
+        matches = self.get_jobs_by_workflow_id(workflow_id)
+        if not matches:
+            return None
+        # Prefer a running job so the 'already running' check works correctly
+        for job in matches:
+            if job.status == SchedulerStatus.RUNNING:
                 return job
-        return None
+        return matches[-1]  # fallback: most recently inserted
     
     def remove_job(self, job_id: str):
         """Remove a job"""

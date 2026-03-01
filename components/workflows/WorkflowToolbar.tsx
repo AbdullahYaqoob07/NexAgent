@@ -30,10 +30,11 @@ interface WorkflowToolbarProps {
   workflowName: string;
   onRenameWorkflow: (name: string) => void;
   isScheduled?: boolean;
+  isWebhookListening?: boolean;
 }
 
-export function WorkflowToolbar({ 
-  showAssistant = true, 
+export function WorkflowToolbar({
+  showAssistant = true,
   onToggleAssistant,
   assistantMinimized = false,
   onExecute,
@@ -41,7 +42,8 @@ export function WorkflowToolbar({
   isExecuting = false,
   workflowName,
   onRenameWorkflow,
-  isScheduled = false
+  isScheduled = false,
+  isWebhookListening = false,
 }: WorkflowToolbarProps) {
   const router = useRouter();
 
@@ -142,18 +144,23 @@ export function WorkflowToolbar({
         
         <Button
           onClick={onExecute}
-          disabled={isExecuting && !isScheduled}
+          disabled={isExecuting && !isScheduled && !isWebhookListening}
           size="sm"
           className={`h-8 px-4 gap-2 disabled:opacity-50 ${
-            isScheduled 
-              ? "bg-red-600 hover:bg-red-700 text-white" 
+            isScheduled || isWebhookListening
+              ? "bg-red-600 hover:bg-red-700 text-white"
               : "bg-[#FF6900] hover:bg-[#E55D00] text-white"
           }`}
         >
           {isScheduled ? (
             <>
               <Square className="w-4 h-4" />
-              <span className="text-sm">Stop</span>
+              <span className="text-sm">Stop Scheduler</span>
+            </>
+          ) : isWebhookListening ? (
+            <>
+              <Square className="w-4 h-4" />
+              <span className="text-sm">Stop Listening</span>
             </>
           ) : isExecuting ? (
             <>

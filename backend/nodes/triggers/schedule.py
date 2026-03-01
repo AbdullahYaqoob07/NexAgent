@@ -49,7 +49,8 @@ class Schedule(BaseNode):
         input_data: Dict[str, Any],
         context: Any,
     ) -> Dict[str, Any]:
-        cron = config.get("cron", "0 9 * * *")
+        # Accept "cron" (new field name) or "frequency" (old field name from NodeDefinitions)
+        cron = config.get("cron") or config.get("frequency", "0 9 * * *")
         timezone = config.get("timezone", "UTC")
 
         next_run = self._calculate_next_run(cron, timezone)

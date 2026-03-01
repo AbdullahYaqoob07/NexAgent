@@ -49,8 +49,17 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [isDragging, setIsDragging] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
   const [schedulerStatus, setSchedulerStatus] = useState<{scheduled: boolean; status: string | null}>({scheduled: false, status: null});
-  const [outputTab, setOutputTab] = useState<'output' | 'network'>('output');
+  const [outputTab, setOutputTab] = useState<'output' | 'network' | 'chat'>('output');
   const [lastNodeOutputs, setLastNodeOutputs] = useState<Record<string, Record<string, any>>>({});
+  // Chat tab state
+  const [chatMessages, setChatMessages] = useState<
+    { id: string; role: 'user' | 'assistant'; content: string; time: string }[]
+  >([]);
+  const [chatInput, setChatInput] = useState('');
+  const chatSessionId = useRef(`session_${Date.now()}`);
+  const [showVariablePicker, setShowVariablePicker] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const [networkRequests, setNetworkRequests] = useState<Array<{
     id: string;
     timestamp: string;
@@ -67,6 +76,34 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     nodeName?: string;
   }>>([]);
   
+  // Webhook listening mode state
+  const [isWebhookListening, setIsWebhookListening] = useState(false);
+  const webhookPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const webhookSinceMs = useRef<number>(0);
+  const webhookWorkflowId = useRef<string | null>(null);
+
+  // Track last scheduler execution shown in terminal (raw ISO string from backend)
+  const lastShownScheduledExecRef = useRef<string | null>(null);
+
+  // Stop webhook listening (clears poll interval)
+  const stopWebhookListening = useCallback(() => {
+    if (webhookPollRef.current) {
+      clearInterval(webhookPollRef.current);
+      webhookPollRef.current = null;
+    }
+    setIsWebhookListening(false);
+    setIsExecuting(false);
+    const ts = new Date().toLocaleTimeString();
+    setExecutionOutput(prev => [...prev, `[${ts}] ⏹ Webhook listener stopped.`]);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (webhookPollRef.current) clearInterval(webhookPollRef.current);
+    };
+  }, []);
+
   // Draggable terminal handlers
   const startDrag = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,12 +133,19 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       window.addEventListener('mousemove', onDrag);
       window.addEventListener('mouseup', stopDrag);
     }
-    
+
     return () => {
       window.removeEventListener('mousemove', onDrag);
       window.removeEventListener('mouseup', stopDrag);
     };
   }, [isDragging, onDrag, stopDrag]);
+
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (outputTab === 'chat' && chatScrollRef.current) {
+      chatScrollRef.current.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  }, [chatMessages, outputTab]);
 
   const addToast = (message: string, type: 'info' | 'error' = 'error') => {
     const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -124,20 +168,19 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           // Show execution logs from scheduled runs
           if (response.data.last_execution && response.data.last_execution.timestamp) {
             const lastExec = response.data.last_execution;
-            const execTime = new Date(lastExec.timestamp);
+            const rawTimestamp = lastExec.timestamp; // raw ISO string from backend
+
+            // Skip if we've already displayed this execution
+            if (rawTimestamp === lastShownScheduledExecRef.current) {
+              // Already shown — do nothing
+            } else {
+            lastShownScheduledExecRef.current = rawTimestamp;
+            const execTime = new Date(rawTimestamp);
             const timeStr = execTime.toLocaleTimeString();
-            
-            // Add execution start message if not already shown
+
+            // Add execution start message
             const execStartMsg = `[${timeStr}] Scheduled execution started`;
-            setExecutionOutput(prev => {
-              // Check if we already logged this execution (use timestamp to avoid duplicates)
-              const execTimestamp = execTime.toISOString();
-              const alreadyLogged = prev.some(msg => msg.includes(execTimestamp.substring(0, 19)));
-              if (!alreadyLogged && prev.length < 100) { // Limit to prevent memory issues
-                return [...prev, execStartMsg];
-              }
-              return prev;
-            });
+            setExecutionOutput(prev => prev.length < 200 ? [...prev, execStartMsg] : prev);
             
             // Add node execution logs and track HTTP requests
             if (lastExec.node_logs && Array.isArray(lastExec.node_logs)) {
@@ -157,15 +200,34 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               }
               
               lastExec.node_logs.forEach((log: any) => {
-                const nodeMsg = `[${timeStr}] ${log.status === 'completed' ? '✅' : log.status === 'failed' ? '❌' : '⏳'} ${log.nodeName || log.nodeId}: ${log.status}`;
-                setExecutionOutput(prev => {
-                  const execTimestamp = execTime.toISOString().substring(0, 19);
-                  if (!prev.some(msg => msg.includes(log.nodeId) && msg.includes(execTimestamp)) && prev.length < 100) {
-                    return [...prev, nodeMsg];
-                  }
-                  return prev;
-                });
-                
+                const isSuccess = log.status === 'success' || log.status === 'completed';
+                const isFailed = log.status === 'failed' || log.status === 'error';
+                const nodeEmoji = isSuccess ? '✅' : isFailed ? '❌' : '⏳';
+                const nodeMsg = `[${timeStr}] ${nodeEmoji} ${log.nodeName || log.nodeId}: ${log.status}`;
+                setExecutionOutput(prev => prev.length < 200 ? [...prev, nodeMsg] : prev);
+
+                // Show Logger node message in terminal
+                if (log.nodeType === 'Logger' && log.output?.message) {
+                  const level = (log.output.level || 'info').toUpperCase();
+                  setExecutionOutput(prev => prev.length < 200
+                    ? [...prev, `[${timeStr}] 📝 [${level}] ${log.output.message}`]
+                    : prev);
+                }
+                // Show IfCondition result
+                if (log.nodeType === 'IfCondition' && log.output?.branch !== undefined) {
+                  const br = log.output.branch;
+                  setExecutionOutput(prev => prev.length < 200
+                    ? [...prev, `[${timeStr}] 🔀 Branch: ${br === 'true' ? '✅' : '❌'} ${String(br).toUpperCase()}`]
+                    : prev);
+                }
+                // Show HttpRequest result
+                if ((log.nodeType === 'HttpRequest' || log.nodeType === 'HTTP Request') && log.output?.status_code !== undefined) {
+                  const sc = log.output.status_code;
+                  setExecutionOutput(prev => prev.length < 200
+                    ? [...prev, `[${timeStr}] 🌐 ${log.output.ok ? '✅' : '⚠️'} HTTP ${sc}`]
+                    : prev);
+                }
+
                 // Track HTTP requests for Network tab
                 if (log.nodeType === 'HTTP Request' || log.nodeType === 'HttpNode' || log.nodeType === 'HTTP Request Action') {
                   const output = log.output || {};
@@ -185,32 +247,21 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                       nodeId: log.nodeId,
                       nodeName: log.nodeName
                     };
-                    setNetworkRequests(prev => [...prev.slice(-49), networkReq]); // Keep last 50
+                    setNetworkRequests(prev => [...prev.slice(-49), networkReq]);
                   }
                 }
               });
             }
-            
+
             // Add completion or error message
-            if (lastExec.status === 'completed') {
+            if (lastExec.status === 'completed' || lastExec.status === 'success') {
               const completeMsg = `[${timeStr}] ✅ Execution completed (${lastExec.execution_time_ms}ms)`;
-              setExecutionOutput(prev => {
-                const execTimestamp = execTime.toISOString().substring(0, 19);
-                if (!prev.some(msg => msg.includes('Execution completed') && msg.includes(execTimestamp)) && prev.length < 100) {
-                  return [...prev, completeMsg];
-                }
-                return prev;
-              });
+              setExecutionOutput(prev => prev.length < 200 ? [...prev, completeMsg] : prev);
             } else if (lastExec.error) {
               const errorMsg = `[${timeStr}] ❌ Execution failed: ${lastExec.error}`;
-              setExecutionOutput(prev => {
-                const execTimestamp = execTime.toISOString().substring(0, 19);
-                if (!prev.some(msg => msg.includes('Execution failed') && msg.includes(execTimestamp)) && prev.length < 100) {
-                  return [...prev, errorMsg];
-                }
-                return prev;
-              });
+              setExecutionOutput(prev => prev.length < 200 ? [...prev, errorMsg] : prev);
             }
+            } // end else (new execution)
           }
         }
       } catch (error) {
@@ -235,7 +286,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       
       const hasScheduleNode = workflowData.nodes.some((n: any) => {
         const nodeType = n.type || n.data?.type || '';
-        return nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent';
+        return getNodeMapping(nodeType)?.nodeType === 'schedule_trigger';
       });
       
       // If no schedule node but scheduler is running, stop it
@@ -455,10 +506,20 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
 
   // Execute workflow function
   const executeWorkflow = async () => {
+    // If webhook listener is running, stop it instead
+    if (isWebhookListening) {
+      stopWebhookListening();
+      return;
+    }
+
     if (!canvasRef.current) {
       setExecutionError('Canvas not ready');
       return;
     }
+
+    // Track whether we entered webhook listening mode so the finally block
+    // doesn't prematurely call setIsExecuting(false)
+    let _webhookMode = false;
 
     setIsExecuting(true);
     setExecutionError(null);
@@ -586,6 +647,29 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         return;
       }
 
+      // ── ChatInput interception ──────────────────────────────────────────────
+      // If the workflow has a ChatInput node, don't run through immediately with
+      // an empty message — open the Chat tab so the user can type their input.
+      const hasChatInput = workflowData.nodes.some(
+        (n: any) => (n.type || n.data?.type || '') === 'ChatInput'
+      );
+      if (hasChatInput) {
+        setIsExecuting(false);
+        setOutputTab('chat');
+        // Add a welcome message only on the first open
+        if (chatMessages.length === 0) {
+          const now = new Date().toLocaleTimeString();
+          setChatMessages([{
+            id: `sys_${Date.now()}`,
+            role: 'assistant',
+            content: 'Workflow ready. Type a message below to start.',
+            time: now,
+          }]);
+        }
+        setTimeout(() => chatInputRef.current?.focus(), 100);
+        return;
+      }
+
       // Convert canvas nodes to workflow nodes using node mapping
       const workflowNodes = workflowData.nodes.map((canvasNode: any) => {
         // Ensure we have a valid type
@@ -650,11 +734,10 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       workflow.nodes = workflow.nodes.map((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
-        // Check if this is a Schedule node
-        const isSchedule = nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent' ||
-          (getNodeMapping(nodeType)?.engineType === 'ScheduleTriggerNode' || 
-           getNodeMapping(nodeType)?.sidebarType === 'Schedule');
-        
+        // Check if this is a Schedule node (nodeType alias map now handles 'Scheduling' → 'Schedule')
+        const isSchedule = nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent' || nodeType === 'Scheduling' ||
+          getNodeMapping(nodeType)?.nodeType === 'schedule_trigger';
+
         if (isSchedule && n.config) {
           // Always update timezone to user's local timezone (even if already set)
           // This ensures we use local timezone instead of UTC
@@ -669,20 +752,12 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       
       const hasScheduleNode = workflow.nodes.some((n: any) => {
         const nodeType = n.type || n.sidebarType || '';
-        // Direct type check
-        if (nodeType === 'Schedule' || nodeType === 'ScheduleTriggerNode' || nodeType === 'ScheduleEvent') {
-          return true;
-        }
-        // Check via node mapping
-        const mapping = getNodeMapping(nodeType);
-        if (mapping && (mapping.engineType === 'ScheduleTriggerNode' || mapping.sidebarType === 'Schedule')) {
-          return true;
-        }
-        // Also check for ScheduleEvent
-        if (nodeType === 'ScheduleEvent') {
-          return true;
-        }
-        return false;
+        return getNodeMapping(nodeType)?.nodeType === 'schedule_trigger';
+      });
+
+      const hasWebhookNode = workflow.nodes.some((n: any) => {
+        const nodeType = n.type || n.sidebarType || '';
+        return getNodeMapping(nodeType)?.nodeType === 'http_webhook';
       });
 
       // Save the workflow first (required for backend execution)
@@ -690,6 +765,61 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       // Use the workflow ID after saving (it might have been updated by the backend)
       const savedWorkflowId = workflow.id;
       setCurrentWorkflowId(savedWorkflowId);
+
+      // If it has a Webhook trigger, enter persistent listening mode
+      if (hasWebhookNode && savedWorkflowId) {
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin.replace('3000', '8000') : 'http://localhost:8000';
+        const webhookUrl = `${baseUrl}/api/v1/workflows/${savedWorkflowId}/webhook`;
+        const now = new Date().toLocaleTimeString();
+
+        setExecutionOutput(prev => [
+          ...prev,
+          `[${now}] 🔗 Webhook URL: POST ${webhookUrl}`,
+          `[${now}] 💡 curl -X POST ${webhookUrl} -H "Content-Type: application/json" -d '{"key":"value"}'`,
+          `[${now}] 👂 Listening for incoming webhook requests... (click Execute again to stop)`,
+        ]);
+
+        // Enter listening state — keep isExecuting=true so Execute becomes a Stop button
+        _webhookMode = true;
+        webhookSinceMs.current = Date.now();
+        webhookWorkflowId.current = savedWorkflowId;
+        setIsWebhookListening(true);
+
+        const { default: apiClient } = await import('@/lib/api/client');
+
+        // Poll backend every 3 seconds for new webhook executions
+        webhookPollRef.current = setInterval(async () => {
+          try {
+            const res = await apiClient.get(
+              `/api/v1/workflows/${savedWorkflowId}/webhook/results`,
+              { params: { since_ms: webhookSinceMs.current } }
+            );
+            const { results } = res.data as { results: any[] };
+            if (results && results.length > 0) {
+              // Update since_ms to latest received
+              webhookSinceMs.current = Math.max(...results.map((r: any) => r.received_at_ms));
+              results.forEach((r: any) => {
+                const t = new Date(r.received_at_ms).toLocaleTimeString();
+                const method = r.request?.method || 'POST';
+                const body = r.request?.body ? JSON.stringify(r.request.body).slice(0, 120) : '{}';
+                setExecutionOutput(prev => [
+                  ...prev,
+                  `[${t}] ⚡ Webhook hit! ${method} — body: ${body}`,
+                  ...(r.node_logs || []).map((log: any) =>
+                    `[${t}]   └─ ${log.nodeType || log.nodeId}: ${log.status}${log.error ? ` — ${log.error}` : ''}`
+                  ),
+                  `[${t}]   Execution ${r.execution_id?.slice(0, 8)} — ${r.execution_time_ms ?? '?'}ms`,
+                ]);
+              });
+            }
+          } catch {
+            // Silently ignore poll errors
+          }
+        }, 3000);
+
+        // Don't fall through to normal execution
+        return;
+      }
 
       // If it's a scheduled workflow, use backend API instead of local engine
       if (hasScheduleNode) {
@@ -727,13 +857,19 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             const result = response.data;
           
           if (result.status === 'scheduled') {
-            setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow scheduled successfully!`]);
+            const ts = new Date().toLocaleTimeString();
+            const nextRunLines: string[] = [];
             if (result.summary?.next_run) {
-              // Convert to local timezone for display
               const nextRunDate = new Date(result.summary.next_run);
-              setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Next run: ${nextRunDate.toLocaleString()} (your local time)`]);
+              nextRunLines.push(`[${ts}] Next run: ${nextRunDate.toLocaleString()} (your local time)`);
             }
-            
+            setExecutionOutput(prev => [
+              ...prev,
+              `[${ts}] 🕐 Scheduler started successfully!`,
+              ...nextRunLines,
+              `[${ts}] 🟥 Click "Stop Scheduler" in the toolbar above to stop the scheduler.`,
+            ]);
+
             // Update scheduler status
             setSchedulerStatus({scheduled: true, status: 'running'});
             addToast('Scheduled workflow started successfully', 'info');
@@ -927,6 +1063,21 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               if (nodeType === 'Loop' && log.output?.total !== undefined) {
                 setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔁 Loop: ${log.output.total} items`]);
               }
+              // Show HttpRequest result
+              if ((nodeType === 'HttpRequest' || nodeType === 'HTTP Request' || nodeType === 'HTTPRequest') && log.output?.status_code !== undefined) {
+                const sc = log.output.status_code;
+                const ok = log.output.ok ? '✅' : '⚠️';
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🌐 ${ok} HTTP ${sc} — ${String(log.output.response_text ?? '').slice(0, 80)}`]);
+              }
+              // Show ChatInput result
+              if (nodeType === 'ChatInput' && log.output?.message !== undefined) {
+                const msg = String(log.output.message).slice(0, 80);
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 💬 Chat: "${msg}"`]);
+              }
+              // Show Webhook trigger
+              if (nodeType === 'Webhook' && log.output?.triggered_at !== undefined) {
+                setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] 🔗 Webhook triggered (${log.output.method ?? 'POST'})`]);
+              }
             } else if (log.status === 'failed') {
               setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ ${nodeName}: ${log.error || 'failed'}`]);
             }
@@ -966,7 +1117,12 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         console.log('Workflow execution completed:', execution);
         
         // Add completion message to output
-        setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow execution completed successfully.`]);
+        if (execution.status === 'completed') {
+          setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow execution completed successfully.`]);
+        } else {
+          const errMsg = execution.error || 'Workflow failed — check node logs above for details.';
+          setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ Workflow execution failed: ${errMsg}`]);
+        }
         
         // Set last execution id; remain on canvas (no navigation)
         setActiveNodeId(null);
@@ -985,6 +1141,154 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       setExecutionError(error instanceof Error ? error.message : 'Unknown error occurred');
       // Add error message to output
       setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] FATAL ERROR: ${error instanceof Error ? error.message : 'Unknown error occurred'}`]);
+    } finally {
+      // Don't reset executing state if we entered webhook listening mode
+      if (!_webhookMode) {
+        setIsExecuting(false);
+      }
+    }
+  };
+
+  // ── Chat tab: insert variable pattern at textarea cursor ──────────────────
+  const insertVariable = (pattern: string) => {
+    if (!chatInputRef.current) {
+      setChatInput(prev => prev + pattern);
+      setShowVariablePicker(false);
+      return;
+    }
+    const ta = chatInputRef.current;
+    const start = ta.selectionStart ?? chatInput.length;
+    const end = ta.selectionEnd ?? chatInput.length;
+    const newVal = chatInput.slice(0, start) + pattern + chatInput.slice(end);
+    setChatInput(newVal);
+    setShowVariablePicker(false);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + pattern.length, start + pattern.length);
+    }, 0);
+  };
+
+  // ── Chat tab: send message ────────────────────────────────────────────────
+  const sendChatMessage = async () => {
+    const userText = chatInput.trim();
+    if (!userText || isExecuting || !canvasRef.current) return;
+
+    const now = new Date().toLocaleTimeString();
+    setChatMessages(prev => [...prev, { id: `u_${Date.now()}`, role: 'user', content: userText, time: now }]);
+    setChatInput('');
+    setShowVariablePicker(false);
+    setShowOutputTerminal(true);
+
+    setIsExecuting(true);
+    try {
+      const workflowData = canvasRef.current.getWorkflowData();
+      if (!workflowData || workflowData.nodes.length === 0) throw new Error('No nodes on canvas');
+
+      const workflowNodes = workflowData.nodes.map((canvasNode: any) => {
+        const nodeType = canvasNode.type || canvasNode.data?.type || 'Unknown';
+        const nodeMapping = getNodeMapping(nodeType);
+        const base = nodeMapping
+          ? convertCanvasNodeToWorkflowNode(canvasNode, nodeMapping)
+          : {
+              id: canvasNode.id, type: nodeType, name: canvasNode.name || nodeType,
+              config: canvasNode.config || {}, inputs: [], outputs: [], version: '1.0.0',
+              enabled: true, tags: [], position: { x: canvasNode.x || 0, y: canvasNode.y || 0 },
+              category: 'action' as any, description: '',
+              createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+            };
+        if (nodeType === 'ChatInput') {
+          return { ...base, config: { ...base.config, message: userText, session_id: chatSessionId.current } };
+        }
+        return base;
+      });
+
+      console.log('[Chat] Canvas nodes being sent:', workflowNodes.map(n => ({ id: n.id, type: n.type, config: n.config })));
+
+      const wfId = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
+      const chatWorkflow: Workflow = {
+        id: wfId,
+        name: workflowName || 'Untitled Workflow',
+        description: 'Workflow created in editor',
+        nodes: workflowNodes,
+        connections: workflowData.connections.map((conn: any) => ({
+          id: conn.id,
+          sourceNodeId: conn.from,
+          sourcePortId: conn.fromPoint || 'output',
+          targetNodeId: conn.to,
+          targetPortId: conn.toPoint || 'input',
+          condition: conn.condition,
+          type: 'default' as any,
+          enabled: true,
+        })),
+        settings: { timeout: 300000, retryCount: 3, concurrency: 1, errorHandling: 'stop' },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: '1.0.0',
+      };
+
+      await workflowManager.saveWorkflow(chatWorkflow);
+
+      const execution = await workflowManager.executeWorkflow(
+        chatWorkflow,
+        { message: userText, session_id: chatSessionId.current },
+        { timeout: 30000, errorHandling: 'stop' }
+      );
+
+      // Store node outputs for variable picker
+      if (execution.nodeLogs?.length) {
+        const outputMap: Record<string, Record<string, any>> = {};
+        for (const log of execution.nodeLogs) {
+          const nid = log.nodeId || (log as any).node_id;
+          if (nid && log.output) outputMap[nid] = log.output;
+        }
+        setLastNodeOutputs(outputMap);
+      }
+
+      // Extract bot response: AI nodes first, then Logger nodes, then final output
+      // Skip values with unresolved templates or resolver error markers
+      const hasUnresolved = (s: string) => /\{\{\$/.test(s) || /\[missing:/.test(s);
+      let botContent = '';
+      for (const log of (execution.nodeLogs || [])) {
+        if ((log.nodeType === 'ClaudeAI' || log.nodeType === 'OpenAI') && log.output?.response) {
+          botContent = log.output.response;
+          break;
+        }
+      }
+      if (!botContent) {
+        for (const log of (execution.nodeLogs || [])) {
+          if (log.nodeType === 'Logger' && log.output?.message) {
+            const msg = String(log.output.message);
+            if (!hasUnresolved(msg)) {
+              botContent += (botContent ? '\n' : '') + msg;
+            }
+          }
+        }
+      }
+      // If Logger output had unresolved templates, fall back to ChatInput echo
+      if (!botContent) {
+        for (const log of (execution.nodeLogs || [])) {
+          if (log.nodeType === 'ChatInput' && log.output?.message) {
+            botContent = `[echo] ${log.output.message}`;
+            break;
+          }
+        }
+      }
+      if (!botContent && execution.finalOutput) {
+        const fo = execution.finalOutput;
+        const foStr = typeof fo === 'string' ? fo : JSON.stringify(fo, null, 2);
+        if (!hasUnresolved(foStr)) botContent = foStr;
+      }
+
+      const ts = new Date().toLocaleTimeString();
+      setChatMessages(prev => [...prev, {
+        id: `a_${Date.now()}`, role: 'assistant', content: botContent || '(no output)', time: ts,
+      }]);
+    } catch (err: any) {
+      const ts = new Date().toLocaleTimeString();
+      setChatMessages(prev => [...prev, {
+        id: `a_${Date.now()}`, role: 'assistant',
+        content: `Error: ${err.message || 'Execution failed'}`, time: ts,
+      }]);
     } finally {
       setIsExecuting(false);
     }
@@ -1022,6 +1326,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           onExecute={schedulerStatus.scheduled && schedulerStatus.status === 'running' ? stopScheduler : executeWorkflow}
           isExecuting={isExecuting}
           isScheduled={schedulerStatus.scheduled && schedulerStatus.status === 'running'}
+          isWebhookListening={isWebhookListening}
           onSave={saveCurrentWorkflow}
           workflowName={workflowName}
           onRenameWorkflow={setWorkflowName}
@@ -1111,8 +1416,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                     <button
                       onClick={() => setOutputTab('network')}
                       className={`px-3 py-1 text-xs rounded transition-colors relative ${
-                        outputTab === 'network' 
-                          ? 'bg-[#FF6900] text-white' 
+                        outputTab === 'network'
+                          ? 'bg-[#FF6900] text-white'
                           : 'text-zinc-400 hover:text-white'
                       }`}
                     >
@@ -1120,6 +1425,21 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                       {networkRequests.length > 0 && (
                         <span className="ml-1.5 bg-zinc-700 text-zinc-300 text-[10px] px-1.5 py-0.5 rounded-full">
                           {networkRequests.length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setOutputTab('chat')}
+                      className={`px-3 py-1 text-xs rounded transition-colors relative ${
+                        outputTab === 'chat'
+                          ? 'bg-[#FF6900] text-white'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      Chat
+                      {chatMessages.filter(m => m.role === 'user').length > 0 && (
+                        <span className="ml-1.5 bg-zinc-700 text-zinc-300 text-[10px] px-1.5 py-0.5 rounded-full">
+                          {chatMessages.filter(m => m.role === 'user').length}
                         </span>
                       )}
                     </button>
@@ -1133,11 +1453,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                   </div>
                   <button
                     onClick={() => {
-                      if (outputTab === 'output') {
-                        setExecutionOutput([]);
-                      } else {
-                        setNetworkRequests([]);
-                      }
+                      if (outputTab === 'output') setExecutionOutput([]);
+                      else if (outputTab === 'network') setNetworkRequests([]);
+                      else setChatMessages([]);
                     }}
                     className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded hover:bg-zinc-800 transition-colors"
                   >
@@ -1168,7 +1486,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : outputTab === 'network' ? (
                   <div className="p-3">
                     {networkRequests.length > 0 ? (
                       <div className="space-y-2">
@@ -1244,6 +1562,131 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                         No HTTP requests yet. HTTP Request nodes will appear here.
                       </div>
                     )}
+                  </div>
+                ) : (
+                  /* ── Chat Tab ─────────────────────────────────────────── */
+                  <div className="flex flex-col" style={{ height: `${terminalHeight - 48}px` }}>
+                    {/* Message list */}
+                    <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-3 space-y-3">
+                      {chatMessages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-full text-center gap-2 py-6">
+                          <span className="text-2xl">💬</span>
+                          <p className="text-zinc-400 text-sm">No messages yet.</p>
+                          <p className="text-zinc-600 text-xs">
+                            Add a ChatInput node to your workflow, then type below to chat.
+                          </p>
+                        </div>
+                      ) : (
+                        chatMessages.map((msg) => (
+                          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`flex flex-col gap-1 max-w-[75%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                              <div className={`px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${
+                                msg.role === 'user'
+                                  ? 'bg-[#FF6900]/20 border border-[#FF6900]/30 text-white rounded-tr-sm'
+                                  : 'bg-zinc-800 border border-zinc-700 text-zinc-200 rounded-tl-sm'
+                              }`}>
+                                {msg.role === 'assistant' && <span className="mr-1">🤖</span>}
+                                {msg.content}
+                              </div>
+                              <span className="text-[10px] text-zinc-600">{msg.time}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      {isExecuting && outputTab === 'chat' && (
+                        <div className="flex justify-start">
+                          <div className="bg-zinc-800 border border-zinc-700 rounded-2xl rounded-tl-sm px-3 py-2 text-sm text-zinc-400 flex items-center gap-2">
+                            <span>🤖</span>
+                            <span className="animate-pulse">Thinking...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Variable picker popover */}
+                    {showVariablePicker && (
+                      <div className="mx-3 mb-1 bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden shadow-xl">
+                        <div className="px-3 py-1.5 text-[10px] text-zinc-500 border-b border-zinc-700 uppercase tracking-wider">
+                          Insert Variable
+                        </div>
+                        <div className="max-h-40 overflow-y-auto p-2 space-y-0.5">
+                          {/* Node output variables from last run */}
+                          {Object.entries(lastNodeOutputs).flatMap(([nodeId, outputs]) =>
+                            Object.keys(outputs).map((key) => ({
+                              pattern: `{{$node.${nodeId}.${key}}}`,
+                              preview: String(outputs[key]).slice(0, 40),
+                              label: `${nodeId} · ${key}`,
+                            }))
+                          ).map((item) => (
+                            <button
+                              key={item.pattern}
+                              onClick={() => insertVariable(item.pattern)}
+                              className="w-full text-left px-2 py-1 rounded hover:bg-zinc-700 transition-colors group"
+                            >
+                              <span className="text-[11px] text-[#FF6900] font-mono">{item.pattern}</span>
+                              {item.preview && (
+                                <span className="ml-2 text-[10px] text-zinc-500 group-hover:text-zinc-400 truncate">
+                                  = &quot;{item.preview}&quot;
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                          {/* Quick patterns */}
+                          <div className="pt-1 border-t border-zinc-700 mt-1">
+                            <div className="text-[10px] text-zinc-600 px-2 pb-1">Quick patterns</div>
+                            {[
+                              '{{$trigger.input_data.message}}',
+                              '{{$vars.varName}}',
+                              '{{$trigger.input_data.session_id}}',
+                            ].map((p) => (
+                              <button
+                                key={p}
+                                onClick={() => insertVariable(p)}
+                                className="w-full text-left px-2 py-1 rounded hover:bg-zinc-700 transition-colors"
+                              >
+                                <span className="text-[11px] text-zinc-400 font-mono">{p}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Input area */}
+                    <div className="border-t border-zinc-700 p-2 flex items-end gap-2">
+                      <button
+                        onClick={() => setShowVariablePicker(!showVariablePicker)}
+                        title="Insert variable"
+                        className={`shrink-0 px-2 py-1.5 rounded text-xs font-mono transition-colors ${
+                          showVariablePicker
+                            ? 'bg-[#FF6900]/20 text-[#FF6900] border border-[#FF6900]/40'
+                            : 'bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-700'
+                        }`}
+                      >
+                        {'{ }'}
+                      </button>
+                      <textarea
+                        ref={chatInputRef}
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            sendChatMessage();
+                          }
+                        }}
+                        placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+                        rows={2}
+                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 resize-none focus:outline-none focus:border-[#FF6900]/50 transition-colors"
+                      />
+                      <button
+                        onClick={sendChatMessage}
+                        disabled={isExecuting || !chatInput.trim()}
+                        className="shrink-0 px-3 py-2 bg-[#FF6900] text-white rounded-lg text-sm font-medium hover:bg-[#FF6900]/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        ▶
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
