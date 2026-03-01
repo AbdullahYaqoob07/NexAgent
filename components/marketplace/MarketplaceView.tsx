@@ -2,54 +2,68 @@
 
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, Star, Grid3x3, List, ArrowUpRight, Eye, Plug } from "lucide-react";
+import { Search, Star, Grid3x3, List, ArrowUpRight, Eye, Plug, Users, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { 
-  SiGoogle, 
-  SiGmail, 
-  SiShopify, 
-  SiSlack, 
-  SiOpenai, 
-  SiGooglemaps 
+import {
+  SiGoogle,
+  SiGmail,
+  SiShopify,
+  SiSlack,
+  SiOpenai,
+  SiGooglemaps,
 } from "react-icons/si";
-import { 
-  VscJson 
-} from "react-icons/vsc";
-import { 
-  TbFileExcel 
-} from "react-icons/tb";
+import { VscJson } from "react-icons/vsc";
+import { TbFileExcel } from "react-icons/tb";
 
 export interface NexaItem {
   id: string;
   name: string;
   category: string;
   rating: number;
-  installs: number; // treat as integrations count for now
+  installs: number;
   author: string;
   price: string;
   updated: string;
   description: string;
   image: string;
-  tools?: string[]; // identifiers of tools used (e.g., 'google', 'json', 'excel')
+  tools?: string[];
 }
 
-export default function MarketplaceView({ nexas }: { nexas: NexaItem[] }) {
+interface MarketplaceViewProps {
+  nexas: NexaItem[];
+  communityNexas?: NexaItem[];
+  communityLoading?: boolean;
+  onIntegrate?: (nx: NexaItem) => void;
+}
+
+export default function MarketplaceView({
+  nexas,
+  communityNexas = [],
+  communityLoading = false,
+  onIntegrate,
+}: MarketplaceViewProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [view, setView] = useState<"grid" | "list">("grid");
 
+  const allForCategories = useMemo(() => [...nexas, ...communityNexas], [nexas, communityNexas]);
+
   const categories = useMemo(() => [
     "All",
-    ...Array.from(new Set(nexas.map(n => n.category)))
-  ], [nexas]);
+    ...Array.from(new Set(allForCategories.map((n) => n.category))),
+  ], [allForCategories]);
 
-  const filtered = useMemo(() => {
+  const filterFn = (list: NexaItem[]) => {
     const q = query.trim().toLowerCase();
-    return nexas.filter(n =>
-      (category === "All" || n.category === category) &&
-      (q === "" || n.name.toLowerCase().includes(q) || n.description.toLowerCase().includes(q))
+    return list.filter(
+      (n) =>
+        (category === "All" || n.category === category) &&
+        (q === "" || n.name.toLowerCase().includes(q) || n.description.toLowerCase().includes(q))
     );
-  }, [nexas, query, category]);
+  };
+
+  const filteredFeatured = useMemo(() => filterFn(nexas), [nexas, query, category]);
+  const filteredCommunity = useMemo(() => filterFn(communityNexas), [communityNexas, query, category]);
 
   return (
     <div className="space-y-8">
@@ -90,14 +104,14 @@ export default function MarketplaceView({ nexas }: { nexas: NexaItem[] }) {
         <div className="inline-flex rounded-lg border border-white/15 bg-white/5 overflow-hidden">
           <button
             onClick={() => setView("grid")}
-            className={`px-3 py-2 ${view === 'grid' ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/10'}`}
+            className={`px-3 py-2 ${view === "grid" ? "bg-white/10 text-white" : "text-white/80 hover:bg-white/10"}`}
             title="Grid view"
           >
             <Grid3x3 className="w-4 h-4" />
           </button>
-        <button
+          <button
             onClick={() => setView("list")}
-            className={`px-3 py-2 border-l border-white/15 ${view === 'list' ? 'bg-white/10 text-white' : 'text-white/80 hover:bg-white/10'}`}
+            className={`px-3 py-2 border-l border-white/15 ${view === "list" ? "bg-white/10 text-white" : "text-white/80 hover:bg-white/10"}`}
             title="List view"
           >
             <List className="w-4 h-4" />
@@ -105,155 +119,178 @@ export default function MarketplaceView({ nexas }: { nexas: NexaItem[] }) {
         </div>
       </div>
 
-      {/* Listings */}
-      {view === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((nx) => (
-            <NexaCard key={nx.id} nx={nx} variant="portrait" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map((nx) => (
-            <NexaRow key={nx.id} nx={nx} />
-          ))}
-        </div>
+      {/* Featured / Curated section */}
+      {filteredFeatured.length > 0 && (
+        <section>
+          {view === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredFeatured.map((nx) => (
+                <NexaCard key={nx.id} nx={nx} variant="portrait" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredFeatured.map((nx) => (
+                <NexaRow key={nx.id} nx={nx} />
+              ))}
+            </div>
+          )}
+        </section>
       )}
+
+      {/* Community section */}
+      <section>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-[#FF6900]" />
+            <h2 className="text-white font-semibold text-lg">Community Workflows</h2>
+          </div>
+          <div className="flex-1 h-px bg-zinc-800" />
+          {communityLoading && <Loader2 className="w-4 h-4 text-zinc-500 animate-spin" />}
+        </div>
+
+        {communityLoading ? (
+          <div className="text-zinc-500 text-sm text-center py-6">Loading community workflows...</div>
+        ) : filteredCommunity.length === 0 ? (
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-10 text-center">
+            <Users className="w-10 h-10 text-zinc-600 mx-auto mb-3" />
+            <p className="text-zinc-400 text-sm font-medium">No community workflows yet</p>
+            <p className="text-zinc-600 text-xs mt-1">Be the first to publish your workflow from the editor!</p>
+          </div>
+        ) : view === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCommunity.map((nx) => (
+              <NexaCard key={nx.id} nx={nx} variant="portrait" onIntegrate={onIntegrate} isCommunity />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredCommunity.map((nx) => (
+              <NexaRow key={nx.id} nx={nx} onIntegrate={onIntegrate} isCommunity />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
 function ToolIcon({ keyName, size = 20 }: { keyName: string; size?: number }) {
   const iconProps = { size, className: "flex-shrink-0" };
-  
   switch (keyName) {
-    case 'google':
-      return <SiGoogle {...iconProps} color="#4285F4" />;
-    case 'gmail':
-      return <SiGmail {...iconProps} color="#EA4335" />;
-    case 'json':
-      return <VscJson {...iconProps} color="#F59E0B" />;
-    case 'excel':
-      return <TbFileExcel {...iconProps} color="#107C41" />;
-    case 'maps':
-      return <SiGooglemaps {...iconProps} color="#EA4335" />;
-    case 'shopify':
-      return <SiShopify {...iconProps} color="#95BF47" />;
-    case 'slack':
-      return <SiSlack {...iconProps} color="#4A154B" />;
-    case 'openai':
-      return <SiOpenai {...iconProps} color="#10B981" />;
-    default:
-      return (
-        <div 
-          className="flex-shrink-0 bg-gray-600 rounded" 
-          style={{ width: size, height: size }}
-        />
-      );
+    case "google": return <SiGoogle {...iconProps} color="#4285F4" />;
+    case "gmail": return <SiGmail {...iconProps} color="#EA4335" />;
+    case "json": return <VscJson {...iconProps} color="#F59E0B" />;
+    case "excel": return <TbFileExcel {...iconProps} color="#107C41" />;
+    case "maps": return <SiGooglemaps {...iconProps} color="#EA4335" />;
+    case "shopify": return <SiShopify {...iconProps} color="#95BF47" />;
+    case "slack": return <SiSlack {...iconProps} color="#4A154B" />;
+    case "openai": return <SiOpenai {...iconProps} color="#10B981" />;
+    default: return <div className="flex-shrink-0 bg-gray-600 rounded" style={{ width: size, height: size }} />;
   }
 }
 
 function getGradientForCard(id: string, name: string) {
-  // Define gradients for specific cards
-  if (name.toLowerCase().includes('slack')) {
-    return 'bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500';
-  }
-  if (name.toLowerCase().includes('gpt') || name.toLowerCase().includes('openai')) {
-    return 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500';
-  }
-  if (name.toLowerCase().includes('excel') || name.toLowerCase().includes('sheets')) {
-    return 'bg-gradient-to-br from-green-600 via-green-500 to-emerald-500';
-  }
-  // Default gradients for other cards
+  if (name.toLowerCase().includes("slack")) return "bg-gradient-to-br from-purple-600 via-purple-500 to-pink-500";
+  if (name.toLowerCase().includes("gpt") || name.toLowerCase().includes("openai")) return "bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500";
+  if (name.toLowerCase().includes("excel") || name.toLowerCase().includes("sheets")) return "bg-gradient-to-br from-green-600 via-green-500 to-emerald-500";
   const gradients = [
-    'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-500',
-    'bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500',
-    'bg-gradient-to-br from-pink-600 via-pink-500 to-rose-500',
-    'bg-gradient-to-br from-violet-600 via-violet-500 to-purple-500',
+    "bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-500",
+    "bg-gradient-to-br from-orange-600 via-orange-500 to-amber-500",
+    "bg-gradient-to-br from-pink-600 via-pink-500 to-rose-500",
+    "bg-gradient-to-br from-violet-600 via-violet-500 to-purple-500",
   ];
-  const index = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % gradients.length;
+  const index = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) % gradients.length;
   return gradients[index];
 }
 
 function getImageForCard(name: string, originalImage: string) {
-  // Use local assets for specific cards
-  if (name.toLowerCase().includes('slack')) {
-    return '/assets/dashboard/market-slack.svg';
-  }
-  if (name.toLowerCase().includes('gpt') || name.toLowerCase().includes('openai')) {
-    return '/assets/dashboard/market-gpt.svg';
-  }
-  if (name.toLowerCase().includes('excel') || name.toLowerCase().includes('sheets')) {
-    return '/assets/dashboard/market-excel.svg';
-  }
+  if (name.toLowerCase().includes("slack")) return "/assets/dashboard/market-slack.svg";
+  if (name.toLowerCase().includes("gpt") || name.toLowerCase().includes("openai")) return "/assets/dashboard/market-gpt.svg";
+  if (name.toLowerCase().includes("excel") || name.toLowerCase().includes("sheets")) return "/assets/dashboard/market-excel.svg";
   return originalImage;
 }
 
-function NexaCard({ nx }: { nx: NexaItem; variant: 'portrait' }) {
+function NexaCard({
+  nx,
+  onIntegrate,
+  isCommunity = false,
+}: {
+  nx: NexaItem;
+  variant: "portrait";
+  onIntegrate?: (nx: NexaItem) => void;
+  isCommunity?: boolean;
+}) {
   const imageSource = getImageForCard(nx.name, nx.image);
-  
+  const gradient = getGradientForCard(nx.id, nx.name);
+  const hasImage = imageSource && !imageSource.startsWith("https://");
+  const showGradient = !hasImage || isCommunity;
+
   return (
     <div className="group relative bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all rounded-2xl overflow-hidden flex flex-col hover:-translate-y-1 duration-300">
-      {/* Image header with overlays */}
-      <div className="relative h-48 w-full flex items-center justify-center overflow-hidden">
-        {/* Background image */}
-        <img src={imageSource} alt={nx.name} className="absolute inset-0 w-full h-full object-cover" />
-        {/* Overlay for better text visibility */}
+      <div className={`relative h-48 w-full flex items-center justify-center overflow-hidden ${showGradient ? gradient : ""}`}>
+        {!showGradient && <img src={imageSource} alt={nx.name} className="absolute inset-0 w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
-        
-        {/* Top badges */}
-        <div className="absolute top-3 left-3 z-10">
-          <div className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-            {nx.category}
+        {isCommunity && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-white/10 text-7xl font-bold select-none">{nx.name.slice(0, 1).toUpperCase()}</div>
           </div>
+        )}
+
+        <div className="absolute top-3 left-3 z-10">
+          <div className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">{nx.category}</div>
         </div>
         <div className="absolute top-3 right-3 z-10">
-          <div className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-            {nx.price}
-          </div>
+          <div className={`px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-xs font-medium ${nx.price === 'Free' ? 'text-green-400' : 'text-white'}`}>{nx.price}</div>
         </div>
-        
-        {/* Bottom rating badge */}
+
         <div className="absolute bottom-3 left-3 z-10">
           <div className="inline-flex items-center gap-3 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white">
             <div className="inline-flex items-center gap-1">
               <Star className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-sm font-medium">{nx.rating}</span>
+              <span className="text-sm font-medium">{nx.rating || "New"}</span>
             </div>
             <span className="text-white/40">•</span>
             <div className="inline-flex items-center gap-1.5">
               <Plug className="w-3.5 h-3.5" />
-              <span className="text-xs">{nx.installs.toLocaleString()} integrations</span>
+              <span className="text-xs">{nx.installs.toLocaleString()} installs</span>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Card body */}
+
       <div className="p-5 flex-1 flex flex-col bg-[#0a0806]">
-        {/* Title and description */}
         <h3 className="text-white font-semibold text-lg line-clamp-1 mb-2" title={nx.name}>{nx.name}</h3>
         <p className="text-white/60 text-sm line-clamp-2 mb-4">{nx.description}</p>
-        
-        {/* Author and actions */}
+
         <div className="mt-auto pt-4 border-t border-white/5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-full bg-white/10 text-[11px] text-white/70 flex items-center justify-center font-medium">
-              {nx.author.split(' ').map(w => w[0]).join('').slice(0,2)}
+              {nx.author.split(" ").map((w) => w[0]).join("").slice(0, 2)}
             </div>
             <div className="text-xs text-white/60">{nx.author}</div>
           </div>
-          
-          {/* Action buttons */}
+
           <div className="flex items-center gap-2">
             <button className="flex-1 px-3 py-2 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center justify-center gap-1.5 transition-colors">
               <Eye className="w-4 h-4" /> Preview
             </button>
-            <Link href={`/marketplace/integrate/${nx.id}`} className="flex-1">
-              <button className="w-full px-3 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center justify-center gap-1.5 transition-colors">
+            {isCommunity && onIntegrate ? (
+              <button
+                onClick={() => onIntegrate(nx)}
+                className="flex-1 px-3 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center justify-center gap-1.5 transition-colors"
+              >
                 <Plug className="w-4 h-4" /> Integrate
               </button>
-            </Link>
+            ) : (
+              <Link href={`/marketplace/integrate/${nx.id}`} className="flex-1">
+                <button className="w-full px-3 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center justify-center gap-1.5 transition-colors">
+                  <Plug className="w-4 h-4" /> Integrate
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -261,36 +298,35 @@ function NexaCard({ nx }: { nx: NexaItem; variant: 'portrait' }) {
   );
 }
 
-function NexaRow({ nx }: { nx: NexaItem }) {
+function NexaRow({
+  nx,
+  onIntegrate,
+  isCommunity = false,
+}: {
+  nx: NexaItem;
+  onIntegrate?: (nx: NexaItem) => void;
+  isCommunity?: boolean;
+}) {
   const imageSource = getImageForCard(nx.name, nx.image);
-  
+  const gradient = getGradientForCard(nx.id, nx.name);
+  const showGradient = isCommunity || !imageSource;
+
   return (
     <div className="group bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 hover:border-white/10 rounded-2xl overflow-hidden transition-all flex gap-4">
-      {/* Image with overlays */}
-      <div className="relative w-64 shrink-0 overflow-hidden">
-        {/* Background image */}
-        <img src={imageSource} alt={nx.name} className="w-full h-full object-cover" />
-        {/* Overlay */}
+      <div className={`relative w-64 shrink-0 overflow-hidden ${showGradient ? gradient : ""}`}>
+        {!showGradient && <img src={imageSource} alt={nx.name} className="w-full h-full object-cover" />}
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
-        
-        {/* Top badges */}
         <div className="absolute top-3 left-3 z-10">
-          <div className="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-            {nx.category}
-          </div>
+          <div className="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">{nx.category}</div>
         </div>
         <div className="absolute top-3 right-3 z-10">
-          <div className="px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-            {nx.price}
-          </div>
+          <div className={`px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-xs font-medium ${nx.price === 'Free' ? 'text-green-400' : 'text-white'}`}>{nx.price}</div>
         </div>
-        
-        {/* Bottom rating badge */}
         <div className="absolute bottom-3 left-3 z-10">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm text-white">
             <div className="inline-flex items-center gap-1">
               <Star className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-xs font-medium">{nx.rating}</span>
+              <span className="text-xs font-medium">{nx.rating || "New"}</span>
             </div>
             <span className="text-white/40 text-xs">•</span>
             <div className="inline-flex items-center gap-1">
@@ -300,34 +336,37 @@ function NexaRow({ nx }: { nx: NexaItem }) {
           </div>
         </div>
       </div>
-      
-      {/* Content */}
+
       <div className="flex-1 min-w-0 flex flex-col p-5">
-        {/* Title and description */}
         <div className="flex-1">
-          <h3 className="text-white font-semibold text-lg truncate mb-2" title={nx.name}>{nx.name}</h3>
+          <h3 className="text-white font-semibold text-lg truncate mb-2">{nx.name}</h3>
           <p className="text-white/60 text-sm line-clamp-2">{nx.description}</p>
         </div>
-        
-        {/* Footer */}
         <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-white/10 text-[11px] text-white/70 flex items-center justify-center font-medium">
-              {nx.author.split(' ').map(w => w[0]).join('').slice(0,2)}
+              {nx.author.split(" ").map((w) => w[0]).join("").slice(0, 2)}
             </div>
             <div className="text-xs text-white/60">{nx.author}</div>
           </div>
-          
-          {/* Action buttons */}
           <div className="flex items-center gap-2">
             <button className="px-4 py-2 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center gap-1.5 transition-colors">
               <Eye className="w-4 h-4" /> Preview
             </button>
-            <Link href={`/marketplace/integrate/${nx.id}`}>
-              <button className="px-4 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center gap-1.5 transition-colors">
+            {isCommunity && onIntegrate ? (
+              <button
+                onClick={() => onIntegrate(nx)}
+                className="px-4 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center gap-1.5 transition-colors"
+              >
                 <Plug className="w-4 h-4" /> Integrate
               </button>
-            </Link>
+            ) : (
+              <Link href={`/marketplace/integrate/${nx.id}`}>
+                <button className="px-4 py-2 text-sm rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/90 text-white inline-flex items-center gap-1.5 transition-colors">
+                  <Plug className="w-4 h-4" /> Integrate
+                </button>
+              </Link>
+            )}
           </div>
         </div>
       </div>

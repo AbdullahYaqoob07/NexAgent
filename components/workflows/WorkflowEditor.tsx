@@ -12,7 +12,10 @@ import { WorkflowWalkthrough } from "./WorkflowWalkthrough";
 import { Workflow } from "@/lib/workflow/types";
 import { workflowManager } from "@/lib/workflow/WorkflowManager";
 import { getNodeMapping, convertCanvasNodeToWorkflowNode } from "@/lib/workflow/utils/NodeMapping";
-import { Terminal, X } from "lucide-react";
+import { getNodeDefinitionByType } from "@/lib/workflow/NodeDefinitions";
+import { marketplaceService } from "@/lib/api/services/marketplaceService";
+import { useAuth } from "@/lib/AuthContext";
+import { Terminal, X, Download, AlertCircle, Store, Check } from "lucide-react";
 interface WorkflowEditorProps {
   workflowId?: string;
 }
@@ -20,6 +23,7 @@ interface WorkflowEditorProps {
 export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowId: undefined }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user: authUser } = useAuth();
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [assistantMinimized, setAssistantMinimized] = useState(false);
@@ -50,6 +54,15 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const terminalRef = useRef<HTMLDivElement>(null);
   const [schedulerStatus, setSchedulerStatus] = useState<{scheduled: boolean; status: string | null}>({scheduled: false, status: null});
   const [outputTab, setOutputTab] = useState<'output' | 'network' | 'chat'>('output');
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportIncludeSecrets, setExportIncludeSecrets] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishForm, setPublishForm] = useState({ name: '', description: '', category: 'Automation', plan: 'free' as 'free' | 'paid', price: '' });
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+  // Publish eligibility: true only after a clean execution, cleared on any canvas change
+  const [canPublish, setCanPublish] = useState(false);
+  const lastSuccessSnapshotRef = useRef<string | null>(null);
   const [lastNodeOutputs, setLastNodeOutputs] = useState<Record<string, Record<string, any>>>({});
   // Chat tab state
   const [chatMessages, setChatMessages] = useState<
@@ -480,6 +493,199 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     }
   };
 
+  // Open export modal
+  const handleExport = useCallback(() => {
+    if (!canvasRef.current) { addToast('Canvas not ready', 'error'); return; }
+    const workflowData = canvasRef.current.getWorkflowData();
+    if (!workflowData || workflowData.nodes.length === 0) { addToast('No nodes to export', 'info'); return; }
+    setShowExportModal(true);
+  }, []);
+
+  // Perform the actual export after modal confirmation
+  const performExport = useCallback((includeSecrets: boolean) => {
+    if (!canvasRef.current) return;
+    const workflowData = canvasRef.current.getWorkflowData();
+    if (!workflowData) return;
+
+    const isSecretField = (nodeType: string, fieldName: string): boolean => {
+      if (fieldName === 'credentials_json') return true;
+      const def = getNodeDefinitionByType(nodeType);
+      if (!def) return false;
+      const field = def.fields.find((f) => f.name === fieldName);
+      return field?.type === 'password';
+    };
+
+    const exportJson = {
+      id: currentWorkflowId || `workflow_${Date.now()}`,
+      name: workflowName || 'Untitled Workflow',
+      nodes: workflowData.nodes.map((n: any) => {
+        const nodeType = n.type || n.data?.type || '';
+        const rawConfig: Record<string, any> = n.config || n.data?.config || {};
+        const sanitizedConfig: Record<string, any> = {};
+        for (const [key, val] of Object.entries(rawConfig)) {
+          if (!includeSecrets && isSecretField(nodeType, key)) {
+            sanitizedConfig[key] = `<YOUR_${key.toUpperCase()}>`;
+          } else {
+            sanitizedConfig[key] = val;
+          }
+        }
+        return {
+          id: n.id,
+          type: nodeType,
+          name: n.name || n.data?.name || nodeType,
+          config: sanitizedConfig,
+          position: { x: n.x || 0, y: n.y || 0 },
+        };
+      }),
+      connections: workflowData.connections.map((c: any) => ({
+        id: c.id,
+        from: c.from,
+        to: c.to,
+        condition: c.condition ?? null,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(exportJson, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(workflowName || 'workflow').replace(/\s+/g, '_')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setShowExportModal(false);
+    addToast('Workflow exported', 'info');
+  }, [currentWorkflowId, workflowName]);
+
+  // Open publish modal (pre-fill name from workflow)
+  const handlePublish = useCallback(() => {
+    if (!canvasRef.current) { addToast('Canvas not ready', 'error'); return; }
+    const workflowData = canvasRef.current.getWorkflowData();
+    if (!workflowData || workflowData.nodes.length === 0) { addToast('No nodes to publish', 'info'); return; }
+    setPublishForm(f => ({ ...f, name: workflowName || '', description: '' }));
+    setPublishSuccess(false);
+    setShowPublishModal(true);
+  }, [workflowName]);
+
+  // Perform the publish — always strips secrets
+  const performPublish = useCallback(async () => {
+    if (!publishForm.name.trim()) { addToast('Please enter a name', 'error'); return; }
+    if (!publishForm.description.trim()) { addToast('Please enter a description', 'error'); return; }
+    if (publishForm.plan === 'paid' && (!publishForm.price || isNaN(Number(publishForm.price)) || Number(publishForm.price) <= 0)) {
+      addToast('Please enter a valid price', 'error'); return;
+    }
+    if (!canvasRef.current) return;
+    const workflowData = canvasRef.current.getWorkflowData();
+    if (!workflowData) return;
+
+    setIsPublishing(true);
+    try {
+      const isSecretField = (nodeType: string, fieldName: string): boolean => {
+        if (fieldName === 'credentials_json') return true;
+        const def = getNodeDefinitionByType(nodeType);
+        if (!def) return false;
+        return def.fields.find((f) => f.name === fieldName)?.type === 'password';
+      };
+
+      const sanitizedNodes = workflowData.nodes.map((n: any) => {
+        const nodeType = n.type || n.data?.type || '';
+        const rawConfig: Record<string, any> = n.config || n.data?.config || {};
+        const sanitizedConfig: Record<string, any> = {};
+        for (const [key, val] of Object.entries(rawConfig)) {
+          sanitizedConfig[key] = isSecretField(nodeType, key) ? `<YOUR_${key.toUpperCase()}>` : val;
+        }
+        return { id: n.id, type: nodeType, name: n.name || n.data?.name || nodeType, config: sanitizedConfig, position: { x: n.x || 0, y: n.y || 0 } };
+      });
+
+      const workflowJson = {
+        id: currentWorkflowId || `workflow_${Date.now()}`,
+        name: publishForm.name.trim(),
+        nodes: sanitizedNodes,
+        connections: workflowData.connections.map((c: any) => ({ id: c.id, from: c.from, to: c.to, condition: c.condition ?? null })),
+      };
+
+      await marketplaceService.publishNexa({
+        authorId: authUser?.uid || 'anonymous',
+        authorName: authUser?.displayName || authUser?.email || 'Anonymous',
+        name: publishForm.name.trim(),
+        description: publishForm.description.trim(),
+        category: publishForm.category,
+        pricingModel: publishForm.plan,
+        price: publishForm.plan === 'paid' ? Number(publishForm.price) : 0,
+        workflowData: workflowJson,
+      });
+
+      setPublishSuccess(true);
+    } catch (err: any) {
+      addToast(`Publish failed: ${err.message || 'Unknown error'}`, 'error');
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [publishForm, authUser, currentWorkflowId]);
+
+  // Import workflow from a JSON file
+  const handleImport = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const json = JSON.parse(ev.target?.result as string);
+          const nodes: any[] = json.nodes || [];
+          const connections: any[] = json.connections || [];
+
+          const canvasNodes = nodes.map((n: any) => ({
+            id: n.id,
+            type: n.type,
+            name: n.name || n.type,
+            x: n.position?.x ?? 100,
+            y: n.position?.y ?? 100,
+            config: n.config || {},
+            data: { type: n.type, name: n.name || n.type, config: n.config || {} },
+          }));
+
+          const canvasConnections = connections.map((c: any) => ({
+            id: c.id || `conn_${Math.random().toString(36).slice(2)}`,
+            from: c.from || c.sourceNodeId,
+            to: c.to || c.targetNodeId,
+            fromPoint: c.fromPoint || c.sourcePortId || 'output',
+            toPoint: c.toPoint || c.targetPortId || 'input',
+            condition: c.condition ?? null,
+          }));
+
+          if (!canvasRef.current) {
+            addToast('Canvas not ready', 'error');
+            return;
+          }
+          canvasRef.current.loadWorkflow({ nodes: canvasNodes, connections: canvasConnections });
+          if (json.name) setWorkflowName(json.name);
+          if (json.id) setCurrentWorkflowId(json.id);
+          addToast(`Workflow "${json.name || 'Untitled'}" imported`, 'info');
+        } catch {
+          addToast('Invalid JSON file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }, []);
+
+  // Poll for canvas changes and clear canPublish if anything changed since last clean run
+  useEffect(() => {
+    if (!canPublish) return;
+    const interval = setInterval(() => {
+      if (!canvasRef.current || !lastSuccessSnapshotRef.current) return;
+      const current = JSON.stringify(canvasRef.current.getWorkflowData());
+      if (current !== lastSuccessSnapshotRef.current) {
+        setCanPublish(false);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [canPublish]);
+
   // Stop scheduler function
   const stopScheduler = async () => {
     if (!currentWorkflowId) {
@@ -525,6 +731,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
     setExecutionError(null);
     setExecutionOutput([]); // Clear previous output
     setShowOutputTerminal(true); // Show terminal on execute
+    setCanPublish(false); // Clear publish eligibility at start of every run
+    lastSuccessSnapshotRef.current = null;
 
     try {
       // Get workflow data from canvas
@@ -1119,6 +1327,11 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         // Add completion message to output
         if (execution.status === 'completed') {
           setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow execution completed successfully.`]);
+          // Snapshot the canvas state so any subsequent change will clear canPublish
+          if (canvasRef.current) {
+            lastSuccessSnapshotRef.current = JSON.stringify(canvasRef.current.getWorkflowData());
+            setCanPublish(true);
+          }
         } else {
           const errMsg = execution.error || 'Workflow failed — check node logs above for details.';
           setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ❌ Workflow execution failed: ${errMsg}`]);
@@ -1319,7 +1532,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Toolbar */}
-        <WorkflowToolbar 
+        <WorkflowToolbar
           showAssistant={showAssistant}
           onToggleAssistant={() => setShowAssistant(!showAssistant)}
           assistantMinimized={assistantMinimized}
@@ -1328,6 +1541,10 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           isScheduled={schedulerStatus.scheduled && schedulerStatus.status === 'running'}
           isWebhookListening={isWebhookListening}
           onSave={saveCurrentWorkflow}
+          onExport={handleExport}
+          onImport={handleImport}
+          onPublish={canPublish ? handlePublish : undefined}
+          canPublish={canPublish}
           workflowName={workflowName}
           onRenameWorkflow={setWorkflowName}
         />
@@ -1726,6 +1943,210 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                 <p className="text-sm">{executionError}</p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#FF6900]/10 border border-[#FF6900]/20 flex items-center justify-center">
+                <Download className="w-5 h-5 text-[#FF6900]" />
+              </div>
+              <div>
+                <h2 className="text-white font-semibold text-base">Export Workflow</h2>
+                <p className="text-zinc-400 text-xs">Download as JSON — can be re-imported later</p>
+              </div>
+            </div>
+
+            {/* Info box */}
+            <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-4 space-y-1">
+              <div className="flex justify-between text-xs text-zinc-400">
+                <span>Workflow name</span>
+                <span className="text-white font-medium">{workflowName || 'Untitled Workflow'}</span>
+              </div>
+              <div className="flex justify-between text-xs text-zinc-400">
+                <span>Format</span>
+                <span className="text-white font-medium">NexAgent JSON v1</span>
+              </div>
+            </div>
+
+            {/* Secret keys toggle */}
+            <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white text-sm font-medium">Include secret keys</p>
+                  <p className="text-zinc-400 text-xs mt-0.5">API keys, passwords, service account JSON</p>
+                </div>
+                <button
+                  onClick={() => setExportIncludeSecrets(v => !v)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${exportIncludeSecrets ? 'bg-[#FF6900]' : 'bg-zinc-600'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${exportIncludeSecrets ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+              {!exportIncludeSecrets && (
+                <div className="mt-3 flex items-start gap-2 text-xs text-amber-400/80">
+                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>Secret fields will be replaced with placeholders like <code className="bg-zinc-700 px-1 rounded">&lt;YOUR_API_KEY&gt;</code>. Fill them in after importing.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="flex-1 h-9 rounded-xl border border-zinc-700 text-zinc-300 text-sm hover:bg-zinc-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => performExport(exportIncludeSecrets)}
+                className="flex-1 h-9 rounded-xl bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish to Marketplace Modal */}
+      {showPublishModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
+            {publishSuccess ? (
+              /* Success state */
+              <div className="text-center py-4 space-y-4">
+                <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/20 flex items-center justify-center mx-auto">
+                  <Check className="w-7 h-7 text-green-400" />
+                </div>
+                <h2 className="text-white font-semibold text-lg">Published Successfully!</h2>
+                <p className="text-zinc-400 text-sm">Your workflow is now live in the NexAgent Marketplace.</p>
+                <button
+                  onClick={() => setShowPublishModal(false)}
+                  className="w-full h-9 rounded-xl bg-[#FF6900] hover:bg-[#E55D00] text-white text-sm font-medium transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#FF6900]/10 border border-[#FF6900]/20 flex items-center justify-center">
+                    <Store className="w-5 h-5 text-[#FF6900]" />
+                  </div>
+                  <div>
+                    <h2 className="text-white font-semibold text-base">Publish to Marketplace</h2>
+                    <p className="text-zinc-400 text-xs">Secret keys are never included in published workflows</p>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Workflow Name <span className="text-red-400">*</span></label>
+                  <input
+                    value={publishForm.name}
+                    onChange={(e) => setPublishForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="e.g. Email Outreach Automator"
+                    className="w-full h-9 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-[#FF6900]"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Description <span className="text-red-400">*</span></label>
+                  <textarea
+                    value={publishForm.description}
+                    onChange={(e) => setPublishForm(f => ({ ...f, description: e.target.value }))}
+                    placeholder="Describe what this workflow does and how it helps..."
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-[#FF6900] resize-none"
+                  />
+                </div>
+
+                {/* Category + Plan row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-400">Category</label>
+                    <select
+                      value={publishForm.category}
+                      onChange={(e) => setPublishForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full h-9 px-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-[#FF6900]"
+                    >
+                      {['Automation', 'AI & ML', 'Data Processing', 'Communication', 'E-commerce', 'Finance', 'Productivity', 'Other'].map(c => (
+                        <option key={c} value={c} className="bg-zinc-900">{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-400">Pricing Plan</label>
+                    <div className="flex gap-2">
+                      {(['free', 'paid'] as const).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setPublishForm(f => ({ ...f, plan: p }))}
+                          className={`flex-1 h-9 rounded-lg text-sm font-medium border transition-colors capitalize ${
+                            publishForm.plan === p
+                              ? 'bg-[#FF6900] border-[#FF6900] text-white'
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Price field (only when paid) */}
+                {publishForm.plan === 'paid' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-zinc-400">Price (USD) <span className="text-red-400">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm">$</span>
+                      <input
+                        type="number"
+                        min="0.99"
+                        step="0.01"
+                        value={publishForm.price}
+                        onChange={(e) => setPublishForm(f => ({ ...f, price: e.target.value }))}
+                        placeholder="9.99"
+                        className="w-full h-9 pl-7 pr-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm placeholder:text-zinc-500 focus:outline-none focus:border-[#FF6900]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => setShowPublishModal(false)}
+                    className="flex-1 h-9 rounded-xl border border-zinc-700 text-zinc-300 text-sm hover:bg-zinc-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={performPublish}
+                    disabled={isPublishing}
+                    className="flex-1 h-9 rounded-xl bg-[#FF6900] hover:bg-[#E55D00] disabled:opacity-50 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {isPublishing ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Store className="w-4 h-4" />
+                    )}
+                    {isPublishing ? 'Publishing...' : 'Publish'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
