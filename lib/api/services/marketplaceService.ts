@@ -7,6 +7,10 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  doc,
+  deleteDoc,
+  updateDoc,
+  Timestamp,
 } from 'firebase/firestore';
 
 export interface MarketplaceNexa {
@@ -73,13 +77,19 @@ export const marketplaceService = {
   },
 
   async getPurchasedNexas(userId: string): Promise<MarketplacePurchase[]> {
+    // Only filter by userId — no orderBy on a different field (avoids composite index requirement)
     const q = query(
       collection(db, 'marketplace_purchases'),
-      where('userId', '==', userId),
-      orderBy('purchasedAt', 'desc')
+      where('userId', '==', userId)
     );
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as MarketplacePurchase));
+    const results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as MarketplacePurchase));
+    // Sort client-side: newest first
+    return results.sort((a, b) => {
+      const ta = (a.purchasedAt as Timestamp)?.toMillis?.() ?? 0;
+      const tb = (b.purchasedAt as Timestamp)?.toMillis?.() ?? 0;
+      return tb - ta;
+    });
   },
 
   async hasAlreadyPurchased(userId: string, nexaId: string): Promise<boolean> {
@@ -90,5 +100,32 @@ export const marketplaceService = {
     );
     const snapshot = await getDocs(q);
     return !snapshot.empty;
+  },
+
+  async getMyNexas(authorId: string): Promise<MarketplaceNexa[]> {
+    // Only filter by authorId — no orderBy on a different field (avoids composite index requirement)
+    const q = query(
+      collection(db, 'marketplace_nexas'),
+      where('authorId', '==', authorId)
+    );
+    const snapshot = await getDocs(q);
+    const results = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as MarketplaceNexa));
+    // Sort client-side: newest first
+    return results.sort((a, b) => {
+      const ta = (a.publishedAt as Timestamp)?.toMillis?.() ?? 0;
+      const tb = (b.publishedAt as Timestamp)?.toMillis?.() ?? 0;
+      return tb - ta;
+    });
+  },
+
+  async updateNexa(
+    nexaId: string,
+    data: Partial<Pick<MarketplaceNexa, 'name' | 'description' | 'category' | 'pricingModel' | 'price'>>
+  ): Promise<void> {
+    await updateDoc(doc(db, 'marketplace_nexas', nexaId), data);
+  },
+
+  async deleteNexa(nexaId: string): Promise<void> {
+    await deleteDoc(doc(db, 'marketplace_nexas', nexaId));
   },
 };
