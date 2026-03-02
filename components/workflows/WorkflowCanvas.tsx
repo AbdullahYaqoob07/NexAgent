@@ -704,11 +704,11 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
   };
 
   const getNodeIcon = (node: WorkflowNode): string | null => {
-    if (node.icon) {
-      return node.icon;
-    }
     const registryNode = getNodeByType(node.type);
-    return registryNode?.icon ?? null;
+    if (registryNode?.icon) {
+      return registryNode.icon;
+    }
+    return node.icon || null;
   };
 
   return (

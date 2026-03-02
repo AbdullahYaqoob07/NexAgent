@@ -259,10 +259,46 @@ export function getAllCategories(): string[] {
 }
 
 /**
- * Get node by type
+ * Type aliases: maps backend/alternate type names to frontend NodeRegistry types
+ */
+const TYPE_ALIASES: Record<string, string> = {
+  'IfCondition': 'Conditional',
+  'If Condition': 'Conditional',
+  'JsonParser': 'JSONParser',
+  'JSON Parse': 'JSONParser',
+  'Manual Trigger': 'ManualTrigger',
+  'Slack Message': 'SlackMessage',
+  'SetVariable': 'Variable Setter',
+  'Schedule': 'Scheduling',
+  'SendEmail': 'EmailSend',
+  'Email Send': 'EmailSend',
+  'HttpRequest': 'HTTPRequest',
+  'HTTP Request': 'HTTPRequest',
+};
+
+/**
+ * Get node by type - handles type aliases from backend
  */
 export function getNodeByType(type: string): NodeDef | undefined {
-  return HARDCODED_NODES.find((node) => node.type === type);
+  if (!type) return undefined;
+
+  let node = HARDCODED_NODES.find((n) => n.type === type);
+  if (node) return node;
+
+  const aliasedType = TYPE_ALIASES[type];
+  if (aliasedType) {
+    node = HARDCODED_NODES.find((n) => n.type === aliasedType);
+    if (node) return node;
+  }
+
+  const lowerType = type.toLowerCase();
+  node = HARDCODED_NODES.find((n) => n.type.toLowerCase() === lowerType);
+  if (node) return node;
+
+  node = HARDCODED_NODES.find((n) => n.name === type);
+  if (node) return node;
+
+  return undefined;
 }
 
 /**

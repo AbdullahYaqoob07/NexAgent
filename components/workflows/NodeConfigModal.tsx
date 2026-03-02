@@ -37,7 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { WorkflowNode, NodeCategory } from '@/lib/workflow/types';
 
-import { getBrandLogo } from '@/lib/workflow/utils/BrandLogoMapping';
+import { getNodeByType } from '@/lib/workflow/NodeRegistry';
 import { getNodeDefinitionByType } from '@/lib/workflow/NodeDefinitions';
 import VariableReferencePicker from './VariableReferencePicker';
 import CredentialPicker from './CredentialPicker';
@@ -128,18 +128,18 @@ export default function NodeConfigModal({
               e.preventDefault();
               e.dataTransfer.dropEffect = 'copy';
               const input = e.currentTarget.querySelector('input');
-              input?.classList.add('ring-2', 'ring-purple-500');
+              input?.classList.add('ring-2', 'ring-[#FF6900]');
             }}
             onDragLeave={(e) => {
               if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                 const input = e.currentTarget.querySelector('input');
-                input?.classList.remove('ring-2', 'ring-purple-500');
+                input?.classList.remove('ring-2', 'ring-[#FF6900]');
               }
             }}
             onDrop={(e) => {
               e.preventDefault();
               const input = e.currentTarget.querySelector('input');
-              input?.classList.remove('ring-2', 'ring-purple-500');
+              input?.classList.remove('ring-2', 'ring-[#FF6900]');
               const varPath = e.dataTransfer.getData('text/plain');
               if (varPath) onChange((value || '') + varPath);
             }}
@@ -224,18 +224,18 @@ export default function NodeConfigModal({
               e.dataTransfer.dropEffect = 'copy';
               // Highlight the textarea
               const ta = e.currentTarget.querySelector('textarea');
-              ta?.classList.add('ring-2', 'ring-purple-500');
+              ta?.classList.add('ring-2', 'ring-[#FF6900]');
             }}
             onDragLeave={(e) => {
               if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                 const ta = e.currentTarget.querySelector('textarea');
-                ta?.classList.remove('ring-2', 'ring-purple-500');
+                ta?.classList.remove('ring-2', 'ring-[#FF6900]');
               }
             }}
             onDrop={(e) => {
               e.preventDefault();
               const ta = e.currentTarget.querySelector('textarea');
-              ta?.classList.remove('ring-2', 'ring-purple-500');
+              ta?.classList.remove('ring-2', 'ring-[#FF6900]');
               const varPath = e.dataTransfer.getData('text/plain');
               if (varPath) onChange((value || '') + varPath);
             }}
@@ -293,9 +293,9 @@ export default function NodeConfigModal({
             <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-slate-700">
+            <SelectContent className="bg-slate-900 border-slate-700 text-white">
               {options?.map((option: any) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value} className="text-white hover:bg-slate-800 focus:bg-slate-800 focus:text-white">
                   {option.label}
                 </SelectItem>
               ))}
@@ -586,7 +586,8 @@ export default function NodeConfigModal({
   if (!isOpen || !node) return null;
 
   const nodeDoc = nodeDefinition || { description: `Configure the ${node.type} node`, examples: [], fields: {} };
-  const BrandLogo = getBrandLogo(node.type);
+  const nodeInfo = getNodeByType(node.type);
+  const nodeIcon = nodeInfo?.icon || '⚙️';
 
   // Validate email format
   const isValidEmail = (email: string): boolean => {
@@ -936,7 +937,7 @@ export default function NodeConfigModal({
         <div className="w-72 border-r border-slate-700 bg-slate-900 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-slate-700">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Braces className="w-4 h-4 text-purple-400" />
+              <Braces className="w-4 h-4 text-[#FF6900]" />
               Previous Nodes
             </h3>
           </div>
@@ -949,6 +950,8 @@ export default function NodeConfigModal({
                 // Get node definition to show its outputs
                 const nodeDef = getNodeDefinitionByType(n.type);
                 const nodeLabel = n.label || nodeDef?.name || n.type;
+                const prevNodeInfo = getNodeByType(n.type);
+                const prevNodeIcon = prevNodeInfo?.icon || '⚙️';
                 
                 // Get output definitions
                 const outputs = nodeDef?.outputs;
@@ -1015,8 +1018,8 @@ export default function NodeConfigModal({
                         >
                           <div className="flex items-center gap-1.5">
                             <span className="text-gray-500">{getTypeIcon(field.type)}</span>
-                            <code className="text-purple-300 flex-1 truncate font-mono">{field.name}</code>
-                            <span className="text-gray-600 text-xs bg-slate-700 px-1.5 py-0.5 rounded whitespace-nowrap">{field.type}</span>
+                            <code className="text-white flex-1 truncate font-mono">{field.name}</code>
+                            <span className="text-gray-400 text-xs bg-slate-700 px-1.5 py-0.5 rounded whitespace-nowrap">{field.type}</span>
                           </div>
                           {/* Show actual value preview for scalar fields */}
                           {actualValue != null && typeof actualValue !== 'object' && (
@@ -1042,7 +1045,13 @@ export default function NodeConfigModal({
                   <div key={n.id} className="space-y-2">
                     {/* Node Header */}
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-purple-500/20 flex items-center justify-center text-purple-400 text-xs font-bold">⚡</div>
+                      <div className="w-6 h-6 rounded bg-[#FF6900]/20 flex items-center justify-center text-white">
+                        {prevNodeIcon.startsWith('/') || prevNodeIcon.startsWith('http') ? (
+                          <img src={prevNodeIcon} alt={n.type} className="w-4 h-4 object-contain" />
+                        ) : (
+                          <span className="text-sm">{prevNodeIcon}</span>
+                        )}
+                      </div>
                       <p className="text-xs font-semibold text-white truncate flex-1">{nodeLabel}</p>
                     </div>
                     
@@ -1054,7 +1063,7 @@ export default function NodeConfigModal({
                             {/* Output type label */}
                             {Object.keys(outputs).length > 1 && (
                               <div className="flex items-center gap-1.5 px-2 py-1">
-                                <span className="text-xs font-semibold text-slate-400">
+                                <span className="text-xs font-semibold text-white">
                                   {output.displayName || outputKey}
                                 </span>
                                 {output.dynamic && (
@@ -1097,11 +1106,15 @@ export default function NodeConfigModal({
         {/* Clean Header */}
         <div className="border-b border-slate-700 px-8 py-6 flex items-center justify-between bg-slate-950">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-[#8B5CF6] flex items-center justify-center text-white text-lg">
-              ⚙️
+            <div className="w-10 h-10 rounded-lg bg-[#FF6900] flex items-center justify-center text-white">
+              {nodeIcon.startsWith('/') || nodeIcon.startsWith('http') ? (
+                <img src={nodeIcon} alt={node?.type || ''} className="w-6 h-6 object-contain" />
+              ) : (
+                <span className="text-2xl">{nodeIcon}</span>
+              )}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">{node?.label || node?.type}</h2>
+              <h2 className="text-xl font-bold text-white">{node?.name || node?.type}</h2>
               <p className="text-sm text-gray-400 mt-1">{getNodeDefinitionByType(node?.type || '')?.description || 'Configure node'}</p>
             </div>
           </div>
@@ -1122,9 +1135,9 @@ export default function NodeConfigModal({
                 <label className="block text-sm font-semibold text-white mb-3">Node Name</label>
                 <input
                   type="text"
-                  value={config.name || node?.label || ''}
+                  value={config.name || node?.name || ''}
                   onChange={(e) => setConfig({...config, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#8B5CF6]/30 bg-slate-800"
+                  className="w-full px-4 py-3 border border-slate-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#FF6900]/30 bg-slate-800"
                   placeholder="Enter node name"
                 />
               </div>
@@ -1235,7 +1248,7 @@ export default function NodeConfigModal({
             )}
             <Button
               onClick={handleSave}
-              className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+              className="bg-[#FF6900] hover:bg-[#E55D00] text-white"
             >
               <Save className="w-4 h-4 mr-2" />
               Save Configuration
@@ -1301,7 +1314,7 @@ export default function NodeConfigModal({
                 Cancel
               </Button>
               <Button
-                className="flex-1 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white"
+                className="flex-1 bg-[#FF6900] hover:bg-[#E55D00] text-white"
                 disabled={!newFieldName.trim()}
                 onClick={() => {
                   if (newFieldName.trim()) {
