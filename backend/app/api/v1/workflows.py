@@ -14,6 +14,7 @@ from typing import Optional, Any, Dict, List
 from datetime import datetime
 import logging
 import uuid
+from app.api.v1.credentials import load_user_credentials_sync
 
 # Ensure backend/ is in sys.path so that nodes.* and executor.* are importable
 import sys
@@ -631,6 +632,7 @@ async def execute_workflow(
                         workflow_id=workflow_id,
                         user_id=user_id,
                         variables=workflow.get("variables") or {},
+                        user_credentials=load_user_credentials_sync(user_id),
                     )
                     raw_c = wf_data.get("connections") or wf_data.get("edges", [])
                     sched_nodes = [WorkflowNode(**n) for n in wf_data.get("nodes", [])]
@@ -682,6 +684,7 @@ async def execute_workflow(
             workflow_id=workflow_id,
             user_id=user_id,
             variables=workflow.get("variables") or {},
+            user_credentials=load_user_credentials_sync(user_id),
         )
 
         engine = get_engine()
@@ -774,11 +777,13 @@ async def receive_webhook(
         wf_connections = [WorkflowConnection.from_dict(c) for c in raw_connections]
         wf_def = WorkflowDefinition(id=workflow_id, name=workflow.get("name", ""), nodes=wf_nodes, connections=wf_connections)
 
+        _webhook_uid = workflow.get("userId", "")
         context = ExecutionContext(
             execution_id=str(uuid.uuid4()),
             workflow_id=workflow_id,
-            user_id=workflow.get("userId", ""),
+            user_id=_webhook_uid,
             variables=workflow.get("variables") or {},
+            user_credentials=load_user_credentials_sync(_webhook_uid),
         )
 
         initial_input = {

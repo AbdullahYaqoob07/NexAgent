@@ -24,7 +24,8 @@ import {
   FileText,
   Trash2,
   Plus,
-  Braces
+  Braces,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +40,7 @@ import { WorkflowNode, NodeCategory } from '@/lib/workflow/types';
 import { getBrandLogo } from '@/lib/workflow/utils/BrandLogoMapping';
 import { getNodeDefinitionByType } from '@/lib/workflow/NodeDefinitions';
 import VariableReferencePicker from './VariableReferencePicker';
+import CredentialPicker from './CredentialPicker';
 
 interface NodeConfigModalProps {
   node: WorkflowNode | null;
@@ -93,6 +95,8 @@ export default function NodeConfigModal({
   const [newFieldName, setNewFieldName] = useState('');
   const [showVariablePicker, setShowVariablePicker] = useState(false);
   const [variablePickerField, setVariablePickerField] = useState('');
+  const [showCredentialPicker, setShowCredentialPicker] = useState(false);
+  const [credentialPickerField, setCredentialPickerField] = useState('');
   const [workflowData, setWorkflowData] = useState<{nodes: any[]; connections: any[]}>({nodes: [], connections: []});
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string>('');
 
@@ -116,7 +120,6 @@ export default function NodeConfigModal({
       case 'text':
       case 'email':
       case 'url':
-      case 'password':
       case 'string':
         return (
           <div
@@ -142,7 +145,7 @@ export default function NodeConfigModal({
             }}
           >
             <Input
-              type={type === 'password' ? 'password' : 'text'}
+              type="text"
               value={value || ''}
               onChange={(e) => onChange(e.target.value)}
               onFocus={() => setVariablePickerField(fieldName || '')}
@@ -163,6 +166,54 @@ export default function NodeConfigModal({
             )}
           </div>
         );
+
+      case 'password': {
+        const isCredRef = typeof value === 'string' && value.startsWith('{{$creds.');
+        const credName = isCredRef
+          ? value.replace('{{$creds.', '').replace('}}', '').trim()
+          : null;
+        return (
+          <div className="space-y-1.5">
+            {/* If a credential reference is selected, show a badge instead of input */}
+            {isCredRef ? (
+              <div className="flex items-center gap-2 h-9 px-3 rounded-md bg-slate-800 border border-[#FF6900]/40">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#FF6900] shrink-0" />
+                <span className="text-[#FF6900] text-xs font-mono flex-1 truncate">{credName}</span>
+                <button
+                  type="button"
+                  onClick={() => onChange('')}
+                  className="text-zinc-500 hover:text-white text-xs"
+                  title="Clear credential"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Input
+                  type="password"
+                  value={value || ''}
+                  onChange={(e) => onChange(e.target.value)}
+                  placeholder={placeholder || 'Enter value or pick a saved credential →'}
+                  className="bg-slate-800 border-slate-700 text-white pr-10 transition-all"
+                />
+              </div>
+            )}
+            {/* Credential picker button */}
+            {fieldName && (
+              <button
+                type="button"
+                onClick={() => { setCredentialPickerField(fieldName); setShowCredentialPicker(true); }}
+                className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-[#FF6900] transition-colors"
+                title="Pick a saved credential"
+              >
+                <ShieldCheck className="w-3 h-3" />
+                {isCredRef ? 'Change credential' : 'Use saved credential'}
+              </button>
+            )}
+          </div>
+        );
+      }
         
       case 'textarea':
         return (
@@ -1375,6 +1426,18 @@ export default function NodeConfigModal({
             }));
           }}
           onClose={() => setShowVariablePicker(false)}
+        />
+      )}
+
+      {/* Credential Picker */}
+      {showCredentialPicker && (
+        <CredentialPicker
+          currentValue={config[credentialPickerField]}
+          onSelect={(credName) => {
+            setConfig(prev => ({ ...prev, [credentialPickerField]: `{{$creds.${credName}}}` }));
+            setShowCredentialPicker(false);
+          }}
+          onClose={() => setShowCredentialPicker(false)}
         />
       )}
     </div>

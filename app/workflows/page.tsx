@@ -6,11 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-<<<<<<< HEAD
-import { Workflow, Plus, Trash2, Edit, Clock, Share } from 'lucide-react';
-=======
-import { Workflow, Plus, Trash2, Edit, Clock, ShoppingBag, Store } from 'lucide-react';
->>>>>>> a0cb728e9c5837b64c69e0a983c8d318f3fe4a7d
+import { Workflow, Plus, Trash2, Edit, Clock, Share, ShoppingBag, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { workflowService } from '@/lib/api/services/workflowService';
@@ -148,50 +144,6 @@ export default function WorkflowsPage() {
           </button>
         </div>
 
-<<<<<<< HEAD
-        {hasWorkflows ? (
-          /* Show workflow cards with marketplace design */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workflows.map((workflow) => (
-              <div key={workflow.id} className="group relative bg-[#1a1410]/80 backdrop-blur-xl border border-white/5 hover:border-white/10 transition-all rounded-2xl overflow-hidden flex flex-col hover:-translate-y-1 duration-300">
-                {/* Image header with overlays */}
-                <div className="relative h-48 w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#FF6900]/20 to-[#1a0c02]">
-                  {/* Overlay for better text visibility */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
-                  
-                  {/* Top left status badge */}
-                  <div className="absolute top-3 left-3 z-10">
-                    <div className={`px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium ${
-                      workflow.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                      workflow.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {workflow.status}
-                    </div>
-                  </div>
-                  
-                  {/* Top right: nodes badge and Share button */}
-                  <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-                    <div className="px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-                      {workflow.nodes?.length || 0} nodes
-                    </div>
-                    <Link href="/marketplace">
-                      <button 
-                        className="p-2 rounded-lg bg-black/60 backdrop-blur-sm text-white hover:bg-black/80 transition-colors"
-                        title="Share to marketplace"
-                      >
-                        <Share className="w-4 h-4" />
-                      </button>
-                    </Link>
-                  </div>
-                  
-                  {/* Bottom stats badge */}
-                  <div className="absolute bottom-3 left-3 z-10">
-                    <div className="inline-flex items-center gap-3 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm text-white">
-                      <div className="inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span className="text-sm font-medium">{workflow.executionCount || 0} runs</span>
-=======
         {/* ── My Workflows tab ── */}
         {activeTab === 'mine' && (
           <>
@@ -255,7 +207,6 @@ export default function WorkflowsPage() {
                             </button>
                           </Link>
                         </div>
->>>>>>> a0cb728e9c5837b64c69e0a983c8d318f3fe4a7d
                       </div>
                     </div>
                   </div>
@@ -305,24 +256,6 @@ export default function WorkflowsPage() {
                         </div>
                       </div>
                     </div>
-<<<<<<< HEAD
-                    
-                    {/* Action buttons - only Edit and Delete */}
-                    <div className="flex items-center gap-2">
-                      <Link href={`/workflows/editor?id=${workflow.id}`} className="flex-1">
-                        <button className="w-full px-4 py-2.5 text-sm rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 inline-flex items-center justify-center gap-2 transition-colors">
-                          <Edit className="w-4 h-4" /> Edit
-                        </button>
-                      </Link>
-                      <div className="flex-1">
-                        <button 
-                          onClick={() => handleDelete(workflow.id)}
-                          disabled={deleting === workflow.id}
-                          className="w-full px-4 py-2.5 text-sm rounded-lg border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete
-                        </button>
-=======
                     <div className="p-5 flex-1 flex flex-col bg-[#0a0806]">
                       <h3 className="text-white font-semibold text-lg line-clamp-1 mb-2">{purchase.nexaName}</h3>
                       <p className="text-white/60 text-sm line-clamp-2 mb-4">{purchase.description || 'No description'}</p>
@@ -345,7 +278,6 @@ export default function WorkflowsPage() {
                         >
                           Download Workflow JSON
                         </button>
->>>>>>> a0cb728e9c5837b64c69e0a983c8d318f3fe4a7d
                       </div>
                     </div>
                   </div>

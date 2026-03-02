@@ -1,5 +1,5 @@
 """
-Variable resolver — substitutes {{$trigger.x}}, {{$node.id.x}}, {{$vars.x}}
+Variable resolver — substitutes {{$trigger.x}}, {{$node.id.x}}, {{$vars.x}}, {{$creds.x}}
 patterns anywhere in a node's config dict/list/string before execution.
 
 Syntax:
@@ -7,6 +7,7 @@ Syntax:
     {{$node.nodeId.field}}          → context.node_outputs["nodeId"]["field"]
     {{$node.nodeId.nested.path}}    → deep dot-notation access
     {{$vars.varName}}               → context.variables["varName"]
+    {{$creds.credName}}             → context.user_credentials["credName"] (decrypted)
 """
 
 from __future__ import annotations
@@ -82,6 +83,16 @@ def _resolve_expression(expr: str, context: "ExecutionContext") -> Any:
             return None
         var_name = ".".join(parts[1:])
         return context.variables.get(var_name)
+
+    if prefix == "$creds":
+        if len(parts) < 2:
+            return None
+        cred_name = ".".join(parts[1:])
+        value = context.user_credentials.get(cred_name)
+        if value is None:
+            logger.warning("$creds resolver miss — '%s' not found in user credentials", cred_name)
+            return f"[missing credential: {cred_name}]"
+        return value
 
     # Unknown prefix — return original
     logger.warning("Unknown variable prefix in expression: %s", expr)
