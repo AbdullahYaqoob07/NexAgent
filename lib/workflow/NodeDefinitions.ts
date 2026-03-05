@@ -1766,6 +1766,35 @@ export const NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       },
     },
   },
+
+  Stopper: {
+    type: 'Stopper',
+    name: 'Stopper',
+    description: 'Stop the workflow at this point and log a completion message',
+    category: 'Logic',
+    fields: [
+      {
+        name: 'message',
+        label: 'Stop Message',
+        type: 'text',
+        placeholder: 'Workflow completed successfully',
+        description: 'Optional message to log when stopping',
+        required: false,
+        group: 'Settings',
+      },
+    ],
+    outputs: {
+      main: {
+        type: 'main',
+        displayName: 'Main Output',
+        fields: [
+          { name: 'stopped', path: ['stopped'], type: 'boolean', description: 'Always true' },
+          { name: 'message', path: ['message'], type: 'string', description: 'Stop message' },
+          { name: 'timestamp', path: ['timestamp'], type: 'date', description: 'When the workflow was stopped' },
+        ],
+      },
+    },
+  },
 };
 
 // Aliases: maps alternate type strings (engine types, sidebarTypes) → canonical NODE_DEFINITIONS key
@@ -1794,6 +1823,16 @@ const TYPE_ALIASES: Record<string, string> = {
   'HttpNode': 'HTTPRequest',
   // ChatInput
   'Chat Input': 'ChatInput',
+  // SendEmail (backend sends 'SendEmail', frontend key is 'EmailSend')
+  'SendEmail': 'EmailSend',
+  'Email Send': 'EmailSend',
+  'EmailSend': 'EmailSend',
+  // Slack
+  'Slack Message': 'SlackMessage',
+  // Telegram
+  'Telegram Send': 'TelegramSend',
+  // ManualTrigger
+  'Manual Trigger': 'ManualTrigger',
 };
 
 /**

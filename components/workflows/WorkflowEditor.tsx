@@ -1918,6 +1918,79 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             onClose={() => setShowAssistant(false)}
             isMinimized={assistantMinimized}
             onToggleMinimize={() => setAssistantMinimized(!assistantMinimized)}
+            getCurrentCanvasState={() => canvasRef.current?.getWorkflowData() || null}
+            onApplyWorkflowPatch={(patchObj) => {
+              if (!canvasRef.current || !patchObj) return;
+
+              const rawNodes: any[] = patchObj.nodes || [];
+              const rawConns: any[] = patchObj.connections || [];
+
+              // Build a topological level map so nodes flow left → right
+              const inDegree: Record<string, number> = {};
+              const outEdges: Record<string, string[]> = {};
+              rawNodes.forEach((n: any) => { inDegree[n.id] = 0; outEdges[n.id] = []; });
+              rawConns.forEach((c: any) => {
+                if (c.to in inDegree) inDegree[c.to]++;
+                if (c.from in outEdges) outEdges[c.from].push(c.to);
+              });
+
+              // BFS level assignment
+              const levels: Record<string, number> = {};
+              const queue: string[] = rawNodes
+                .filter((n: any) => inDegree[n.id] === 0)
+                .map((n: any) => n.id);
+              queue.forEach(id => { levels[id] = 0; });
+              let qi = 0;
+              while (qi < queue.length) {
+                const cur = queue[qi++];
+                (outEdges[cur] || []).forEach(next => {
+                  levels[next] = Math.max(levels[next] ?? 0, (levels[cur] ?? 0) + 1);
+                  if (!queue.includes(next)) queue.push(next);
+                });
+              }
+              rawNodes.forEach((n: any) => { if (!(n.id in levels)) levels[n.id] = 0; });
+
+              // Group by level for y-stacking
+              const byLevel: Record<number, string[]> = {};
+              rawNodes.forEach((n: any) => {
+                const l = levels[n.id] ?? 0;
+                if (!byLevel[l]) byLevel[l] = [];
+                byLevel[l].push(n.id);
+              });
+
+              const H_GAP = 160;
+              const V_GAP = 120;
+              const START_X = 80;
+              const START_Y = 80;
+              const positions: Record<string, { x: number; y: number }> = {};
+              Object.entries(byLevel).forEach(([lvl, ids]) => {
+                const col = parseInt(lvl);
+                ids.forEach((id, idx) => {
+                  positions[id] = { x: START_X + col * H_GAP, y: START_Y + idx * V_GAP };
+                });
+              });
+
+              const nodes = rawNodes.map((n: any, i: number) => ({
+                id: n.id,
+                type: n.type,
+                name: n.name || n.type,
+                x: positions[n.id]?.x ?? START_X + i * H_GAP,
+                y: positions[n.id]?.y ?? START_Y,
+                config: n.config || {},
+              }));
+
+              const connections = rawConns.map((c: any, i: number) => ({
+                id: c.id || `conn_${c.from}_${c.to}_${i}`,
+                from: c.from,
+                to: c.to,
+                fromPoint: 'output',
+                toPoint: 'input' as const,
+                ...(c.condition != null && { condition: c.condition as 'true' | 'false' }),
+              }));
+
+              canvasRef.current.loadWorkflow({ nodes, connections });
+              addToast('Workflow updated by Assistant!', 'info');
+            }}
           />
         </div>
       )}

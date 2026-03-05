@@ -274,6 +274,15 @@ const TYPE_ALIASES: Record<string, string> = {
   'Email Send': 'EmailSend',
   'HttpRequest': 'HTTPRequest',
   'HTTP Request': 'HTTPRequest',
+  'Telegram Send': 'TelegramSend',
+  'Slack Message': 'SlackMessage',
+  'Manual Trigger': 'ManualTrigger',
+  'DataFormatter': 'DataFormatter',
+  'Data Formatter': 'DataFormatter',
+  'Groq AI': 'Groq',
+  'Claude AI': 'ClaudeAI',
+  'Google Sheets': 'GoogleSheets',
+  'Google Drive': 'GoogleDrive',
 };
 
 /**
