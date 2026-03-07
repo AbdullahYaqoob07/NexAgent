@@ -47,6 +47,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<string[]>([]);
   const [toasts, setToasts] = useState<{ id: string; message: string; type?: 'info' | 'error' }[]>([]);
+  // Snapshot used for undo after chatbot applies a workflow patch
+  const [pendingPatch, setPendingPatch] = useState<{ snapshot: ReturnType<WorkflowCanvasRef['getWorkflowData']>; label: string } | null>(null);
   const [showOutputTerminal, setShowOutputTerminal] = useState(false);
   const [executionOutput, setExecutionOutput] = useState<string[]>([]);
   const [terminalHeight, setTerminalHeight] = useState(256); // Default height: 256px
@@ -1922,6 +1924,9 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             onApplyWorkflowPatch={(patchObj) => {
               if (!canvasRef.current || !patchObj) return;
 
+              // Snapshot current canvas so user can undo
+              const snapshot = canvasRef.current.getWorkflowData();
+
               const rawNodes: any[] = patchObj.nodes || [];
               const rawConns: any[] = patchObj.connections || [];
 
@@ -1989,7 +1994,10 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               }));
 
               canvasRef.current.loadWorkflow({ nodes, connections });
-              addToast('Workflow updated by Assistant!', 'info');
+
+              // Show keep/undo bar
+              const label = `${rawNodes.length} node${rawNodes.length !== 1 ? 's' : ''} added by Assistant`;
+              setPendingPatch({ snapshot, label });
             }}
           />
         </div>
@@ -2225,6 +2233,31 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       )}
 
       {/* Tour removed */}
+
+      {/* Assistant keep/undo bar */}
+      {pendingPatch && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl bg-zinc-900 border border-zinc-700 text-sm text-white">
+          <span className="text-zinc-300">✦ {pendingPatch.label}</span>
+          <button
+            onClick={() => setPendingPatch(null)}
+            className="px-3 py-1.5 rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/80 text-white font-medium transition-colors"
+          >
+            Keep
+          </button>
+          <button
+            onClick={() => {
+              if (canvasRef.current && pendingPatch) {
+                canvasRef.current.loadWorkflow(pendingPatch.snapshot);
+              }
+              setPendingPatch(null);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-200 font-medium transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
       {/* Toasts (top-right) */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(t => (
