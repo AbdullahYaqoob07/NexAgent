@@ -135,7 +135,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "Variable Setter",
     category: "Data",
     description: "Store a value in a workflow variable for later use",
-    icon: "📌",
+    icon: "/assets/canvas/variable-1.png",
     isStartNode: false,
   },
   {
@@ -211,7 +211,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "Groq",
     category: "AI/ML",
     description: "Ultra-fast free AI inference (Llama 3, Mixtral, Gemma)",
-    icon: "/assets/canvas/groq.svg",
+    icon: "/assets/canvas/groq-4.svg",
     isStartNode: false,
   },
   {
@@ -220,7 +220,7 @@ export const HARDCODED_NODES: NodeDef[] = [
     type: "Gemini",
     category: "AI/ML",
     description: "Google Gemini AI models — free tier via AI Studio",
-    icon: "/assets/canvas/gemini.svg",
+    icon: "/assets/canvas/gemini-2.svg",
     isStartNode: false,
   },
 

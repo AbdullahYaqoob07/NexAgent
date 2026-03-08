@@ -6,8 +6,16 @@ import { useAuth } from '@/lib/AuthContext';
 import { useBackendAuth } from '@/lib/contexts/BackendAuthContext';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Workflow, Plus, Trash2, Edit, Clock, Share, ShoppingBag, Store } from 'lucide-react';
+import { Workflow, Plus, Trash2, Edit, Clock, Share, ShoppingBag, Store, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import Link from 'next/link';
 import { workflowService } from '@/lib/api/services/workflowService';
 import { formatDistanceToNow } from 'date-fns';
@@ -24,6 +32,8 @@ export default function WorkflowsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('mine');
   const [purchases, setPurchases] = useState<MarketplacePurchase[]>([]);
   const [purchasesLoading, setPurchasesLoading] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [workflowToDelete, setWorkflowToDelete] = useState<string | null>(null);
 
   const {
     data: workflowsResponse,
@@ -66,12 +76,19 @@ export default function WorkflowsPage() {
     if (!authLoading && !backendLoading && isAuthenticated) refetch();
   }, [authLoading, backendLoading, isAuthenticated, refetch]);
 
-  const handleDelete = async (workflowId: string) => {
-    if (!confirm('Are you sure you want to delete this workflow?')) return;
+  const handleDelete = (workflowId: string) => {
+    setWorkflowToDelete(workflowId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!workflowToDelete) return;
     try {
-      setDeleting(workflowId);
-      await workflowService.deleteWorkflow(workflowId);
+      setDeleting(workflowToDelete);
+      await workflowService.deleteWorkflow(workflowToDelete);
       await refetch();
+      setIsDeleteDialogOpen(false);
+      setWorkflowToDelete(null);
     } catch {
       alert('Failed to delete workflow');
     } finally {
@@ -302,6 +319,43 @@ export default function WorkflowsPage() {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-[#1a1410] border border-red-500/20">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-500/10">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              <DialogTitle className="text-red-500">Delete Workflow</DialogTitle>
+            </div>
+            <DialogDescription className="text-white/70 mt-2">
+              This action cannot be undone. The workflow and all its data will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setWorkflowToDelete(null);
+              }}
+              className="border-white/10 hover:bg-white/5"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDelete}
+              disabled={deleting === workflowToDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting === workflowToDelete ? 'Deleting...' : 'Delete Workflow'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
+

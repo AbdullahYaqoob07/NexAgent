@@ -100,8 +100,8 @@ function PaymentForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      <div className="space-y-3 sm:space-y-4">
         <PaymentElement 
           options={{
             layout: 'tabs',
@@ -110,29 +110,29 @@ function PaymentForm({
       </div>
 
       {error && (
-        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs sm:text-sm">
           {error}
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
           disabled={processing}
-          className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+          className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10 text-sm"
         >
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={!stripe || processing}
-          className="flex-1 bg-[#FF6900] hover:bg-[#FF6900]/90 text-white"
+          className="flex-1 bg-[#FF6900] hover:bg-[#FF6900]/90 text-white text-sm"
         >
           {processing ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 animate-spin" />
               Processing...
             </>
           ) : (
@@ -142,7 +142,7 @@ function PaymentForm({
       </div>
 
       <div className="flex items-center gap-2 text-xs text-white/60 pt-2">
-        <Shield className="w-4 h-4 text-green-400" />
+        <Shield className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-green-400 flex-shrink-0" />
         <span>Your payment is secured by Stripe</span>
       </div>
     </form>
@@ -240,22 +240,22 @@ export default function PaymentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1410]/95 backdrop-blur-xl border-white/10 max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">
+      <DialogContent className="bg-[#1a1410]/95 backdrop-blur-xl border-white/10 max-w-md sm:max-w-xl flex flex-col max-h-[90vh] p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-white">
             Complete Payment
           </DialogTitle>
-          <DialogDescription className="text-white/70">
+          <DialogDescription className="text-white/70 text-sm sm:text-base">
             Pay for <span className="font-semibold text-white">{nexaName}</span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4 sm:space-y-6">
           {/* Order Summary */}
-          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+          <div className="bg-white/5 rounded-lg p-3 sm:p-4 border border-white/10 flex-shrink-0">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-white/80">Total Amount</span>
-              <span className="text-2xl font-bold text-[#FF6900]">
+              <span className="text-white/80 text-sm">Total Amount</span>
+              <span className="text-xl sm:text-2xl font-bold text-[#FF6900]">
                 ${(amount / 100).toFixed(2)}
               </span>
             </div>
@@ -266,14 +266,14 @@ export default function PaymentModal({
 
           {/* Payment Form */}
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#FF6900] mb-4" />
-              <p className="text-white/70">Initializing payment...</p>
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+              <Loader2 className="w-6 sm:w-8 h-6 sm:h-8 animate-spin text-[#FF6900] mb-3 sm:mb-4" />
+              <p className="text-white/70 text-sm">Initializing payment...</p>
             </div>
           ) : error ? (
-            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-              <div className="flex items-center gap-2 text-red-400">
-                <X className="w-5 h-5" />
+            <div className="p-3 sm:p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+              <div className="flex items-center gap-2 text-red-400 text-sm">
+                <X className="w-4 sm:w-5 h-4 sm:h-5 flex-shrink-0" />
                 <p>{error}</p>
               </div>
             </div>
@@ -287,9 +287,11 @@ export default function PaymentModal({
               />
             </Elements>
           ) : null}
+        </div>
 
-          {/* Security Badge */}
-          <div className="flex items-center justify-center gap-2 text-xs text-white/60 pt-4 border-t border-white/10">
+        {/* Security Badge - Sticky Footer */}
+        <div className="px-6 pb-6 pt-4 flex-shrink-0 border-t border-white/10">
+          <div className="flex items-center justify-center gap-2 text-xs text-white/60">
             <Shield className="w-4 h-4 text-green-400" />
             <span>Secured by Stripe • 256-bit SSL encryption</span>
           </div>

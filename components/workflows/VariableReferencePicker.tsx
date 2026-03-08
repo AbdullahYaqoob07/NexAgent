@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { getNodeDefinitionByType } from '@/lib/workflow/NodeDefinitions';
+import { getNodeByType } from '@/lib/workflow/NodeRegistry';
 
 interface VariableReferencePickerProps {
   workflowNodes: any[];
@@ -33,18 +34,23 @@ function flattenOutput(obj: any, prefix = ''): Array<{ path: string; type: strin
   });
 }
 
-const getNodeIcon = (nodeType: string) => {
-  const iconMap: Record<string, React.ReactElement> = {
-    'HTTP Request': <Globe className="w-4 h-4" />,
-    'Logger': <FileText className="w-4 h-4" />,
-    'Variable Setter': <Database className="w-4 h-4" />,
-    'ManualTrigger': <Zap className="w-4 h-4" />,
-    'Manual Trigger': <Zap className="w-4 h-4" />,
-    'Schedule': <Zap className="w-4 h-4" />,
-    'Webhook': <Globe className="w-4 h-4" />,
-    'ChatInput': <MessageSquare className="w-4 h-4" />,
+const getNodeIcon = (nodeType: string): string => {
+  const registryNode = getNodeByType(nodeType);
+  if (registryNode?.icon) return registryNode.icon;
+
+  // Fallbacks for legacy/unknown types
+  const iconMap: Record<string, string> = {
+    'HTTP Request': '🌐',
+    'Logger': '🧾',
+    'Variable Setter': '📌',
+    'ManualTrigger': '⚡',
+    'Manual Trigger': '⚡',
+    'Schedule': '🕐',
+    'Webhook': '🪝',
+    'ChatInput': '💬',
   };
-  return iconMap[nodeType] || <Database className="w-4 h-4" />;
+
+  return iconMap[nodeType] || '🧩';
 };
 
 const getTypeIcon = (type: string) => {
@@ -179,7 +185,14 @@ export default function VariableReferencePicker({
                 <div key={node.id} className="border border-zinc-800 rounded-lg overflow-hidden">
                   <div className="bg-zinc-800/50 px-3 py-2 border-b border-zinc-800 flex items-center gap-2">
                     <div className="w-6 h-6 rounded bg-zinc-700 flex items-center justify-center">
-                      {getNodeIcon(node.type)}
+                      {(() => {
+                        const icon = getNodeIcon(node.type);
+                        return icon.startsWith('/') || icon.startsWith('http') ? (
+                          <img src={icon} alt={node.type} className="w-4 h-4 object-contain" />
+                        ) : (
+                          <span className="text-sm">{icon}</span>
+                        );
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-white truncate">{node.name || node.type}</div>

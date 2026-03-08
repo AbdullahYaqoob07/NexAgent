@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUserProfile } from '@/lib/useUserProfile';
+import PaymentMethodSelector, { PaymentMethod } from '@/components/marketplace/PaymentMethodSelector';
+import PaymentModal from '@/components/marketplace/PaymentModal';
 import { 
   User as UserIcon, 
   Settings, 
@@ -207,8 +209,11 @@ export default function ProfileView({ user }: ProfileViewProps) {
         ? (profileData.subscription.plan.charAt(0).toUpperCase() + profileData.subscription.plan.slice(1)) as 'Trial' | 'Free' | 'Basic' | 'Pro' | 'Enterprise'
         : 'Trial'),
       status: profileData?.subscription.status || 'trialing',
+      // Support both camelCase and legacy snake_case fields from Firestore docs.
+      // Access snake_case via index to avoid TS errors against typed models.
+      
       renewsAt: profileData?.subscription.currentPeriodEnd?.toDate().toISOString()
-        || profileData?.subscription.trial_ends_at?.toDate().toISOString()
+        || (profileData?.subscription && (profileData.subscription as any)['trial_ends_at']?.toDate?.().toISOString?.())
         || profileData?.subscription.trialEndsAt?.toDate().toISOString()
         || '',
       usage: {
@@ -802,104 +807,36 @@ function SecurityTab({ profile, addToast }: { profile: ProfileData, addToast: (m
 
 function BillingTab({ profile, addToast }: { profile: ProfileData, addToast: (message: string, type?: 'success' | 'error' | 'info') => void }) {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
+  const [showPaymentMethodSelector, setShowPaymentMethodSelector] = useState(false);
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const billingAmount = 999; // $9.99 monthly basic plan
+
+  const openBillingPaymentFlow = () => {
+    setShowPaymentMethodSelector(true);
+  };
 
   const handleUpgradePlan = async () => {
-    try {
-      setUpgradeLoading(true);
-      const { auth } = await import('@/lib/firebase');
-      if (!auth.currentUser) {
-        addToast('Please sign in again to upgrade your plan.', 'error');
-        return;
-      }
-
-      const token = await auth.currentUser.getIdToken(true).catch(() => null);
-      if (!token) {
-        addToast('Unable to verify your session. Please sign in again.', 'error');
-        return;
-      }
-
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
-      const planId = process.env.NEXT_PUBLIC_BILLING_PLAN_BASIC_ID || 'plan_basic';
-      const successUrl = `${window.location.origin}/profile?billing=success`;
-      const cancelUrl = `${window.location.origin}/profile?billing=cancel`;
-
-      const response = await fetch(`${backendUrl}/api/billing/checkout/session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          plan_id: planId,
-          billing_cycle: 'monthly',
-          success_url: successUrl,
-          cancel_url: cancelUrl
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to create checkout session');
-      }
-
-      const data = await response.json();
-      if (!data?.checkout_url) {
-        throw new Error('Checkout URL missing from response');
-      }
-
-      window.location.href = data.checkout_url;
-    } catch (error: any) {
-      addToast(error?.message || 'Unable to start checkout. Please try again.', 'error');
-    } finally {
-      setUpgradeLoading(false);
-    }
+    openBillingPaymentFlow();
   };
 
   const handleManagePaymentMethod = async () => {
-    try {
-      setPortalLoading(true);
-      const { auth } = await import('@/lib/firebase');
-      if (!auth.currentUser) {
-        addToast('Please sign in again to manage billing.', 'error');
-        return;
-      }
-
-      const token = await auth.currentUser.getIdToken(true).catch(() => null);
-      if (!token) {
-        addToast('Unable to verify your session. Please sign in again.', 'error');
-        return;
-      }
-
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
-      const returnUrl = `${window.location.origin}/profile?billing=portal`;
-
-      const response = await fetch(`${backendUrl}/api/billing/portal/session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ return_url: returnUrl })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to open billing portal');
-      }
-
-      const data = await response.json();
-      if (!data?.portal_url) {
-        throw new Error('Billing portal URL missing from response');
-      }
-
-      window.location.href = data.portal_url;
-    } catch (error: any) {
-      addToast(error?.message || 'Unable to open billing portal.', 'error');
-    } finally {
-      setPortalLoading(false);
-    }
+    openBillingPaymentFlow();
   };
+
+  const handleBillingPaymentMethodSelect = (method: PaymentMethod) => {
+    setShowPaymentMethodSelector(false);
+    if (method !== 'stripe') {
+      addToast('Stripe is currently available for plan billing updates.', 'info');
+      return;
+    }
+    setShowStripeModal(true);
+  };
+
+  const handleBillingPaymentSuccess = async (_paymentIntentId: string) => {
+    setShowStripeModal(false);
+    addToast('Payment successful. Your billing details have been updated.', 'success');
+  };
+
   const usageData = [
     {
       label: "Workflow Executions",
@@ -937,16 +874,16 @@ function BillingTab({ profile, addToast }: { profile: ProfileData, addToast: (me
             <Button 
               className="bg-white/5 border border-white/15 text-white hover:bg-white/10"
               onClick={handleManagePaymentMethod}
-              disabled={portalLoading}
+              disabled={upgradeLoading}
             >
-              {portalLoading ? 'Opening...' : 'Manage Payment Method'}
+              {upgradeLoading ? 'Opening...' : 'Manage Payment Method'}
             </Button>
             <Button 
               className="bg-[#FF6900] hover:bg-[#E55D00] text-white"
               onClick={handleUpgradePlan}
               disabled={upgradeLoading}
             >
-              {upgradeLoading ? 'Redirecting...' : 'Upgrade Plan'}
+              {upgradeLoading ? 'Opening...' : 'Upgrade Plan'}
             </Button>
           </div>
         </div>
@@ -998,6 +935,23 @@ function BillingTab({ profile, addToast }: { profile: ProfileData, addToast: (me
           ))}
         </div>
       </div>
+
+      <PaymentMethodSelector
+        open={showPaymentMethodSelector}
+        onOpenChange={setShowPaymentMethodSelector}
+        onSelectMethod={handleBillingPaymentMethodSelect}
+        amount={billingAmount}
+        nexaName="NexAgent Basic Plan"
+      />
+
+      <PaymentModal
+        open={showStripeModal}
+        onOpenChange={setShowStripeModal}
+        nexaId="billing_basic_plan"
+        nexaName="NexAgent Basic Plan"
+        amount={billingAmount}
+        onSuccess={handleBillingPaymentSuccess}
+      />
     </div>
   );
 }

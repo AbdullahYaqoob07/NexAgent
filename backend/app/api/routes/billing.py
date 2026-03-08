@@ -700,6 +700,8 @@ async def create_checkout_session(
         user_id = current_user["uid"]
         session = await billing_service.create_checkout_session(user_id, request)
         return session
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating checkout session: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -715,6 +717,8 @@ async def create_billing_portal_session(
         user_id = current_user["uid"]
         session = await billing_service.create_billing_portal_session(user_id, request)
         return session
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating billing portal session: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
