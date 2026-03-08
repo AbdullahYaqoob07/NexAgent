@@ -5,6 +5,7 @@
 
 import { Workflow, WorkflowExecution, StorageProvider as IStorageProvider } from '../types';
 import * as workflowApi from '@/lib/api/services/workflowApi';
+import apiClient from '@/lib/api/client';
 
 export class BackendStorageProvider implements IStorageProvider {
   /**
@@ -60,30 +61,61 @@ export class BackendStorageProvider implements IStorageProvider {
     }
   }
 
-  /**
-   * Save execution (not yet implemented in backend)
-   * For now, just log it
-   */
-  async saveExecution(execution: WorkflowExecution): Promise<void> {
-    console.log('⚠️ Execution save not yet implemented in backend', execution.id);
-    // TODO: Implement execution save endpoint in backend
+  async saveExecution(_execution: WorkflowExecution): Promise<void> {
+    // Execution is saved by the backend automatically during execute_workflow
   }
 
-  /**
-   * Load execution (not yet implemented in backend)
-   */
   async loadExecution(executionId: string): Promise<WorkflowExecution | null> {
-    console.log('⚠️ Execution load not yet implemented in backend', executionId);
-    // TODO: Implement execution load endpoint in backend
-    return null;
+    try {
+      // execution_id format: exec_{startMs}_{random} — we need workflowId to build the URL.
+      // Fall back to listing all and finding by ID (rare code path).
+      const res = await apiClient.get<any>(`/api/v1/executions/${executionId}`);
+      return this._normalize(res.data);
+    } catch {
+      return null;
+    }
   }
 
-  /**
-   * List executions (not yet implemented in backend)
-   */
   async listExecutions(workflowId?: string): Promise<WorkflowExecution[]> {
-    console.log('⚠️ Execution list not yet implemented in backend', workflowId);
-    // TODO: Implement execution list endpoint in backend
-    return [];
+    if (!workflowId) return [];
+    try {
+      const res = await apiClient.get<{ executions: any[] }>(
+        `/api/v1/workflows/${workflowId}/executions`
+      );
+      return (res.data.executions || []).map(this._normalize);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Convert Firestore execution doc → WorkflowExecution shape the frontend expects */
+  private _normalize(doc: any): WorkflowExecution {
+    return {
+      id: doc.id,
+      workflowId: doc.workflowId,
+      status: doc.status,
+      startTime: doc.startTime ?? 0,
+      endTime: doc.endTime ?? undefined,
+      duration: doc.duration ?? doc.execution_time_ms ?? 0,
+      input: doc.input ?? {},
+      output: doc.output ?? {},
+      error: doc.error ?? undefined,
+      nodeLogs: (doc.nodeLogs || []).map((log: any) => ({
+        nodeId: log.nodeId ?? log.node_id ?? '',
+        nodeName: log.nodeName ?? log.node_name ?? log.nodeId ?? '',
+        nodeType: log.nodeType ?? log.node_type ?? '',
+        status: log.status ?? 'completed',
+        startTime: log.startedAt ?? log.started_at ?? 0,
+        endTime: log.completedAt ?? log.completed_at ?? undefined,
+        duration: log.executionTimeMs ?? log.duration_ms ?? log.duration ?? 0,
+        input: log.input ?? undefined,
+        output: log.output ?? undefined,
+        error: log.error ?? undefined,
+      })),
+      metadata: {
+        tokensUsed: doc.metadata?.tokensUsed ?? 0,
+        cost: doc.metadata?.cost ?? 0,
+      },
+    };
   }
 }

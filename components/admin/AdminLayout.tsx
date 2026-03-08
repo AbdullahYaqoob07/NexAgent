@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,41 +12,22 @@ import {
   X,
   ChevronRight,
   LayoutDashboard,
-  BarChart3,
-  LineChart,
-  ShieldCheck,
-  Boxes,
-  Bell,
-  FileText,
-  CreditCard,
   Users,
+  CreditCard,
+  Store,
 } from "lucide-react";
-
-// Custom icon component for SVG icons
-const SvgIcon = ({ src, className }: { src: string; className?: string }) => (
-  <Image src={src} alt="" width={24} height={24} className={className} />
-);
 
 export type AdminNavItem = {
   name: string;
   href: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  iconSrc?: string;
+  icon: React.ComponentType<{ className?: string }>;
 };
 
 const navItems: AdminNavItem[] = [
-  { name: "Overview", href: "/admin321", icon: LayoutDashboard },
-  { name: "Analytics", href: "/admin321/analytics", icon: BarChart3 },
-  { name: "System", href: "/admin321/system", icon: LineChart },
-  { name: "Audit Logs", href: "/admin321/audit", icon: ShieldCheck },
-  { name: "Integrations", href: "/admin321/integrations", icon: Boxes },
-  { name: "Marketplace", href: "/admin321/marketplace", iconSrc: "/assets/dashboard/marketPlace.svg" },
-  { name: "Templates", href: "/admin321/templates", icon: FileText },
-  { name: "Notifications", href: "/admin321/notifications", icon: Bell },
-  { name: "Billing", href: "/admin321/billing", icon: CreditCard },
-  { name: "Workflows", href: "/admin321/workflows", iconSrc: "/assets/dashboard/workflow.svg" },
+  { name: "Dashboard", href: "/admin321", icon: LayoutDashboard },
   { name: "Users", href: "/admin321/users", icon: Users },
-  { name: "Settings", href: "/admin321/settings", iconSrc: "/assets/dashboard/setting.svg" },
+  { name: "Transactions", href: "/admin321/billing", icon: CreditCard },
+  { name: "Marketplace", href: "/admin321/marketplace", icon: Store },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -82,15 +62,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Logo */}
         <div className="p-6">
           <Link href="/admin321" className="flex items-center gap-3 group">
-            <Image 
-              src="/assets/logo/Logo.svg" 
-              alt="NexAgent Logo" 
-              width={122} 
-              height={26}
-              className="transition-transform duration-300 group-hover:scale-105"
-            />
+            <span className="text-white font-bold text-xl tracking-tight">NexAgent</span>
           </Link>
-          <p className="text-xs text-white/50 mt-2 font-montserrat">Admin Console</p>
+          <p className="text-xs text-white/50 mt-1 font-montserrat">Admin Console</p>
         </div>
 
         {/* Navigation */}
@@ -110,14 +84,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     }`}
                   >
-                    {item.iconSrc ? (
-                      <SvgIcon
-                        src={item.iconSrc}
-                        className={`w-5 h-5 transition-all ${isActive ? '' : 'opacity-80 group-hover:opacity-100'}`}
-                      />
-                    ) : Icon ? (
+                    {Icon && (
                       <Icon className={`w-5 h-5 transition-all ${isActive ? '' : 'opacity-80 group-hover:opacity-100'}`} />
-                    ) : null}
+                    )}
                     <span className="font-montserrat font-medium">{item.name}</span>
                     {isActive && (
                       <ChevronRight className="w-4 h-4 ml-auto text-white" />
@@ -192,12 +161,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* Logo for Mobile */}
             <Link href="/admin321" className="lg:hidden flex items-center">
-              <Image 
-                src="/assets/logo/Logo.svg" 
-                alt="NexAgent Logo" 
-                width={100} 
-                height={22}
-              />
+              <span className="text-white font-bold text-lg">NexAgent</span>
             </Link>
 
             {/* Admin indicator for desktop */}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import marketplaceAdminService from "@/lib/api/marketplace-admin";
+import { marketplaceService, type MarketplaceNexa } from "@/lib/api/services/marketplaceService";
 import type { PendingNexa as PendingNexaType, PendingSeller as PendingSellerType, Dispute as DisputeType, MarketplaceAnalytics } from "@/lib/api/marketplace-admin";
 import {
   Tabs,
@@ -58,6 +59,10 @@ import {
   TrendingUp,
   Users,
   Package,
+  Search,
+  RefreshCw,
+  Trash2,
+  Star,
   DollarSign,
   Eye,
   Ban,
@@ -70,93 +75,6 @@ import {
 
 
 
-const topSellers = [
-  {
-    id: 1,
-    name: "Automation Labs Inc",
-    nexas: 45,
-    sales: 1230,
-    revenue: 18500,
-    status: "verified",
-    rating: 4.8,
-  },
-  {
-    id: 2,
-    name: "Data Integration Pro",
-    nexas: 32,
-    sales: 980,
-    revenue: 14200,
-    status: "verified",
-    rating: 4.6,
-  },
-  {
-    id: 3,
-    name: "API Solutions Co",
-    nexas: 28,
-    sales: 756,
-    revenue: 11340,
-    status: "verified",
-    rating: 4.7,
-  },
-  {
-    id: 4,
-    name: "Tech Workflows LLC",
-    nexas: 24,
-    sales: 623,
-    revenue: 9345,
-    status: "active",
-    rating: 4.5,
-  },
-];
-
-
-
-
-
-const recentTransactions = [
-  {
-    id: "tx-1",
-    purchaseId: "purchase-201",
-    buyer: "Alice Brown",
-    seller: "Automation Labs Inc",
-    nexa: "Email Campaign Automator",
-    amount: 29.99,
-    status: "completed",
-    date: "2024-10-30",
-  },
-  {
-    id: "tx-2",
-    purchaseId: "purchase-202",
-    buyer: "Bob Wilson",
-    seller: "Data Integration Pro",
-    nexa: "Database Sync Tool",
-    amount: 49.99,
-    status: "completed",
-    date: "2024-10-30",
-  },
-  {
-    id: "tx-3",
-    purchaseId: "purchase-203",
-    buyer: "Carol Davis",
-    seller: "API Solutions Co",
-    nexa: "REST API Builder",
-    amount: 59.99,
-    status: "completed",
-    date: "2024-10-29",
-  },
-  {
-    id: "tx-4",
-    purchaseId: "purchase-204",
-    buyer: "David Lee",
-    seller: "Tech Workflows LLC",
-    nexa: "Workflow Designer",
-    amount: 39.99,
-    status: "failed",
-    date: "2024-10-29",
-  },
-];
-
-type Transaction = (typeof recentTransactions)[number];
 
 export default function MarketplaceAdminPage() {
   const [selectedTab, setSelectedTab] = useState("overview");
@@ -176,6 +94,14 @@ export default function MarketplaceAdminPage() {
   const [activeDisputesState, setActiveDisputesState] = useState<DisputeType[]>([]);
   const [loading, setLoading] = useState({ overview: true, nexas: true, sellers: true, disputes: true });
   const [submitting, setSubmitting] = useState(false);
+
+  // All Listings (real Firestore data)
+  const [allListings, setAllListings] = useState<MarketplaceNexa[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
+  const [listingSearch, setListingSearch] = useState("");
+  const [listingAction, setListingAction] = useState<{ id: string; action: 'suspend' | 'feature' | 'remove' } | null>(null);
+  const [listingActionReason, setListingActionReason] = useState("");
+  const [listingActionSubmitting, setListingActionSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -211,6 +137,45 @@ export default function MarketplaceAdminPage() {
     };
     fetchAll();
   }, []);
+
+  const fetchListings = async () => {
+    setListingsLoading(true);
+    try {
+      const data = await marketplaceService.listNexas();
+      setAllListings(data);
+    } catch {
+      setAllListings([]);
+    } finally {
+      setListingsLoading(false);
+    }
+  };
+
+  const submitListingAction = async () => {
+    if (!listingAction) return;
+    setListingActionSubmitting(true);
+    try {
+      const { db } = await import('@/lib/firebase');
+      const { doc, updateDoc, deleteDoc } = await import('firebase/firestore');
+      const ref = doc(db, 'marketplace_nexas', listingAction.id);
+      if (listingAction.action === 'remove') {
+        await deleteDoc(ref);
+        setAllListings(prev => prev.filter(n => n.id !== listingAction.id));
+      } else if (listingAction.action === 'suspend') {
+        await updateDoc(ref, { status: 'suspended', suspendedAt: new Date().toISOString(), suspendReason: listingActionReason });
+        setAllListings(prev => prev.map(n => n.id === listingAction.id ? { ...n, status: 'suspended' } : n));
+      } else if (listingAction.action === 'feature') {
+        const isNowFeatured = !allListings.find(n => n.id === listingAction.id)?.featured;
+        await updateDoc(ref, { featured: isNowFeatured });
+        setAllListings(prev => prev.map(n => n.id === listingAction.id ? { ...n, featured: isNowFeatured } : n));
+      }
+      setListingAction(null);
+      setListingActionReason("");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setListingActionSubmitting(false);
+    }
+  };
 
   const refreshLists = async () => {
     const [nexas, sellers, disputes, ov] = await Promise.all([
@@ -375,9 +340,10 @@ export default function MarketplaceAdminPage() {
 
       {/* Tabs */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-white/5 border border-white/10">
+        <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
           <TabsTrigger value="overview" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Overview</TabsTrigger>
-          <TabsTrigger value="nexas" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Nexas</TabsTrigger>
+          <TabsTrigger value="listings" onClick={fetchListings} className="data-[state=active]:text-black data-[state=inactive]:text-white/60">All Listings</TabsTrigger>
+          <TabsTrigger value="nexas" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Pending</TabsTrigger>
           <TabsTrigger value="sellers" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Sellers</TabsTrigger>
           <TabsTrigger value="disputes" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Disputes</TabsTrigger>
           <TabsTrigger value="transactions" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Transactions</TabsTrigger>
@@ -549,26 +515,26 @@ export default function MarketplaceAdminPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topSellers.map((seller) => (
-                  <div
-                    key={seller.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10"
-                  >
+                {(overview?.top_sellers || []).length === 0 && (
+                  <p className="text-white/40 text-sm text-center py-6">No seller data yet</p>
+                )}
+                {(overview?.top_sellers || []).map((seller: any, idx: number) => (
+                  <div key={seller.seller_id || idx} className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
                     <div className="flex-1">
-                      <p className="text-white font-semibold">{seller.name}</p>
+                      <p className="text-white font-semibold">{seller.seller_name || seller.name || 'Unknown'}</p>
                       <p className="text-white/60 text-sm">
-                        {seller.sales} sales • {seller.nexas} Nexas
+                        {seller.total_sales ?? seller.sales ?? 0} sales • {seller.nexa_count ?? seller.nexas ?? 0} Nexas
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-white font-semibold">
-                        ${seller.revenue.toLocaleString()}
+                        ${(seller.total_revenue ?? seller.revenue ?? 0).toLocaleString()}
                       </p>
                       <div className="flex items-center gap-1 mt-1">
-                        <span className="text-yellow-400">★</span>
-                        <span className="text-white/60 text-sm">{seller.rating}</span>
-                        <Badge className={`ml-2 ${getStatusColor(seller.status)}`}>
-                          {seller.status}
+                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        <span className="text-white/60 text-sm">{seller.avg_rating ?? seller.rating ?? '—'}</span>
+                        <Badge className={`ml-2 ${getStatusColor(seller.verification_status ?? seller.status ?? 'active')}`}>
+                          {seller.verification_status ?? seller.status ?? 'active'}
                         </Badge>
                       </div>
                     </div>
@@ -577,6 +543,141 @@ export default function MarketplaceAdminPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* All Listings Tab — FR-15 */}
+        <TabsContent value="listings" className="space-y-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Package className="w-5 h-5 text-[#FF6900]" />
+                    All Marketplace Listings
+                  </CardTitle>
+                  <CardDescription className="text-white/60">{allListings.length} total listings</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchListings} disabled={listingsLoading}
+                  className="border-white/20 text-white/70 hover:text-white hover:bg-white/10">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${listingsLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <input
+                  value={listingSearch}
+                  onChange={e => setListingSearch(e.target.value)}
+                  placeholder="Search by name, author or category..."
+                  className="w-full pl-9 pr-4 h-9 bg-white/5 border border-white/20 rounded-lg text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-[#FF6900]"
+                />
+              </div>
+
+              {listingsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#FF6900]" />
+                </div>
+              ) : allListings.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="w-10 h-10 text-white/20 mx-auto mb-3" />
+                  <p className="text-white/40">No listings yet. Click Refresh to load.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {allListings
+                    .filter(n =>
+                      (n.name || '').toLowerCase().includes(listingSearch.toLowerCase()) ||
+                      (n.authorName || '').toLowerCase().includes(listingSearch.toLowerCase()) ||
+                      (n.category || '').toLowerCase().includes(listingSearch.toLowerCase())
+                    )
+                    .map(nexa => {
+                      const status = (nexa as any).status || 'active';
+                      const featured = (nexa as any).featured === true;
+                      return (
+                        <div key={nexa.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-medium text-sm truncate">{nexa.name}</span>
+                              {featured && <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30 shrink-0">Featured</span>}
+                              <Badge className={`text-[10px] shrink-0 ${getStatusColor(status)}`}>{status}</Badge>
+                            </div>
+                            <p className="text-white/50 text-xs mt-0.5 truncate">
+                              by {nexa.authorName} · {nexa.category} · {nexa.pricingModel === 'free' ? 'Free' : `$${nexa.price}`} · {nexa.downloads ?? 0} downloads
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button size="sm" variant="ghost"
+                              onClick={() => setListingAction({ id: nexa.id!, action: 'feature' })}
+                              className={`h-8 px-2 text-xs ${featured ? 'text-yellow-400 hover:bg-yellow-400/10' : 'text-white/50 hover:text-yellow-400 hover:bg-yellow-400/10'}`}
+                              title={featured ? 'Unfeature' : 'Feature'}>
+                              <Star className={`w-3.5 h-3.5 ${featured ? 'fill-yellow-400' : ''}`} />
+                            </Button>
+                            <Button size="sm" variant="ghost"
+                              onClick={() => setListingAction({ id: nexa.id!, action: 'suspend' })}
+                              className="h-8 px-2 text-xs text-white/50 hover:text-orange-400 hover:bg-orange-400/10"
+                              title="Suspend listing"
+                              disabled={status === 'suspended'}>
+                              <Ban className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost"
+                              onClick={() => setListingAction({ id: nexa.id!, action: 'remove' })}
+                              className="h-8 px-2 text-xs text-white/50 hover:text-red-400 hover:bg-red-400/10"
+                              title="Remove listing">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Action confirmation dialog */}
+          <Dialog open={!!listingAction} onOpenChange={open => !open && setListingAction(null)}>
+            <DialogContent className="bg-zinc-900 border-white/20 text-white">
+              <DialogHeader>
+                <DialogTitle className="capitalize">
+                  {listingAction?.action === 'feature'
+                    ? (allListings.find(n => n.id === listingAction.id) as any)?.featured ? 'Unfeature Listing' : 'Feature Listing'
+                    : `${listingAction?.action} Listing`}
+                </DialogTitle>
+                <DialogDescription className="text-white/60">
+                  {listingAction?.action === 'remove'
+                    ? 'This will permanently delete the listing from the marketplace.'
+                    : listingAction?.action === 'suspend'
+                    ? 'The listing will be hidden from the marketplace.'
+                    : 'Toggle featured status for this listing.'}
+                </DialogDescription>
+              </DialogHeader>
+              {listingAction?.action !== 'feature' && (
+                <div className="space-y-2">
+                  <Label className="text-white/70 text-sm">Reason (optional)</Label>
+                  <textarea
+                    value={listingActionReason}
+                    onChange={e => setListingActionReason(e.target.value)}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/20 rounded-lg p-3 text-white text-sm resize-none focus:outline-none focus:border-[#FF6900]"
+                    placeholder="Enter reason..."
+                  />
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" className="border-white/20 text-white/70 hover:bg-white/10" onClick={() => setListingAction(null)}>Cancel</Button>
+                <Button
+                  onClick={submitListingAction}
+                  disabled={listingActionSubmitting}
+                  className={listingAction?.action === 'remove' ? 'bg-red-600 hover:bg-red-700' : listingAction?.action === 'suspend' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-yellow-600 hover:bg-yellow-700'}
+                >
+                  {listingActionSubmitting ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Confirm
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Nexas Tab */}
@@ -758,7 +859,7 @@ by {nexa.seller} • {nexa.category}
                 <div>
                   <CardTitle className="text-white">Recent Transactions</CardTitle>
                   <CardDescription className="text-white/60">
-                    {recentTransactions.length} recent purchases
+                    {(overview?.recent_activity || []).length} recent purchases
                   </CardDescription>
                 </div>
                 <Button className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30">
@@ -799,33 +900,39 @@ by {nexa.seller} • {nexa.category}
                     </tr>
                   </thead>
                   <tbody>
-                    {recentTransactions.map((tx) => (
+                    {(overview?.recent_activity || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-8 text-center text-white/40 text-sm">
+                          No transactions yet.
+                        </td>
+                      </tr>
+                    ) : (overview?.recent_activity || []).map((tx: any, i: number) => (
                       <tr
-                        key={tx.id}
+                        key={tx.id || tx.purchaseId || i}
                         className="border-b border-white/5 hover:bg-white/5 transition"
                       >
                         <td className="py-3 px-4 text-white/80 text-sm">
-                          {tx.purchaseId}
+                          {tx.purchaseId || tx.id || '—'}
                         </td>
                         <td className="py-3 px-4 text-white/80 text-sm">
-                          {tx.buyer}
+                          {tx.buyer || tx.buyerEmail || '—'}
                         </td>
                         <td className="py-3 px-4 text-white/80 text-sm">
-                          {tx.nexa}
+                          {tx.nexa || tx.nexaName || tx.item || '—'}
                         </td>
                         <td className="py-3 px-4 text-white/80 text-sm">
-                          {tx.seller}
+                          {tx.seller || tx.sellerName || '—'}
                         </td>
                         <td className="py-3 px-4 text-white/80 text-sm font-semibold">
-                          ${tx.amount}
+                          ${tx.amount ?? tx.price ?? '0'}
                         </td>
                         <td className="py-3 px-4">
-                          <Badge className={getStatusColor(tx.status)}>
-                            {tx.status}
+                          <Badge className={getStatusColor(tx.status || 'completed')}>
+                            {tx.status || 'completed'}
                           </Badge>
                         </td>
                         <td className="py-3 px-4 text-white/60 text-sm">
-                          {tx.date}
+                          {tx.date || tx.createdAt || '—'}
                         </td>
                         <td className="py-3 px-4">
                           <Button

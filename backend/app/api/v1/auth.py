@@ -834,3 +834,76 @@ async def get_mfa_status(current_user: Dict[str, Any] = Depends(get_current_user
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get MFA status"
         )
+
+
+# ── Admin: user role management ───────────────────────────────────────────────
+
+ADMIN_EMAIL = "admin@gmail.com"
+
+_VALID_ROLES = {"admin", "user", "viewer"}
+
+
+async def _require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Dependency: verifies caller is the platform admin."""
+    token = credentials.credentials
+    decoded = await firebase_service.verify_token(token)
+    if not decoded or decoded.get("email") != ADMIN_EMAIL:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return decoded
+
+
+class RoleUpdateRequest(SuccessResponse):
+    pass
+
+
+from pydantic import BaseModel as _BaseModel
+
+class _RoleBody(_BaseModel):
+    role: str
+
+
+@router.patch("/admin/users/{uid}/role")
+async def set_user_role(
+    uid: str,
+    body: _RoleBody,
+    _admin: dict = Depends(_require_admin),
+):
+    """Set a user's role (admin, user, viewer). Admin only."""
+    if body.role not in _VALID_ROLES:
+        raise HTTPException(status_code=422, detail=f"Invalid role. Must be one of: {', '.join(_VALID_ROLES)}")
+    try:
+        from firebase_admin import firestore as _fs
+        _fs.client().collection("users").document(uid).update({
+            "role": body.role,
+            "updatedAt": _fs.SERVER_TIMESTAMP,
+        })
+        return {"success": True, "uid": uid, "role": body.role}
+    except Exception as e:
+        logger.error("set_user_role error: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to update role")
+
+
+@router.get("/admin/users")
+async def list_users_with_roles(
+    _admin: dict = Depends(_require_admin),
+):
+    """List all users with their role. Admin only."""
+    try:
+        from firebase_admin import firestore as _fs
+        docs = _fs.client().collection("users").stream()
+        users = []
+        for doc in docs:
+            d = doc.to_dict()
+            users.append({
+                "uid": doc.id,
+                "email": d.get("email", ""),
+                "displayName": d.get("displayName", ""),
+                "role": d.get("role", "user"),
+                "createdAt": str(d.get("createdAt", "")),
+                "lastLoginAt": str(d.get("lastLoginAt", "")),
+                "subscription": d.get("subscription", {}),
+            })
+        return {"users": users}
+    except Exception as e:
+        logger.error("list_users_with_roles error: %s", e)
+        raise HTTPException(status_code=500, detail="Failed to list users")

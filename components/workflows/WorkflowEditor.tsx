@@ -9,13 +9,13 @@ import { WorkflowAssistant } from "./WorkflowAssistant";
 import ExecutionModal from "./ExecutionModal";
 import { WorkflowWalkthrough } from "./WorkflowWalkthrough";
 // Removed tour components
-import { Workflow } from "@/lib/workflow/types";
+import { Workflow, WorkflowExecution } from "@/lib/workflow/types";
 import { workflowManager } from "@/lib/workflow/WorkflowManager";
 import { getNodeMapping, convertCanvasNodeToWorkflowNode } from "@/lib/workflow/utils/NodeMapping";
 import { getNodeDefinitionByType } from "@/lib/workflow/NodeDefinitions";
 import { marketplaceService } from "@/lib/api/services/marketplaceService";
 import { useAuth } from "@/lib/AuthContext";
-import { Terminal, X, Download, AlertCircle, Store, Check } from "lucide-react";
+import { Terminal, X, Download, AlertCircle, Store, Check, CheckCircle, XCircle, Clock, Play, Timer, Zap, Activity, ChevronDown, ChevronRight, RotateCcw, BarChart3, DollarSign } from "lucide-react";
 interface WorkflowEditorProps {
   workflowId?: string;
 }
@@ -64,6 +64,11 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [canPublish, setCanPublish] = useState(false);
   const lastSuccessSnapshotRef = useRef<string | null>(null);
   const [lastNodeOutputs, setLastNodeOutputs] = useState<Record<string, Record<string, any>>>({});
+  // Executions analytics tab state
+  const [executionHistory, setExecutionHistory] = useState<WorkflowExecution[]>([]);
+  const [executionHistoryLoading, setExecutionHistoryLoading] = useState(false);
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
   // Chat tab state
   const [chatMessages, setChatMessages] = useState<
     { id: string; role: 'user' | 'assistant'; content: string; time: string }[]
@@ -159,6 +164,20 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       chatScrollRef.current.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: 'smooth' });
     }
   }, [chatMessages, outputTab]);
+
+  const loadExecutionHistory = useCallback(async () => {
+    const wfId = currentWorkflowId || workflowId;
+    if (!wfId) return;
+    setExecutionHistoryLoading(true);
+    try {
+      const execs = await workflowManager.listExecutions(wfId);
+      setExecutionHistory(execs.sort((a, b) => b.startTime - a.startTime));
+    } catch {
+      // silently fail — history will be empty
+    } finally {
+      setExecutionHistoryLoading(false);
+    }
+  }, [currentWorkflowId, workflowId]);
 
   const addToast = (message: string, type: 'info' | 'error' = 'error') => {
     const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -1340,6 +1359,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
         // Set last execution id; remain on canvas (no navigation)
         setActiveNodeId(null);
         setLastExecutionId(execution.id);
+        // Refresh execution history if already on Executions tab
+        if (activeTab === 'executions') loadExecutionHistory();
       } catch (error) {
         _wave.running = false;
         console.error('Workflow execution error:', error);
@@ -1563,30 +1584,225 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               className={`px-4 py-2 text-sm border-l border-zinc-800 ${activeTab === 'executions' ? 'bg-[#FF6900] text-white' : 'text-white/80 hover:bg-white/5'}`}
               onClick={() => {
                 setActiveTab('executions');
-                if (lastExecutionId) setExecutionModalOpen(true);
+                loadExecutionHistory();
               }}
             >
               Executions
             </button>
           </div>
 
-          {/* Layout chooser button (top-right) */}
-          <div className="absolute top-3 right-4 z-30">
-            <LayoutChooser onChoose={(layout) => canvasRef.current?.applyLayout(layout)} />
-          </div>
+          {/* Layout chooser button (top-right) — only on Nexa tab */}
+          {activeTab === 'nexa' && (
+            <div className="absolute top-3 right-4 z-30">
+              <LayoutChooser onChoose={(layout) => canvasRef.current?.applyLayout(layout)} />
+            </div>
+          )}
 
           {/* Main canvas area */}
           <div className="flex-1 relative">
-            <WorkflowCanvas
-              ref={canvasRef}
-              selectedNode={selectedNode}
-              onNodeSelect={setSelectedNode}
-              onOpenTriggers={() => sidebarRef.current?.openTriggersWithBlink()}
-              onNodeCountChange={setCanvasNodeCount}
-              executingNodeId={activeNodeId}
-              errorNodeIds={errorNodeIds}
-              lastNodeOutputs={lastNodeOutputs}
-            />
+            {/* Canvas — hidden (not unmounted) when on Executions tab to preserve state */}
+            <div className={activeTab === 'nexa' ? 'absolute inset-0' : 'absolute inset-0 pointer-events-none opacity-0'}>
+              <WorkflowCanvas
+                ref={canvasRef}
+                selectedNode={selectedNode}
+                onNodeSelect={setSelectedNode}
+                onOpenTriggers={() => sidebarRef.current?.openTriggersWithBlink()}
+                onNodeCountChange={setCanvasNodeCount}
+                executingNodeId={activeNodeId}
+                errorNodeIds={errorNodeIds}
+                lastNodeOutputs={lastNodeOutputs}
+              />
+            </div>
+
+            {/* Executions Analytics Panel */}
+            {activeTab === 'executions' && (
+              <div
+                className="absolute inset-0 bg-zinc-950 overflow-y-auto p-6 space-y-6"
+                style={{ paddingBottom: showOutputTerminal ? terminalHeight + 24 : 80 }}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-[#FF6900]/10 border border-[#FF6900]/20 flex items-center justify-center">
+                      <BarChart3 className="w-4 h-4 text-[#FF6900]" />
+                    </div>
+                    <div>
+                      <h2 className="text-white font-semibold">Execution History</h2>
+                      <p className="text-zinc-500 text-xs">Analytics for <span className="text-zinc-300">{workflowName}</span></p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={loadExecutionHistory}
+                    disabled={executionHistoryLoading}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600 text-xs transition-colors disabled:opacity-50"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${executionHistoryLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </button>
+                </div>
+
+                {/* Summary stats */}
+                {executionHistory.length > 0 && (() => {
+                  const total = executionHistory.length;
+                  const succeeded = executionHistory.filter(e => e.status === 'completed').length;
+                  const failed = executionHistory.filter(e => e.status === 'failed').length;
+                  const avgDur = executionHistory.reduce((s, e) => s + (e.duration || 0), 0) / total;
+                  const totalTokens = executionHistory.reduce((s, e) => s + (e.metadata?.tokensUsed || 0), 0);
+                  const fmtMs = (ms: number) => ms < 1000 ? `${Math.round(ms)}ms` : ms < 60000 ? `${(ms/1000).toFixed(1)}s` : `${(ms/60000).toFixed(1)}m`;
+                  return (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        { label: 'Total Runs', value: String(total), icon: <Activity className="w-4 h-4 text-[#FF6900]" />, sub: 'all time' },
+                        { label: 'Success Rate', value: `${Math.round((succeeded/total)*100)}%`, icon: <CheckCircle className="w-4 h-4 text-green-400" />, sub: `${succeeded} succeeded` },
+                        { label: 'Avg Duration', value: fmtMs(avgDur), icon: <Timer className="w-4 h-4 text-blue-400" />, sub: `${failed} failed` },
+                        { label: 'Total Tokens', value: totalTokens.toLocaleString(), icon: <Zap className="w-4 h-4 text-yellow-400" />, sub: 'tokens used' },
+                      ].map((stat, i) => (
+                        <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+                          <div>
+                            <div className="text-zinc-500 text-xs mb-1">{stat.label}</div>
+                            <div className="text-white text-xl font-bold">{stat.value}</div>
+                            <div className="text-zinc-600 text-xs mt-0.5">{stat.sub}</div>
+                          </div>
+                          <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center">{stat.icon}</div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Loading state */}
+                {executionHistoryLoading && (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 rounded-full border-2 border-[#FF6900]/30 border-t-[#FF6900] animate-spin" />
+                      <p className="text-zinc-500 text-sm">Loading execution history...</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!executionHistoryLoading && executionHistory.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                      <Activity className="w-7 h-7 text-zinc-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-zinc-400 font-medium">No executions yet</p>
+                      <p className="text-zinc-600 text-sm mt-1">Run this workflow to see execution analytics here</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Execution list */}
+                {!executionHistoryLoading && executionHistory.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-zinc-400 text-xs font-medium uppercase tracking-wider">Run History</h3>
+                    {executionHistory.map((exec) => {
+                      const isSelected = selectedExecutionId === exec.id;
+                      const fmtMs = (ms?: number) => !ms && ms !== 0 ? 'N/A' : ms < 1000 ? `${ms}ms` : ms < 60000 ? `${(ms/1000).toFixed(1)}s` : `${(ms/60000).toFixed(1)}m`;
+                      const statusColor = exec.status === 'completed' ? 'text-green-400 border-green-500/30 bg-green-500/5'
+                        : exec.status === 'failed' ? 'text-red-400 border-red-500/30 bg-red-500/5'
+                        : exec.status === 'running' ? 'text-blue-400 border-blue-500/30 bg-blue-500/5'
+                        : 'text-yellow-400 border-yellow-500/30 bg-yellow-500/5';
+                      const StatusIcon = exec.status === 'completed' ? CheckCircle : exec.status === 'failed' ? XCircle : exec.status === 'running' ? Play : Clock;
+                      return (
+                        <div key={exec.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                          {/* Execution header row */}
+                          <button
+                            onClick={() => setSelectedExecutionId(isSelected ? null : exec.id)}
+                            className="w-full flex items-center gap-4 p-4 hover:bg-zinc-800/50 transition-colors text-left"
+                          >
+                            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-medium ${statusColor}`}>
+                              <StatusIcon className="w-3.5 h-3.5" />
+                              <span className="capitalize">{exec.status}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-white text-sm font-mono">{exec.id.slice(0, 16)}…</div>
+                              <div className="text-zinc-500 text-xs">{new Date(exec.startTime).toLocaleString()}</div>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-zinc-400 shrink-0">
+                              <div className="flex items-center gap-1"><Timer className="w-3 h-3" />{fmtMs(exec.duration)}</div>
+                              <div className="flex items-center gap-1"><Zap className="w-3 h-3" />{exec.metadata?.tokensUsed || 0} tok</div>
+                              <div className="flex items-center gap-1"><DollarSign className="w-3 h-3" />${(exec.metadata?.cost || 0).toFixed(4)}</div>
+                              <div className="text-zinc-500">{exec.nodeLogs.length} nodes</div>
+                            </div>
+                            {isSelected ? <ChevronDown className="w-4 h-4 text-zinc-500 shrink-0" /> : <ChevronRight className="w-4 h-4 text-zinc-500 shrink-0" />}
+                          </button>
+
+                          {/* Expanded node timeline */}
+                          {isSelected && (
+                            <div className="border-t border-zinc-800 p-4 space-y-2">
+                              <h4 className="text-zinc-500 text-xs font-medium uppercase tracking-wider mb-3">Node Timeline</h4>
+                              {exec.nodeLogs.length === 0 && <p className="text-zinc-600 text-sm">No node logs recorded.</p>}
+                              {exec.nodeLogs.map((log, idx) => {
+                                const nodeKey = `${exec.id}_${log.nodeId}`;
+                                const nodeExpanded = expandedNodeIds.has(nodeKey);
+                                const nodeStatus = log.status === 'completed' || (log.status as string) === 'success'
+                                  ? 'completed' : log.status === 'failed' || (log.status as string) === 'error' ? 'failed' : log.status;
+                                const NodeIcon = nodeStatus === 'completed' ? CheckCircle : nodeStatus === 'failed' ? XCircle : nodeStatus === 'running' ? Play : Clock;
+                                const nodeColor = nodeStatus === 'completed' ? 'text-green-400' : nodeStatus === 'failed' ? 'text-red-400' : nodeStatus === 'running' ? 'text-blue-400' : 'text-yellow-400';
+                                return (
+                                  <div key={`${log.nodeId}-${idx}`} className="bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden">
+                                    <button
+                                      onClick={() => setExpandedNodeIds(prev => {
+                                        const next = new Set(prev);
+                                        next.has(nodeKey) ? next.delete(nodeKey) : next.add(nodeKey);
+                                        return next;
+                                      })}
+                                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-zinc-900 transition-colors text-left"
+                                    >
+                                      <span className="text-zinc-600 text-xs font-mono w-4 shrink-0">#{idx+1}</span>
+                                      <NodeIcon className={`w-3.5 h-3.5 shrink-0 ${nodeColor}`} />
+                                      <span className="text-white text-sm font-medium flex-1 truncate">{log.nodeName}</span>
+                                      <span className="text-zinc-600 text-xs border border-zinc-700 rounded px-1.5 py-0.5 shrink-0">{log.nodeType}</span>
+                                      <span className="text-zinc-500 text-xs shrink-0">{fmtMs(log.duration)}</span>
+                                      {log.output || log.error
+                                        ? (nodeExpanded ? <ChevronDown className="w-3.5 h-3.5 text-zinc-600 shrink-0" /> : <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />)
+                                        : <span className="w-3.5 h-3.5 shrink-0" />
+                                      }
+                                    </button>
+                                    {nodeExpanded && (
+                                      <div className="border-t border-zinc-800 px-3 py-2.5 space-y-2">
+                                        {log.error && (
+                                          <div className="text-red-300 text-xs bg-red-950/40 border border-red-500/20 rounded p-2">{log.error}</div>
+                                        )}
+                                        {log.output && (
+                                          <div>
+                                            <div className="text-zinc-500 text-xs mb-1">Output</div>
+                                            <pre className="bg-black/60 border border-zinc-800 rounded p-2 text-zinc-300 text-xs overflow-x-auto max-h-48 whitespace-pre-wrap break-words">
+                                              {JSON.stringify(log.output, null, 2)}
+                                            </pre>
+                                          </div>
+                                        )}
+                                        {log.input && (
+                                          <div>
+                                            <div className="text-zinc-500 text-xs mb-1">Input</div>
+                                            <pre className="bg-black/60 border border-zinc-800 rounded p-2 text-zinc-300 text-xs overflow-x-auto max-h-32 whitespace-pre-wrap break-words">
+                                              {JSON.stringify(log.input, null, 2)}
+                                            </pre>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+
+                              {/* Execution error */}
+                              {exec.error && (
+                                <div className="mt-2 text-red-300 text-xs bg-red-950/40 border border-red-500/20 rounded-lg p-3">
+                                  <span className="font-medium">Execution error:</span> {exec.error}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Output Terminal Button - fixed at bottom center */}

@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import apiClient from "@/lib/api/client";
+
+// ── Module-level cache (survives re-renders, resets on hard refresh) ──────────
+const _cache: {
+  users: any[] | null;
+  activities: any[] | null;
+  metrics: any | null;
+  ts: number;
+} = { users: null, activities: null, metrics: null, ts: 0 };
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,6 +66,25 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
 } from "lucide-react";
+
+// ── Skeleton helpers ──────────────────────────────────────────────────────────
+const Sk = ({ className = "" }: { className?: string }) => (
+  <div className={`animate-pulse rounded bg-white/10 ${className}`} />
+);
+const SkeletonKpiCard = () => (
+  <div className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-3">
+    <Sk className="h-3 w-24" />
+    <Sk className="h-8 w-16" />
+    <Sk className="h-3 w-20" />
+  </div>
+);
+const SkeletonTableRow = () => (
+  <tr className="border-b border-white/5">
+    {[40, 48, 20, 16, 16, 24, 12, 20].map((w, i) => (
+      <td key={i} className="py-3 px-4"><Sk className={`h-4 w-${w}`} /></td>
+    ))}
+  </tr>
+);
 
 interface User {
   user_id: string;
@@ -129,8 +157,21 @@ export default function AdminUsersPage() {
   const [isUserDetailsDialogOpen, setIsUserDetailsDialogOpen] = useState(false);
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [suspendReason, setSuspendReason] = useState("");
+  // FR-14: Role management
+  const [roleUsers, setRoleUsers] = useState<{ uid: string; email: string; displayName: string; role: string; createdAt: string }[]>([]);
+  const [roleLoading, setRoleLoading] = useState(false);
+  const [roleUpdating, setRoleUpdating] = useState<string | null>(null);
+  const [roleSearch, setRoleSearch] = useState("");
 
-  const fetchUsersData = async () => {
+  const fetchUsersData = async (force = false) => {
+    // Serve from cache if still fresh and not forced
+    if (!force && _cache.users && Date.now() - _cache.ts < CACHE_TTL_MS) {
+      setUsers(_cache.users);
+      setUserActivities(_cache.activities ?? []);
+      setMetrics(_cache.metrics);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [usersRes, activitiesRes, engagementRes] = await Promise.all([
@@ -144,23 +185,50 @@ export default function AdminUsersPage() {
       ]);
 
       const userData = usersRes.data?.users || [];
-      setUsers(Array.isArray(userData) ? userData : []);
-
       const activityData = activitiesRes.data?.metrics || [];
-      setUserActivities(Array.isArray(activityData) ? activityData : []);
-
       const engagement = engagementRes.data as UserMetrics | null;
-      setMetrics(engagement ?? null);
 
+      setUsers(Array.isArray(userData) ? userData : []);
+      setUserActivities(Array.isArray(activityData) ? activityData : []);
+      setMetrics(engagement ?? null);
       setLastRefresh(new Date());
+
+      // Store in module cache
+      _cache.users = Array.isArray(userData) ? userData : [];
+      _cache.activities = Array.isArray(activityData) ? activityData : [];
+      _cache.metrics = engagement ?? null;
+      _cache.ts = Date.now();
     } catch (error) {
       console.error("❌ Users API Error:", error);
-      // On error, show explicit empty state instead of demo data
       setUsers([]);
       setUserActivities([]);
       setMetrics(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRoleUsers = async () => {
+    setRoleLoading(true);
+    try {
+      const res = await apiClient.get("/api/v1/auth/admin/users");
+      setRoleUsers(res.data?.users || []);
+    } catch {
+      setRoleUsers([]);
+    } finally {
+      setRoleLoading(false);
+    }
+  };
+
+  const updateRole = async (uid: string, role: string) => {
+    setRoleUpdating(uid);
+    try {
+      await apiClient.patch(`/api/v1/auth/admin/users/${uid}/role`, { role });
+      setRoleUsers(prev => prev.map(u => u.uid === uid ? { ...u, role } : u));
+    } catch {
+      // silently fail — user will see stale value
+    } finally {
+      setRoleUpdating(null);
     }
   };
 
@@ -249,8 +317,8 @@ export default function AdminUsersPage() {
           <h1 className="text-4xl font-bold text-white">Users</h1>
           <p className="text-white/60 mt-2">User directory, activity tracking, and account management</p>
         </div>
-        <Button 
-          onClick={fetchUsersData}
+        <Button
+          onClick={() => fetchUsersData(true)}
           className="bg-white/10 hover:bg-white/20 border border-white/20"
         >
           <RefreshCw size={16} className="mr-2" />
@@ -260,42 +328,16 @@ export default function AdminUsersPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-        <KpiCard 
-          title="Total Users" 
-          value={metrics?.totalUsers ?? 0} 
-          icon={<Users size={20} className="text-white" />}
-          color="text-blue-400"
-        />
-        <KpiCard 
-          title="Active Users" 
-          value={metrics?.activeUsers ?? 0} 
-          icon={<UserCheck size={20} className="text-white" />}
-          color="text-emerald-400"
-        />
-        <KpiCard 
-          title="Daily Active" 
-          value={metrics?.dailyActiveUsers ?? 0} 
-          icon={<Clock size={20} className="text-white" />}
-          color="text-yellow-400"
-        />
-        <KpiCard 
-          title="Weekly Active" 
-          value={metrics?.weeklyActiveUsers ?? 0} 
-          icon={<Users size={20} className="text-white" />}
-          color="text-red-400"
-        />
-        <KpiCard 
-          title="New Users" 
-          value={metrics?.newUsers ?? 0} 
-          icon={<TrendingUp size={20} className="text-white" />}
-          color="text-purple-400"
-        />
-        <KpiCard 
-          title="Engagement Rate" 
-          value={`${(metrics?.engagementRate ?? 0).toFixed(1)}%`} 
-          icon={<Activity size={20} className="text-white" />}
-          color="text-orange-400"
-        />
+        {loading ? Array.from({ length: 6 }).map((_, i) => <SkeletonKpiCard key={i} />) : (
+          <>
+            <KpiCard title="Total Users" value={metrics?.totalUsers ?? 0} icon={<Users size={20} className="text-white" />} color="text-blue-400" />
+            <KpiCard title="Active Users" value={metrics?.activeUsers ?? 0} icon={<UserCheck size={20} className="text-white" />} color="text-emerald-400" />
+            <KpiCard title="Daily Active" value={metrics?.dailyActiveUsers ?? 0} icon={<Clock size={20} className="text-white" />} color="text-yellow-400" />
+            <KpiCard title="Weekly Active" value={metrics?.weeklyActiveUsers ?? 0} icon={<Users size={20} className="text-white" />} color="text-red-400" />
+            <KpiCard title="New Users" value={metrics?.newUsers ?? 0} icon={<TrendingUp size={20} className="text-white" />} color="text-purple-400" />
+            <KpiCard title="Engagement Rate" value={`${(metrics?.engagementRate ?? 0).toFixed(1)}%`} icon={<Activity size={20} className="text-white" />} color="text-orange-400" />
+          </>
+        )}
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
@@ -303,6 +345,7 @@ export default function AdminUsersPage() {
           <TabsTrigger value="users" className="text-white/60 hover:text-white/80 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-b-transparent data-[state=active]:border-b-orange-500">User Directory</TabsTrigger>
           <TabsTrigger value="activity" className="text-white/60 hover:text-white/80 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-b-transparent data-[state=active]:border-b-orange-500">Activity Timeline</TabsTrigger>
           <TabsTrigger value="analytics" className="text-white/60 hover:text-white/80 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-b-transparent data-[state=active]:border-b-orange-500">Analytics</TabsTrigger>
+          <TabsTrigger value="roles" onClick={fetchRoleUsers} className="text-white/60 hover:text-white/80 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-b-transparent data-[state=active]:border-b-orange-500">Roles & Permissions</TabsTrigger>
         </TabsList>
 
         {/* Users Tab */}
@@ -360,7 +403,9 @@ export default function AdminUsersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredUsers.map((user) => {
+                    {loading
+                      ? Array.from({ length: 8 }).map((_, i) => <SkeletonTableRow key={i} />)
+                      : filteredUsers.map((user) => {
                       const initials = (user.display_name || user.email)
                         .split(' ')
                         .map(n => n[0])
@@ -448,7 +493,8 @@ export default function AdminUsersPage() {
                         </TableCell>
                       </TableRow>
                     );
-                    })}
+                    })
+                    }
                   </TableBody>
                 </Table>
               </div>
@@ -608,6 +654,126 @@ export default function AdminUsersPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Roles & Permissions Tab — FR-14 */}
+        <TabsContent value="roles" className="space-y-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-[#FF6900]" />
+                    User Roles & Permissions
+                  </CardTitle>
+                  <p className="text-white/50 text-sm mt-1">Assign roles to control what users can access</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchRoleUsers} disabled={roleLoading}
+                  className="border-white/20 text-white/70 hover:text-white hover:bg-white/10">
+                  <RefreshCw className={`w-4 h-4 mr-2 ${roleLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Role legend */}
+              <div className="flex flex-wrap gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
+                {[
+                  { role: 'admin', label: 'Admin', desc: 'Full platform access', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
+                  { role: 'user', label: 'User', desc: 'Standard access', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+                  { role: 'viewer', label: 'Viewer', desc: 'Read-only access', color: 'bg-gray-500/20 text-gray-300 border-gray-500/30' },
+                ].map(r => (
+                  <div key={r.role} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs ${r.color}`}>
+                    <span className="font-semibold">{r.label}</span>
+                    <span className="opacity-70">— {r.desc}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <Input
+                  placeholder="Search users..."
+                  value={roleSearch}
+                  onChange={e => setRoleSearch(e.target.value)}
+                  className="pl-9 bg-white/5 border-white/20 text-white placeholder:text-white/40"
+                />
+              </div>
+
+              {/* Users table */}
+              {roleLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-6 h-6 animate-spin text-[#FF6900]" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/10 hover:bg-transparent">
+                      <TableHead className="text-white/60">User</TableHead>
+                      <TableHead className="text-white/60">Email</TableHead>
+                      <TableHead className="text-white/60">Joined</TableHead>
+                      <TableHead className="text-white/60">Current Role</TableHead>
+                      <TableHead className="text-white/60 text-right">Change Role</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {roleUsers
+                      .filter(u =>
+                        u.email.toLowerCase().includes(roleSearch.toLowerCase()) ||
+                        (u.displayName || '').toLowerCase().includes(roleSearch.toLowerCase())
+                      )
+                      .map(u => {
+                        const roleBadge = u.role === 'admin'
+                          ? 'bg-red-500/20 text-red-300 border-red-500/30'
+                          : u.role === 'viewer'
+                          ? 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+                        return (
+                          <TableRow key={u.uid} className="border-white/10 hover:bg-white/5">
+                            <TableCell className="text-white font-medium">
+                              {u.displayName || '—'}
+                            </TableCell>
+                            <TableCell className="text-white/70 text-sm">{u.email}</TableCell>
+                            <TableCell className="text-white/50 text-sm">
+                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
+                            </TableCell>
+                            <TableCell>
+                              <span className={`text-xs px-2 py-1 rounded-md border capitalize ${roleBadge}`}>
+                                {u.role || 'user'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Select
+                                value={u.role || 'user'}
+                                onValueChange={val => updateRole(u.uid, val)}
+                                disabled={roleUpdating === u.uid}
+                              >
+                                <SelectTrigger className="w-32 bg-white/5 border-white/20 text-white text-xs h-8 ml-auto">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-900 border-white/20">
+                                  <SelectItem value="admin" className="text-white hover:bg-white/10">Admin</SelectItem>
+                                  <SelectItem value="user" className="text-white hover:bg-white/10">User</SelectItem>
+                                  <SelectItem value="viewer" className="text-white hover:bg-white/10">Viewer</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    {roleUsers.length === 0 && !roleLoading && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-white/40 py-10">
+                          No users found. Click Refresh to load.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

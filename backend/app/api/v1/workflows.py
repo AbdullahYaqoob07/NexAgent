@@ -9,6 +9,7 @@ from app.models.workflow_models import (
     WorkflowDetailResponse
 )
 from app.services.firebase_service import firebase_service
+from firebase_admin import firestore
 from app.services.workflow_service import workflow_service
 from typing import Optional, Any, Dict, List
 from datetime import datetime
@@ -688,6 +689,7 @@ async def execute_workflow(
         )
 
         engine = get_engine()
+        _exec_start_ms = int(__import__('time').time() * 1000)
         result = await engine.execute(wf_def, request.input or {}, context)
 
         # Convert NodeLog objects to frontend-friendly camelCase dicts
@@ -708,6 +710,28 @@ async def execute_workflow(
 
         await workflow_service.increment_execution_count(workflow_id)
 
+        # Persist execution record to Firestore
+        try:
+            exec_id = context.execution_id
+            exec_doc = {
+                "id": exec_id,
+                "workflowId": workflow_id,
+                "userId": user_id,
+                "status": result.status,
+                "startTime": _exec_start_ms,
+                "endTime": int(__import__('time').time() * 1000),
+                "duration": result.duration_ms,
+                "nodeLogs": node_logs,
+                "input": request.input or {},
+                "output": result.final_output or {},
+                "error": result.error,
+                "metadata": {"tokensUsed": 0, "cost": 0},
+                "createdAt": firestore.SERVER_TIMESTAMP,
+            }
+            firebase_service.db.collection("executions").document(exec_id).set(exec_doc)
+        except Exception as _save_err:
+            logger.warning("Failed to persist execution record: %s", _save_err)
+
         logger.info("Workflow %s completed with status: %s", workflow_id, result.status)
         return ExecuteWorkflowResponse(
             status=result.status,
@@ -726,6 +750,53 @@ async def execute_workflow(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to execute workflow: {exc}"
         )
+
+
+@router.get("/{workflow_id}/executions")
+async def list_executions(
+    workflow_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    current_user: dict = Depends(get_current_user),
+):
+    """List execution history for a workflow (most recent first)."""
+    try:
+        user_id = current_user["uid"]
+        docs = (
+            firebase_service.db.collection("executions")
+            .where("workflowId", "==", workflow_id)
+            .where("userId", "==", user_id)
+            .stream()
+        )
+        executions = [d.to_dict() for d in docs]
+        # Sort newest first in Python to avoid needing a composite Firestore index
+        executions.sort(key=lambda e: e.get("startTime", 0), reverse=True)
+        return {"executions": executions[:limit]}
+    except Exception as exc:
+        logger.error("list_executions error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/{workflow_id}/executions/{execution_id}")
+async def get_execution(
+    workflow_id: str,
+    execution_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Get a single execution record."""
+    try:
+        user_id = current_user["uid"]
+        doc = firebase_service.db.collection("executions").document(execution_id).get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Execution not found")
+        data = doc.to_dict()
+        if data.get("userId") != user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return data
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("get_execution error: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @router.post("/{workflow_id}/webhook")
