@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/AuthContext";
 
 const marketplaceItems = [
   {
@@ -39,7 +41,17 @@ const marketplaceItems = [
   }
 ];
 
-const MarketplaceCard = ({ item, index }: { item: typeof marketplaceItems[0], index: number }) => {
+const MarketplaceCard = ({
+  item,
+  index,
+  onPreview,
+  onIntegrate,
+}: {
+  item: typeof marketplaceItems[0];
+  index: number;
+  onPreview: () => void;
+  onIntegrate: () => void;
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -142,7 +154,10 @@ const MarketplaceCard = ({ item, index }: { item: typeof marketplaceItems[0], in
           {/* Action buttons */}
           <div className="flex items-center gap-2">
             {/* Preview button with text */}
-            <button className="bg-[#161616] border border-[#312F2F] hover:bg-[#2A2A2A] hover:border-[#4A4A4A] text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-1">
+            <button
+              onClick={onPreview}
+              className="bg-[#161616] border border-[#312F2F] hover:bg-[#2A2A2A] hover:border-[#4A4A4A] text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-1"
+            >
               <Image
                 src="/assets/marketPlace/Eye.svg"
                 alt="Eye"
@@ -154,7 +169,10 @@ const MarketplaceCard = ({ item, index }: { item: typeof marketplaceItems[0], in
             </button>
             
             {/* Integrate button */}
-            <button className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 hover:scale-105">
+            <button
+              onClick={onIntegrate}
+              className="bg-[#FF6900] hover:bg-[#E55D00] text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center gap-1 hover:scale-105"
+            >
               <Image
                 src="/assets/marketPlace/Switch.svg"
                 alt="Switch"
@@ -172,6 +190,18 @@ const MarketplaceCard = ({ item, index }: { item: typeof marketplaceItems[0], in
 };
 
 const Marketplace = () => {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  const navigateWithAuthCheck = (targetPath: string) => {
+    if (loading) return;
+    if (user) {
+      router.push(targetPath);
+      return;
+    }
+    router.push('/sign-in');
+  };
+
   return (
     <section id="marketplace" className="relative py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -195,7 +225,13 @@ const Marketplace = () => {
         {/* Marketplace cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {marketplaceItems.map((item, index) => (
-            <MarketplaceCard key={item.id} item={item} index={index} />
+            <MarketplaceCard
+              key={item.id}
+              item={item}
+              index={index}
+              onPreview={() => navigateWithAuthCheck('/marketplace')}
+              onIntegrate={() => navigateWithAuthCheck('/workflows')}
+            />
           ))}
         </div>
       </div>

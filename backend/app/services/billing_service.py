@@ -532,6 +532,31 @@ class BillingService:
             raise HTTPException(status_code=404, detail="User not found")
         return user_doc.to_dict()
 
+    async def _ensure_stripe_customer_id(self, user_id: str, user_doc: Dict[str, Any]) -> str:
+        """Get or create a Stripe customer for the user and persist it in Firestore."""
+        existing = self._extract_stripe_customer_id(user_doc)
+        if existing:
+            return existing
+
+        email = user_doc.get('email')
+        name = user_doc.get('displayName') or user_doc.get('name') or user_doc.get('username')
+
+        customer = stripe.Customer.create(
+            email=email,
+            name=name,
+            metadata={'firebase_uid': user_id}
+        )
+
+        user_ref = self.db.db.collection('users').document(user_id)
+        user_ref.update({
+            'stripeCustomerId': customer.id,
+            'subscription.stripeCustomerId': customer.id,
+            'subscription.customerId': customer.id,
+            'subscription.updated_at': datetime.utcnow(),
+        })
+
+        return customer.id
+
     def _extract_stripe_customer_id(self, user_doc: Dict[str, Any]) -> Optional[str]:
         """Extract Stripe customer ID from user document"""
         if not user_doc:
@@ -927,7 +952,7 @@ class BillingService:
         """Create Stripe checkout session"""
         try:
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
+            stripe_customer_id = await self._ensure_stripe_customer_id(user_id, user_doc)
             
             plan = await self.get_plan(request.plan_id)
             if not plan:
@@ -964,10 +989,7 @@ class BillingService:
         """Create Stripe billing portal session"""
         try:
             user_doc = await self._get_user_document(user_id)
-            stripe_customer_id = self._extract_stripe_customer_id(user_doc)
-            
-            if not stripe_customer_id:
-                raise HTTPException(status_code=400, detail="User has no Stripe customer ID")
+            stripe_customer_id = await self._ensure_stripe_customer_id(user_id, user_doc)
             
             session = stripe.billing_portal.Session.create(
                 customer=stripe_customer_id,

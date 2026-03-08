@@ -97,6 +97,7 @@ export default function NodeConfigModal({
   const [variablePickerField, setVariablePickerField] = useState('');
   const [showCredentialPicker, setShowCredentialPicker] = useState(false);
   const [credentialPickerField, setCredentialPickerField] = useState('');
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [workflowData, setWorkflowData] = useState<{nodes: any[]; connections: any[]}>({nodes: [], connections: []});
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string>('');
 
@@ -191,12 +192,24 @@ export default function NodeConfigModal({
             ) : (
               <div className="relative">
                 <Input
-                  type="password"
+                  type={visiblePasswords[fieldName || ''] ? 'text' : 'password'}
                   value={value || ''}
                   onChange={(e) => onChange(e.target.value)}
                   placeholder={placeholder || 'Enter value or pick a saved credential →'}
                   className="bg-slate-800 border-slate-700 text-white pr-10 transition-all"
                 />
+                <button
+                  type="button"
+                  onClick={() => setVisiblePasswords(prev => ({ ...prev, [fieldName || '']: !prev[fieldName || ''] }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-[#FF6900] transition-colors"
+                  title={visiblePasswords[fieldName || ''] ? 'Hide password' : 'Show password'}
+                >
+                  {visiblePasswords[fieldName || ''] ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             )}
             {/* Credential picker button */}
@@ -476,6 +489,19 @@ export default function NodeConfigModal({
       loadNodeCategories();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
   
   // Load all available nodes grouped by category
   const loadNodeCategories = async () => {
@@ -928,14 +954,21 @@ export default function NodeConfigModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <div
-        className="w-full max-w-5xl bg-slate-950 rounded-2xl shadow-2xl overflow-hidden flex max-h-[90vh]"
+        className="w-full max-w-5xl bg-[#0a0806] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex max-h-[90vh]"
         onDragOver={(e) => e.preventDefault()}
       >
         {/* Variables Panel - Left Sidebar */}
-        <div className="w-72 border-r border-slate-700 bg-slate-900 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-slate-700">
+        <div className="w-72 border-r border-white/10 bg-[#15100c] flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-white/10">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Braces className="w-4 h-4 text-[#FF6900]" />
               Previous Nodes
@@ -1104,7 +1137,7 @@ export default function NodeConfigModal({
         {/* Config Panel - Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
         {/* Clean Header */}
-        <div className="border-b border-slate-700 px-8 py-6 flex items-center justify-between bg-slate-950">
+        <div className="border-b border-white/10 px-8 py-6 flex items-center justify-between bg-[#120d09]">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#FF6900] flex items-center justify-center text-white">
               {nodeIcon.startsWith('/') || nodeIcon.startsWith('http') ? (
@@ -1161,17 +1194,21 @@ export default function NodeConfigModal({
                       }
                     }
                     const renderFieldBlock = (field: any) => (
-                      <div key={field.name}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <label className="block text-sm font-semibold text-white">
-                            {field.label || field.name}
-                          </label>
-                          {field.required && <span className="text-red-400">*</span>}
+                      <div key={field.name} className="flex h-full flex-col gap-2">
+                        <div className="min-h-[3rem]">
+                          <div className="flex items-center gap-2">
+                            <label className="block text-sm font-semibold text-white">
+                              {field.label || field.name}
+                            </label>
+                            {field.required && <span className="text-red-400">*</span>}
+                          </div>
                           {field.description && (
-                            <span className="text-xs text-gray-400 italic">({field.description})</span>
+                            <p className="mt-1 text-xs text-gray-400 italic leading-4">
+                              {field.description}
+                            </p>
                           )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="mt-1.5 flex gap-2">
                           {renderDynamicField(
                             field,
                             config[field.name],
@@ -1211,7 +1248,7 @@ export default function NodeConfigModal({
           </div>
 
         {/* Clean Footer with Actions */}
-        <div className="border-t border-slate-700 bg-slate-800 px-8 py-4 flex items-center justify-between">
+        <div className="border-t border-white/10 bg-[#120d09] px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {showAdvanced && (
               <button
@@ -1262,8 +1299,8 @@ export default function NodeConfigModal({
       {/* Add Field Modal */}
       {showAddFieldModal && (
         <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-md flex items-center justify-center">
-          <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md mx-4">
-            <div className="p-6 border-b border-slate-700">
+          <div className="bg-[#0a0806] border border-white/10 rounded-xl w-full max-w-md mx-4">
+            <div className="p-6 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">Add Configuration Field</h3>
                 <button
