@@ -181,6 +181,8 @@ export default function MarketplaceAdminPage() {
       }
       setListingAction(null);
       setListingActionReason("");
+      // Invalidate cache so next tab open re-fetches fresh data
+      _listingsCache.ts = 0;
     } catch (e) {
       console.error(e);
     } finally {
@@ -568,7 +570,7 @@ export default function MarketplaceAdminPage() {
                   </CardTitle>
                   <CardDescription className="text-white/60">{allListings.length} total listings</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchListings} disabled={listingsLoading}
+                <Button variant="outline" size="sm" onClick={() => fetchListings(true)} disabled={listingsLoading}
                   className="border-white/20 text-white/70 hover:text-white hover:bg-white/10">
                   <RefreshCw className={`w-4 h-4 mr-2 ${listingsLoading ? 'animate-spin' : ''}`} />
                   Refresh
