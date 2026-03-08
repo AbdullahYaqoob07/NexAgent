@@ -47,6 +47,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [errorNodeIds, setErrorNodeIds] = useState<string[]>([]);
   const [toasts, setToasts] = useState<{ id: string; message: string; type?: 'info' | 'error' }[]>([]);
+  // Snapshot used for undo after chatbot applies a workflow patch
+  const [pendingPatch, setPendingPatch] = useState<{ snapshot: ReturnType<WorkflowCanvasRef['getWorkflowData']>; label: string } | null>(null);
   const [showOutputTerminal, setShowOutputTerminal] = useState(false);
   const [executionOutput, setExecutionOutput] = useState<string[]>([]);
   const [terminalHeight, setTerminalHeight] = useState(256); // Default height: 256px
@@ -2134,6 +2136,85 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             onClose={() => setShowAssistant(false)}
             isMinimized={assistantMinimized}
             onToggleMinimize={() => setAssistantMinimized(!assistantMinimized)}
+            getCurrentCanvasState={() => canvasRef.current?.getWorkflowData() || null}
+            onApplyWorkflowPatch={(patchObj) => {
+              if (!canvasRef.current || !patchObj) return;
+
+              // Snapshot current canvas so user can undo
+              const snapshot = canvasRef.current.getWorkflowData();
+
+              const rawNodes: any[] = patchObj.nodes || [];
+              const rawConns: any[] = patchObj.connections || [];
+
+              // Build a topological level map so nodes flow left → right
+              const inDegree: Record<string, number> = {};
+              const outEdges: Record<string, string[]> = {};
+              rawNodes.forEach((n: any) => { inDegree[n.id] = 0; outEdges[n.id] = []; });
+              rawConns.forEach((c: any) => {
+                if (c.to in inDegree) inDegree[c.to]++;
+                if (c.from in outEdges) outEdges[c.from].push(c.to);
+              });
+
+              // BFS level assignment
+              const levels: Record<string, number> = {};
+              const queue: string[] = rawNodes
+                .filter((n: any) => inDegree[n.id] === 0)
+                .map((n: any) => n.id);
+              queue.forEach(id => { levels[id] = 0; });
+              let qi = 0;
+              while (qi < queue.length) {
+                const cur = queue[qi++];
+                (outEdges[cur] || []).forEach(next => {
+                  levels[next] = Math.max(levels[next] ?? 0, (levels[cur] ?? 0) + 1);
+                  if (!queue.includes(next)) queue.push(next);
+                });
+              }
+              rawNodes.forEach((n: any) => { if (!(n.id in levels)) levels[n.id] = 0; });
+
+              // Group by level for y-stacking
+              const byLevel: Record<number, string[]> = {};
+              rawNodes.forEach((n: any) => {
+                const l = levels[n.id] ?? 0;
+                if (!byLevel[l]) byLevel[l] = [];
+                byLevel[l].push(n.id);
+              });
+
+              const H_GAP = 160;
+              const V_GAP = 120;
+              const START_X = 80;
+              const START_Y = 80;
+              const positions: Record<string, { x: number; y: number }> = {};
+              Object.entries(byLevel).forEach(([lvl, ids]) => {
+                const col = parseInt(lvl);
+                ids.forEach((id, idx) => {
+                  positions[id] = { x: START_X + col * H_GAP, y: START_Y + idx * V_GAP };
+                });
+              });
+
+              const nodes = rawNodes.map((n: any, i: number) => ({
+                id: n.id,
+                type: n.type,
+                name: n.name || n.type,
+                x: positions[n.id]?.x ?? START_X + i * H_GAP,
+                y: positions[n.id]?.y ?? START_Y,
+                config: n.config || {},
+              }));
+
+              const connections = rawConns.map((c: any, i: number) => ({
+                id: c.id || `conn_${c.from}_${c.to}_${i}`,
+                from: c.from,
+                to: c.to,
+                fromPoint: 'output',
+                toPoint: 'input' as const,
+                ...(c.condition != null && { condition: c.condition as 'true' | 'false' }),
+              }));
+
+              canvasRef.current.loadWorkflow({ nodes, connections });
+
+              // Show keep/undo bar
+              const label = `${rawNodes.length} node${rawNodes.length !== 1 ? 's' : ''} added by Assistant`;
+              setPendingPatch({ snapshot, label });
+            }}
           />
         </div>
       )}
@@ -2368,6 +2449,31 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
       )}
 
       {/* Tour removed */}
+
+      {/* Assistant keep/undo bar */}
+      {pendingPatch && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl bg-zinc-900 border border-zinc-700 text-sm text-white">
+          <span className="text-zinc-300">✦ {pendingPatch.label}</span>
+          <button
+            onClick={() => setPendingPatch(null)}
+            className="px-3 py-1.5 rounded-lg bg-[#FF6900] hover:bg-[#FF6900]/80 text-white font-medium transition-colors"
+          >
+            Keep
+          </button>
+          <button
+            onClick={() => {
+              if (canvasRef.current && pendingPatch) {
+                canvasRef.current.loadWorkflow(pendingPatch.snapshot);
+              }
+              setPendingPatch(null);
+            }}
+            className="px-3 py-1.5 rounded-lg bg-zinc-700 hover:bg-zinc-600 text-zinc-200 font-medium transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
       {/* Toasts (top-right) */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map(t => (

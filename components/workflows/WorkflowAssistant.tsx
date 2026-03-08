@@ -26,6 +26,7 @@ interface Message {
   timestamp: Date;
   status?: "sending" | "sent" | "error";
   suggestions?: string[];
+  sources?: string[];
   workflowAction?: {
     type: "node_added" | "connection_made" | "workflow_generated";
     details: string;
@@ -36,6 +37,8 @@ interface WorkflowAssistantProps {
   onClose?: () => void;
   isMinimized?: boolean;
   onToggleMinimize?: () => void;
+  getCurrentCanvasState?: () => any;
+  onApplyWorkflowPatch?: (patchObj: any) => void;
 }
 
 const initialMessages: Message[] = [
@@ -79,7 +82,9 @@ function loadMessages(): Message[] {
 export function WorkflowAssistant({ 
   onClose, 
   isMinimized = false, 
-  onToggleMinimize 
+  onToggleMinimize,
+  getCurrentCanvasState,
+  onApplyWorkflowPatch
 }: WorkflowAssistantProps) {
   const [messages, setMessages] = useState<Message[]>(() => loadMessages());
   const [inputValue, setInputValue] = useState("");
@@ -87,6 +92,16 @@ export function WorkflowAssistant({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sessionIdRef = useRef<string>('');
+
+  useEffect(() => {
+    let sessionId = sessionStorage.getItem('nxa_session');
+    if (!sessionId) {
+      sessionId = 'session_' + Math.random().toString(36).slice(2, 10);
+      sessionStorage.setItem('nxa_session', sessionId);
+    }
+    sessionIdRef.current = sessionId;
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -216,15 +231,19 @@ export function WorkflowAssistant({
     });
   };
 
-  const fetchAssistantResponse = async (userMessage: string): Promise<string> => {
+  const fetchAssistantResponse = async (userMessage: string): Promise<{ answer: string; workflow_action?: any; sources?: string[] }> => {
     try {
-      const response = await fetch('https://nexagent-chatbot.onrender.com/query', {
+      const parentState = getCurrentCanvasState ? getCurrentCanvasState() : null;
+      
+      const response = await fetch('https://aiassitance.swedenrelocators.se/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          question: userMessage
+          question: userMessage,
+          session_id: sessionIdRef.current,
+          current_state: parentState
         })
       });
 
@@ -236,7 +255,11 @@ export function WorkflowAssistant({
       
       // Clean up markdown formatting in the response
       const answer = data.answer || "I couldn't generate a response. Please try again.";
-      return cleanMarkdownFormatting(answer);
+      return { 
+        answer: cleanMarkdownFormatting(answer),
+        workflow_action: data.workflow_action,
+        sources: data.sources
+      };
     } catch (error) {
       console.error('Chatbot API error:', error);
       throw error;
@@ -260,15 +283,25 @@ export function WorkflowAssistant({
     setIsTyping(true);
 
     try {
-      const response = await fetchAssistantResponse(userMessage.content);
+      const { answer, workflow_action, sources } = await fetchAssistantResponse(userMessage.content);
       
       setIsTyping(false);
+      
+      // Apply workflow changes if the assistant requested them
+      if (workflow_action && workflow_action.type === 'UPDATE_CANVAS' && onApplyWorkflowPatch) {
+        try {
+           onApplyWorkflowPatch(workflow_action.payload);
+        } catch (e) {
+           console.error("Failed to apply workflow patch", e);
+        }
+      }
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
-        content: response,
+        content: answer,
         timestamp: new Date(),
+        sources: sources,
         suggestions: Math.random() > 0.7 ? [
           "Tell me more about this",
           "Show me an example",
@@ -395,6 +428,22 @@ export function WorkflowAssistant({
                       {suggestion}
                     </button>
                   ))}
+                </div>
+              )}
+              
+              {message.sources && message.sources.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-zinc-700/50">
+                  <div className="text-xs text-zinc-500 mb-1.5 flex items-center gap-1">
+                    <Paperclip className="w-3 h-3" />
+                    Sources
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {message.sources.map((source, index) => (
+                      <div key={index} className="text-xs px-2 py-1 bg-zinc-800 rounded border border-zinc-700 text-zinc-400 break-all">
+                        {source}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

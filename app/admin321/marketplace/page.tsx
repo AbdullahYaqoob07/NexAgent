@@ -76,6 +76,10 @@ import {
 
 
 
+// Module-level cache for All Listings tab (survives re-renders, cleared on manual refresh)
+const _listingsCache: { data: MarketplaceNexa[] | null; ts: number } = { data: null, ts: 0 };
+const LISTINGS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 export default function MarketplaceAdminPage() {
   const [selectedTab, setSelectedTab] = useState("overview");
   const [selectedNexaModal, setSelectedNexaModal] = useState<PendingNexaType | null>(null);
@@ -138,10 +142,17 @@ export default function MarketplaceAdminPage() {
     fetchAll();
   }, []);
 
-  const fetchListings = async () => {
+  const fetchListings = async (force = false) => {
+    const now = Date.now();
+    if (!force && _listingsCache.data && now - _listingsCache.ts < LISTINGS_CACHE_TTL_MS) {
+      setAllListings(_listingsCache.data);
+      return;
+    }
     setListingsLoading(true);
     try {
       const data = await marketplaceService.listNexas();
+      _listingsCache.data = data;
+      _listingsCache.ts = Date.now();
       setAllListings(data);
     } catch {
       setAllListings([]);
