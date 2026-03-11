@@ -19,15 +19,44 @@ from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
+# Common field aliases: if the requested field isn't found, try these mappings.
+# Lets chatbot-generated references like {{$trigger.timestamp}} resolve even
+# when the node outputs it under a different canonical name.
+_FIELD_ALIASES: Dict[str, list] = {
+    "timestamp":    ["triggered_at", "created_at", "time", "date"],
+    "triggered_at": ["timestamp", "time"],
+    "message":      ["text", "content", "body", "response"],
+    "response":     ["message", "text", "content", "output", "result"],
+    "text":         ["message", "content", "response", "body"],
+    "content":      ["message", "text", "response", "body"],
+    "body":         ["message", "text", "content", "response"],
+    "status":       ["status_code", "state"],
+    "status_code":  ["status"],
+    "result":       ["response", "output", "data", "value"],
+    "output":       ["result", "response", "data"],
+    "data":         ["result", "output", "response", "rows"],
+    "url":          ["file_url", "download_url", "link"],
+    "email":        ["to", "recipient"],
+    "duration":     ["actual_duration_ms", "delay"],
+}
+
 _PATTERN = re.compile(r"\{\{(.*?)\}\}")
 
 
 def _deep_get(data: Any, *path: str) -> Any:
-    """Navigate a nested dict/list using dot-split keys."""
+    """Navigate a nested dict/list using dot-split keys, with alias fallback."""
     current = data
     for key in path:
         if isinstance(current, dict):
-            current = current.get(key)
+            value = current.get(key)
+            if value is None:
+                # Try known aliases for this key
+                for alias in _FIELD_ALIASES.get(key, []):
+                    value = current.get(alias)
+                    if value is not None:
+                        logger.debug("Field alias resolved: '%s' → '%s'", key, alias)
+                        break
+            current = value
         elif isinstance(current, list):
             try:
                 current = current[int(key)]

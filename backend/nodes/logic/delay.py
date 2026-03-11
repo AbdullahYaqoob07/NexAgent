@@ -59,6 +59,10 @@ class Delay(BaseNode):
             ),
         ],
         outputs=[
+            NodeOutputField(name="duration", display_name="Duration", type="number",
+                            description="Configured delay duration value"),
+            NodeOutputField(name="unit", display_name="Unit", type="string",
+                            description="Configured delay unit (seconds, minutes, milliseconds)"),
             NodeOutputField(name="actual_duration_ms", display_name="Actual Duration (ms)", type="number"),
             NodeOutputField(name="delayed_until", display_name="Delayed Until", type="string",
                             description="ISO timestamp when the delay ended"),
@@ -98,6 +102,8 @@ class Delay(BaseNode):
         delayed_until = datetime.now(timezone.utc).isoformat()
 
         return {
+            "duration": duration,
+            "unit": unit,
             "actual_duration_ms": round(actual_ms, 2),
             "delayed_until": delayed_until,
         }

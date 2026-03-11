@@ -1,0 +1,630 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexAgent â€” Local Test UI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* â”€â”€ Reset & Base â”€â”€ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b1120;--panel:#141e2e;--surface:#1c2a3e;--border:#243349;
+  --accent:#3b82f6;--accent2:#6366f1;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;--faint:#334155;
+  --user-bubble:#1d4ed8;--bot-bubble:#1c2a3e;--card-bg:#0f2040;
+}
+html,body{height:100%;overflow:hidden;font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+
+/* â”€â”€ Layout â”€â”€ */
+#app{display:flex;height:100vh;width:100vw}
+
+/* â”€â”€ LEFT: Chat Panel â”€â”€ */
+#chat-panel{
+  display:flex;flex-direction:column;
+  width:50%;min-width:340px;max-width:760px;
+  border-right:1px solid var(--border);background:var(--panel)
+}
+
+/* Header */
+#chat-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,#141e2e,#0b1120);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap
+}
+#chat-header .title{flex:1;min-width:0}
+#chat-header h1{font-size:1rem;font-weight:700;letter-spacing:-0.3px}
+#chat-header p{font-size:.72rem;color:var(--muted);margin-top:2px}
+#server-status{
+  display:flex;align-items:center;gap:6px;font-size:.7rem;
+  padding:3px 10px;border-radius:99px;border:1px solid var(--border);
+  background:var(--surface);white-space:nowrap
+}
+#status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+#status-dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
+#status-dot.offline{background:var(--red);box-shadow:0 0 6px var(--red)}
+.header-btn{
+  background:transparent;border:1px solid var(--border);
+  color:var(--muted);border-radius:7px;padding:4px 11px;
+  font-size:.72rem;cursor:pointer;transition:all .18s;white-space:nowrap;font-family:inherit
+}
+.header-btn:hover{border-color:var(--accent);color:var(--accent)}
+.header-btn.danger:hover{border-color:var(--red);color:var(--red)}
+
+/* Quick prompts */
+#quick-prompts{
+  padding:8px 14px;border-bottom:1px solid var(--border);
+  display:flex;gap:6px;overflow-x:auto;flex-shrink:0
+}
+#quick-prompts::-webkit-scrollbar{height:3px}
+#quick-prompts::-webkit-scrollbar-thumb{background:var(--faint);border-radius:99px}
+.qp{
+  flex-shrink:0;padding:4px 11px;border-radius:99px;border:1px solid var(--border);
+  background:var(--surface);color:var(--muted);font-size:.7rem;
+  cursor:pointer;transition:all .18s;font-family:inherit;white-space:nowrap
+}
+.qp:hover{border-color:var(--accent);color:var(--text);background:rgba(59,130,246,.1)}
+
+/* Messages */
+#messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+#messages::-webkit-scrollbar{width:5px}
+#messages::-webkit-scrollbar-thumb{background:var(--faint);border-radius:99px}
+
+.msg{max-width:82%;padding:10px 14px;border-radius:12px;line-height:1.55;font-size:.875rem;animation:fadeUp .22s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{background:var(--user-bubble);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.bot{background:var(--bot-bubble);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border)}
+.msg p{margin-bottom:.4em}.msg p:last-child{margin:0}
+.msg strong{font-weight:600}.msg em{font-style:italic;color:var(--muted)}
+.msg ul,.msg ol{margin-left:1.4em;margin-bottom:.4em}.msg li{margin-bottom:.2em}
+.msg code{background:rgba(0,0,0,.3);padding:.15em .4em;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8em}
+.msg pre{background:rgba(0,0,0,.4);border-radius:6px;padding:10px;overflow-x:auto;margin:.4em 0}
+.msg pre code{background:none;padding:0;font-size:.78em}
+.msg.user code{background:rgba(255,255,255,.15)}
+.sources-row{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.07);display:flex;flex-wrap:wrap;gap:4px}
+.src-badge{font-size:.68rem;background:rgba(255,255,255,.08);padding:1px 7px;border-radius:99px;color:var(--muted)}
+
+/* Canvas update card (in chat) */
+.canvas-card{
+  align-self:flex-start;max-width:82%;
+  background:var(--card-bg);border:1px solid var(--accent);
+  border-radius:12px;border-bottom-left-radius:4px;
+  padding:10px 14px;animation:fadeUp .22s ease;font-size:.8rem
+}
+.canvas-card-header{display:flex;align-items:center;gap:7px;font-weight:600;color:#60a5fa;margin-bottom:8px}
+.canvas-card-header svg{width:14px;height:14px;fill:#60a5fa;flex-shrink:0}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.badge{padding:2px 9px;border-radius:99px;font-size:.68rem;background:rgba(59,130,246,.15);color:#93c5fd}
+.canvas-card details summary{cursor:pointer;color:var(--muted);font-size:.7rem;user-select:none;list-style:none}
+.canvas-card details summary:hover{color:#60a5fa}
+.canvas-card pre{margin-top:7px;background:rgba(0,0,0,.35);border-radius:6px;padding:9px;font-family:'JetBrains Mono',monospace;font-size:.7rem;overflow-x:auto;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;max-height:220px}
+
+/* Typing */
+.typing-wrap{align-self:flex-start;display:none;padding:10px 14px}
+.typing{display:flex;gap:4px}
+.dot{width:7px;height:7px;background:var(--muted);border-radius:50%;animation:bounce 1.4s infinite ease-in-out both}
+.dot:nth-child(1){animation-delay:-.32s}.dot:nth-child(2){animation-delay:-.16s}
+@keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
+
+/* Error banner */
+.err-banner{
+  align-self:stretch;padding:9px 13px;background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.3);border-radius:8px;
+  font-size:.78rem;color:#fca5a5;display:flex;align-items:center;gap:7px
+}
+
+/* Input row */
+#input-row{padding:14px 16px;border-top:1px solid var(--border);background:var(--panel);display:flex;gap:10px;align-items:center}
+#msg-input{
+  flex:1;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);padding:11px 15px;border-radius:24px;
+  font-size:.875rem;outline:none;transition:border-color .2s;font-family:inherit;resize:none;max-height:100px;overflow-y:auto
+}
+#msg-input:focus{border-color:var(--accent)}
+#send-btn{
+  width:42px;height:42px;flex-shrink:0;background:var(--accent);border:none;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background .18s,transform .1s
+}
+#send-btn:hover{background:var(--accent2);transform:scale(1.06)}
+#send-btn:active{transform:scale(.94)}
+#send-btn svg{width:18px;height:18px;fill:#fff;margin-left:2px}
+#send-btn:disabled{background:var(--faint);cursor:not-allowed;transform:none}
+
+/* â”€â”€ RIGHT: Canvas Panel â”€â”€ */
+#canvas-panel{
+  flex:1;display:flex;flex-direction:column;background:var(--bg);min-width:0
+}
+#canvas-header{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;background:var(--panel)
+}
+#canvas-header h2{font-size:.9rem;font-weight:600;flex:1}
+#canvas-tabs{display:flex;gap:2px;background:var(--surface);border-radius:8px;padding:2px}
+.tab-btn{
+  padding:4px 13px;border-radius:6px;border:none;background:transparent;
+  color:var(--muted);font-size:.72rem;cursor:pointer;font-family:inherit;transition:all .18s
+}
+.tab-btn.active{background:var(--accent);color:#fff}
+.copy-btn{
+  padding:4px 11px;background:transparent;border:1px solid var(--border);
+  color:var(--muted);border-radius:7px;font-size:.72rem;cursor:pointer;
+  font-family:inherit;transition:all .18s
+}
+.copy-btn:hover{border-color:var(--green);color:var(--green)}
+.copy-btn.copied{border-color:var(--green);color:var(--green)}
+#ingest-btn{
+  padding:4px 11px;background:transparent;border:1px solid var(--border);
+  color:var(--muted);border-radius:7px;font-size:.72rem;cursor:pointer;
+  font-family:inherit;transition:all .18s
+}
+#ingest-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+#ingest-btn.loading{opacity:.6;cursor:not-allowed}
+
+#canvas-body{flex:1;overflow:auto;padding:16px}
+#canvas-body::-webkit-scrollbar{width:5px}
+#canvas-body::-webkit-scrollbar-thumb{background:var(--faint);border-radius:99px}
+
+/* Empty state */
+#empty-canvas{
+  height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;color:var(--muted)
+}
+#empty-canvas svg{width:48px;height:48px;opacity:.25}
+#empty-canvas p{font-size:.8rem;text-align:center;max-width:240px;line-height:1.5}
+
+/* Node cards */
+#nodes-view{display:flex;flex-direction:column;gap:10px}
+.node-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;position:relative
+}
+.node-card .node-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.node-id{font-family:'JetBrains Mono',monospace;font-size:.68rem;background:var(--faint);padding:1px 7px;border-radius:5px;color:var(--muted)}
+.node-type{font-size:.75rem;font-weight:600;padding:2px 9px;border-radius:99px}
+.type-trigger{background:rgba(34,197,94,.15);color:#4ade80}
+.type-action{background:rgba(59,130,246,.15);color:#93c5fd}
+.type-logic{background:rgba(245,158,11,.15);color:#fcd34d}
+.type-data{background:rgba(168,85,247,.15);color:#d8b4fe}
+.type-ai{background:rgba(249,115,22,.15);color:#fdba74}
+.type-integration{background:rgba(20,184,166,.15);color:#5eead4}
+.node-name{font-size:.78rem;font-weight:500;flex:1;truncate:ellipsis;overflow:hidden;white-space:nowrap}
+.config-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:.72rem}
+.cfg-key{color:var(--muted);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.cfg-val{color:var(--text);word-break:break-word;font-family:'JetBrains Mono',monospace}
+.conn-arrow{
+  display:flex;align-items:center;gap:6px;padding:4px 0;font-size:.72rem;color:var(--muted)
+}
+.conn-arrow svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;flex-shrink:0}
+.conn-cond{padding:1px 7px;border-radius:99px;font-size:.65rem;margin-left:4px}
+.cond-true{background:rgba(34,197,94,.15);color:#4ade80}
+.cond-false{background:rgba(239,68,68,.15);color:#fca5a5}
+
+/* JSON tab */
+#json-view{display:none}
+#json-view pre{
+  font-family:'JetBrains Mono',monospace;font-size:.73rem;
+  line-height:1.6;color:#e2e8f0;white-space:pre;min-height:100px
+}
+.json-key{color:#93c5fd}.json-str{color:#86efac}.json-num{color:#fcd34d}.json-bool{color:#fdba74}.json-null{color:var(--muted)}
+
+/* Connections section */
+#conns-section{margin-top:14px}
+#conns-section h3{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+
+/* Stats bar */
+#stats-bar{
+  padding:8px 18px;border-top:1px solid var(--border);display:flex;gap:16px;
+  background:var(--panel);font-size:.7rem;color:var(--muted)
+}
+.stat span{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- â”€â”€ LEFT: Chat â”€â”€ -->
+  <div id="chat-panel">
+    <div id="chat-header">
+      <div class="title">
+        <h1>NexAgent Workflow Assistant</h1>
+        <p>LangGraph Agent Â· Groq Â· Pinecone Â· localhost:8000</p>
+      </div>
+      <div id="server-status"><div id="status-dot"></div><span id="status-text">Checkingâ€¦</span></div>
+      <button class="header-btn" id="ingest-btn" title="Ingest documents in data/">â¬† Ingest Docs</button>
+      <button class="header-btn danger" id="reset-btn">New Chat</button>
+    </div>
+
+    <div id="quick-prompts">
+      <span style="font-size:.68rem;color:var(--muted);display:flex;align-items:center;flex-shrink:0">Try:</span>
+      <button class="qp" data-q="Build a workflow that fetches weather from wttr.in and sends it to Slack every morning at 8 AM">ðŸŒ¤ Weather â†’ Slack</button>
+      <button class="qp" data-q="Create a workflow that reads topics from Google Sheets, uses Groq AI to write a blog post for each one, then emails the result">ðŸ“ Sheets â†’ AI â†’ Email</button>
+      <button class="qp" data-q="Build a score grader workflow: set a score variable to 72, then use IfCondition to log PASS if >= 60 or FAIL otherwise">âš–ï¸ Score Grader</button>
+      <button class="qp" data-q="Add a TelegramSend node after the last node to send a notification">âž• Add Telegram</button>
+      <button class="qp" data-q="Change the cron schedule to run every day at 9 AM instead">ðŸ•˜ Edit Schedule</button>
+      <button class="qp" data-q="What node types are available for AI in NexAgent?">ðŸ¤– AI Nodes?</button>
+      <button class="qp" data-q="Remove the Logger node and connect directly">ðŸ—‘ Remove Node</button>
+      <button class="qp" data-q="Build a batch processing loop: parse a JSON array of 3 cities, loop over them, ask Groq for the weather outlook for each">ðŸ” Loop Example</button>
+    </div>
+
+    <div id="messages">
+      <div class="msg bot">
+        ðŸ‘‹ Hi! I'm the <strong>NexAgent Workflow Assistant</strong>.<br><br>
+        I can <strong>build</strong>, <strong>edit</strong>, and <strong>explain</strong> any automation workflow.<br>
+        Pick a quick prompt above or type your request below.
+      </div>
+      <div class="typing-wrap" id="typing">
+        <div class="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+      </div>
+    </div>
+
+    <div id="input-row">
+      <textarea id="msg-input" placeholder="Describe a workflow or ask a questionâ€¦" rows="1"></textarea>
+      <button id="send-btn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- â”€â”€ RIGHT: Canvas â”€â”€ -->
+  <div id="canvas-panel">
+    <div id="canvas-header">
+      <h2 id="canvas-title">Canvas â€” Empty</h2>
+      <div id="canvas-tabs">
+        <button class="tab-btn active" id="tab-visual" onclick="switchTab('visual')">Visual</button>
+        <button class="tab-btn" id="tab-json" onclick="switchTab('json')">JSON</button>
+      </div>
+      <button class="copy-btn" id="copy-btn" onclick="copyJSON()">Copy JSON</button>
+    </div>
+    <div id="canvas-body">
+      <!-- Visual tab -->
+      <div id="visual-view">
+        <div id="empty-canvas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg>
+          <p>No workflow yet.<br>Ask the agent to build one!</p>
+        </div>
+        <div id="nodes-view" style="display:none"></div>
+        <div id="conns-section" style="display:none">
+          <h3>Connections</h3>
+          <div id="conns-view"></div>
+        </div>
+      </div>
+      <!-- JSON tab -->
+      <div id="json-view"><pre id="json-pre">// No workflow yet</pre></div>
+    </div>
+    <div id="stats-bar">
+      <div class="stat">Nodes: <span id="stat-nodes">0</span></div>
+      <div class="stat">Connections: <span id="stat-conns">0</span></div>
+      <div class="stat">Session: <span id="stat-session">â€”</span></div>
+      <div class="stat" id="stat-model-wrap">Model: <span id="stat-model">â€”</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+marked.setOptions({ breaks: true });
+
+const API = 'https://aiassitance.swedenrelocators.se';
+
+// â”€â”€ Session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let sessionId = sessionStorage.getItem('nxa_sid') || 'session_' + Math.random().toString(36).slice(2,10);
+sessionStorage.setItem('nxa_sid', sessionId);
+document.getElementById('stat-session').textContent = sessionId.slice(0,16) + 'â€¦';
+
+// â”€â”€ Canvas state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let canvas = { nodes: [], connections: [] };
+
+// â”€â”€ DOM refs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const msgs       = document.getElementById('messages');
+const typing     = document.getElementById('typing');
+const input      = document.getElementById('msg-input');
+const sendBtn    = document.getElementById('send-btn');
+const nodesView  = document.getElementById('nodes-view');
+const connsSection = document.getElementById('conns-section');
+const connsView  = document.getElementById('conns-view');
+const emptyCV    = document.getElementById('empty-canvas');
+const jsonPre    = document.getElementById('json-pre');
+
+// â”€â”€ Server health poll â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function checkHealth() {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
+    const d = await r.json();
+    dot.className = 'online';
+    text.textContent = 'Online';
+    document.getElementById('stat-model').textContent = d.llm || 'â€”';
+  } catch {
+    dot.className = 'offline';
+    text.textContent = 'Offline';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 8000);
+
+// â”€â”€ Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let activeTab = 'visual';
+function switchTab(t) {
+  activeTab = t;
+  document.getElementById('visual-view').style.display = t === 'visual' ? '' : 'none';
+  document.getElementById('json-view').style.display   = t === 'json'   ? '' : 'none';
+  document.getElementById('tab-visual').className = 'tab-btn' + (t==='visual'?' active':'');
+  document.getElementById('tab-json').className   = 'tab-btn' + (t==='json'?' active':'');
+}
+
+// â”€â”€ Copy JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function copyJSON() {
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(JSON.stringify(canvas, null, 2)).then(() => {
+    btn.textContent = 'âœ“ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy JSON'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// â”€â”€ Ingest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.getElementById('ingest-btn').addEventListener('click', async function() {
+  this.textContent = 'Ingestingâ€¦';
+  this.classList.add('loading');
+  this.disabled = true;
+  try {
+    const r = await fetch(`${API}/ingest`, { method: 'POST' });
+    const d = await r.json();
+    if (d.status === 'success') {
+      const total = d.total_chunks;
+      addMsg(`âœ… Ingestion complete â€” **${total} chunks** indexed into Pinecone.\n\nFiles: ${Object.keys(d.files_ingested).join(', ')}`, 'bot');
+    } else {
+      addMsg(`â„¹ï¸ Ingest: ${d.message || JSON.stringify(d)}`, 'bot');
+    }
+  } catch(e) {
+    addMsg(`âŒ Ingest failed: ${e.message}`, 'bot');
+  }
+  this.textContent = 'â¬† Ingest Docs';
+  this.classList.remove('loading');
+  this.disabled = false;
+});
+
+// â”€â”€ Reset session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.getElementById('reset-btn').addEventListener('click', async () => {
+  if (!confirm('Start a new chat? Conversation history will be cleared.')) return;
+  try { await fetch(`${API}/reset-session/${sessionId}`, { method: 'DELETE' }); } catch {}
+  sessionId = 'session_' + Math.random().toString(36).slice(2,10);
+  sessionStorage.setItem('nxa_sid', sessionId);
+  document.getElementById('stat-session').textContent = sessionId.slice(0,16) + 'â€¦';
+  canvas = { nodes: [], connections: [] };
+  renderCanvas();
+  const all = msgs.querySelectorAll('.msg, .canvas-card, .err-banner');
+  all.forEach((el, i) => { if(i > 0) el.remove(); });
+  typing.style.display = 'none';
+});
+
+// â”€â”€ Quick prompts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+document.querySelectorAll('.qp').forEach(btn => {
+  btn.addEventListener('click', () => {
+    input.value = btn.dataset.q;
+    input.dispatchEvent(new Event('input'));
+    sendMessage();
+  });
+});
+
+// â”€â”€ Auto-resize textarea â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+});
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+sendBtn.addEventListener('click', sendMessage);
+
+// â”€â”€ Add message to chat â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function addMsg(text, role, sources=[], workflowAction=null) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = role === 'bot' ? marked.parse(text) : escapeHtml(text);
+
+  if (sources.length) {
+    const sr = document.createElement('div');
+    sr.className = 'sources-row';
+    sources.forEach(s => {
+      const b = document.createElement('span');
+      b.className = 'src-badge';
+      b.textContent = 'ðŸ“„ ' + s;
+      sr.appendChild(b);
+    });
+    div.appendChild(sr);
+  }
+
+  msgs.insertBefore(div, typing);
+
+  if (workflowAction?.type === 'UPDATE_CANVAS') {
+    canvas = workflowAction.payload;
+    renderCanvas();
+
+    const card = document.createElement('div');
+    card.className = 'canvas-card';
+    card.innerHTML = `
+      <div class="canvas-card-header">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+        Canvas Updated
+      </div>
+      <div class="badges">
+        <span class="badge">ðŸŸ¦ ${canvas.nodes.length} node${canvas.nodes.length!==1?'s':''}</span>
+        <span class="badge">ðŸ”— ${canvas.connections.length} connection${canvas.connections.length!==1?'s':''}</span>
+      </div>
+      <details>
+        <summary>View workflow JSON â–¾</summary>
+        <pre>${escapeHtml(JSON.stringify(canvas,null,2))}</pre>
+      </details>`;
+    msgs.insertBefore(card, typing);
+  }
+
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addErr(text) {
+  const div = document.createElement('div');
+  div.className = 'err-banner';
+  div.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>${escapeHtml(text)}`;
+  msgs.insertBefore(div, typing);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// â”€â”€ Send message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function sendMessage() {
+  const q = input.value.trim();
+  if (!q) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+  addMsg(q, 'user');
+  typing.style.display = 'block';
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const r = await fetch(`${API}/query`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, session_id: sessionId, current_state: canvas }),
+    });
+
+    typing.style.display = 'none';
+
+    if (!r.ok) {
+      let detail = `HTTP ${r.status}`;
+      try { const e = await r.json(); detail = e.detail || JSON.stringify(e); } catch {}
+      addErr(`Server error: ${detail}`);
+      return;
+    }
+
+    const data = await r.json();
+    addMsg(data.answer, 'bot', data.sources || [], data.workflow_action || null);
+
+  } catch(e) {
+    typing.style.display = 'none';
+    addErr(`Cannot reach server at ${API}. Is it running? (${e.message})`);
+  }
+
+  sendBtn.disabled = false;
+}
+
+// â”€â”€ Render Canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const TYPE_CATEGORIES = {
+  ManualTrigger:'trigger', Schedule:'trigger', Webhook:'trigger', ChatInput:'trigger',
+  Logger:'action', HttpRequest:'action', SendEmail:'action', SlackMessage:'action', TelegramSend:'action',
+  Delay:'logic', IfCondition:'logic', Loop:'logic', Stopper:'logic',
+  SetVariable:'data', JsonParser:'data', DataFormatter:'data',
+  Groq:'ai', Gemini:'ai', OpenAI:'ai', ClaudeAI:'ai',
+  GoogleSheets:'integration', GoogleDrive:'integration', Stripe:'integration',
+};
+const TYPE_ICONS = {
+  trigger:'âš¡', action:'ðŸ”§', logic:'ðŸ”€', data:'ðŸ“¦', ai:'ðŸ¤–', integration:'ðŸ”Œ'
+};
+
+function nodeClass(type) {
+  const cat = TYPE_CATEGORIES[type] || 'action';
+  return `type-${cat}`;
+}
+function nodeIcon(type) {
+  const cat = TYPE_CATEGORIES[type] || 'action';
+  return TYPE_ICONS[cat] || 'â¬œ';
+}
+
+function renderCanvas() {
+  const n = canvas.nodes.length;
+  const c = canvas.connections.length;
+
+  // Stats
+  document.getElementById('stat-nodes').textContent = n;
+  document.getElementById('stat-conns').textContent = c;
+  document.getElementById('canvas-title').textContent = n
+    ? `Canvas â€” ${n} node${n!==1?'s':''}` : 'Canvas â€” Empty';
+
+  // JSON view
+  jsonPre.innerHTML = syntaxHighlight(JSON.stringify(canvas, null, 2));
+
+  if (!n) {
+    emptyCV.style.display = '';
+    nodesView.style.display = 'none';
+    connsSection.style.display = 'none';
+    return;
+  }
+
+  emptyCV.style.display = 'none';
+  nodesView.style.display = '';
+
+  // Build node cards
+  nodesView.innerHTML = '';
+  canvas.nodes.forEach((node, idx) => {
+    const card = document.createElement('div');
+    card.className = 'node-card';
+
+    const config = node.config || {};
+    const configEntries = Object.entries(config).slice(0, 8); // max 8 fields displayed
+    const hasMore = Object.keys(config).length > 8;
+
+    // Find outgoing connections for this node
+    const outgoing = canvas.connections.filter(c => c.from === node.id);
+
+    card.innerHTML = `
+      <div class="node-top">
+        <span class="node-id">${node.id}</span>
+        <span class="node-type ${nodeClass(node.type)}">${nodeIcon(node.type)} ${node.type}</span>
+        <span class="node-name">${node.name || ''}</span>
+      </div>
+      ${configEntries.length ? `
+        <div class="config-grid">
+          ${configEntries.map(([k,v]) => `
+            <span class="cfg-key">${escapeHtml(k)}</span>
+            <span class="cfg-val">${escapeHtml(String(v).length > 60 ? String(v).slice(0,60)+'â€¦' : String(v))}</span>
+          `).join('')}
+          ${hasMore ? `<span class="cfg-key" style="color:var(--muted)">â€¦</span><span class="cfg-val" style="color:var(--muted)">${Object.keys(config).length - 8} more fields</span>` : ''}
+        </div>` : '<div style="font-size:.7rem;color:var(--muted);margin-top:2px">No config</div>'}
+      ${outgoing.length ? `
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:3px">
+          ${outgoing.map(conn => `
+            <div class="conn-arrow">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span style="color:var(--text)">${conn.to}</span>
+              ${conn.condition ? `<span class="conn-cond ${conn.condition==='true'?'cond-true':'cond-false'}">${conn.condition}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>` : ''}`;
+
+    nodesView.appendChild(card);
+  });
+
+  connsSection.style.display = 'none'; // arrows shown inline on each node card
+}
+
+// â”€â”€ Syntax highlight JSON â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function syntaxHighlight(json) {
+  return escapeHtml(json).replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    match => {
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) return `<span class="json-key">${match}</span>`;
+        return `<span class="json-str">${match}</span>`;
+      }
+      if (/true|false/.test(match)) return `<span class="json-bool">${match}</span>`;
+      if (/null/.test(match)) return `<span class="json-null">${match}</span>`;
+      return `<span class="json-num">${match}</span>`;
+    }
+  );
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// initial render
+renderCanvas();
+</script>
+</body>
+</html>

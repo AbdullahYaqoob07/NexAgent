@@ -8,7 +8,7 @@ interface WalkthroughStep {
   id: string;
   title: string;
   description: string;
-  targetRef: React.RefObject<HTMLElement>;
+  targetRef: React.RefObject<HTMLElement | null>;
 }
 
 interface WorkflowWalkthroughProps {

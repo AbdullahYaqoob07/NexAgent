@@ -235,7 +235,7 @@ export function WorkflowAssistant({
     try {
       const parentState = getCurrentCanvasState ? getCurrentCanvasState() : null;
       
-      const response = await fetch('https://aiassitance.swedenrelocators.se/query', {
+      const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

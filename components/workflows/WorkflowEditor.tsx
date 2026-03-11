@@ -1205,7 +1205,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
               }
               
               // Track HTTP requests for Network tab (manual executions)
-              if (log?.nodeType === 'HTTP Request' || log?.nodeType === 'HttpNode' || log?.nodeType === 'HTTP Request Action') {
+              if ((log as any)?.nodeType === 'HTTP Request' || (log as any)?.nodeType === 'HttpNode' || (log as any)?.nodeType === 'HTTP Request Action') {
                 const output = log.output || {};
                 if (output.status || output.url) {
                   const networkReq = {
@@ -1271,7 +1271,7 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
             await new Promise(resolve => setTimeout(resolve, displayMs));
 
             // Mark done
-            if (log.status === 'success' || (log as any).status === 'completed') {
+            if (log.status === 'completed' || (log as any).status === 'success') {
               setExecutionOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✅ ${nodeName} (${Math.round(actualMs)}ms)`]);
               // Show Logger node message in terminal
               if ((nodeType === 'Logger' || log.nodeType === 'Logger') && log.output?.message) {
@@ -1509,8 +1509,8 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
           }
         }
       }
-      if (!botContent && execution.finalOutput) {
-        const fo = execution.finalOutput;
+      if (!botContent && execution.output) {
+        const fo = execution.output;
         const foStr = typeof fo === 'string' ? fo : JSON.stringify(fo, null, 2);
         if (!hasUnresolved(foStr)) botContent = foStr;
       }
@@ -2191,19 +2191,42 @@ export function WorkflowEditor({ workflowId }: WorkflowEditorProps = { workflowI
                 });
               });
 
+              // Remap chatbot IDs (n1, node1, etc.) → canvas format (node_<timestamp>)
+              const idMap: Record<string, string> = {};
+              rawNodes.forEach((n: any) => {
+                idMap[n.id] = `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+              });
+
+              // Rewrite any {{$node.oldId.field}} references inside config strings
+              const remapConfig = (cfg: any): any => {
+                if (typeof cfg === 'string') {
+                  return cfg.replace(/\{\{\$node\.([^.}]+)\./g, (_: string, oldId: string) => {
+                    const newId = idMap[oldId];
+                    return newId ? `{{$node.${newId}.` : `{{$node.${oldId}.`;
+                  });
+                }
+                if (Array.isArray(cfg)) return cfg.map(remapConfig);
+                if (cfg && typeof cfg === 'object') {
+                  const out: any = {};
+                  for (const k of Object.keys(cfg)) out[k] = remapConfig(cfg[k]);
+                  return out;
+                }
+                return cfg;
+              };
+
               const nodes = rawNodes.map((n: any, i: number) => ({
-                id: n.id,
+                id: idMap[n.id] ?? n.id,
                 type: n.type,
                 name: n.name || n.type,
                 x: positions[n.id]?.x ?? START_X + i * H_GAP,
                 y: positions[n.id]?.y ?? START_Y,
-                config: n.config || {},
+                config: remapConfig(n.config || {}),
               }));
 
               const connections = rawConns.map((c: any, i: number) => ({
-                id: c.id || `conn_${c.from}_${c.to}_${i}`,
-                from: c.from,
-                to: c.to,
+                id: c.id || `conn_${i}_${Date.now()}`,
+                from: idMap[c.from] ?? c.from,
+                to: idMap[c.to] ?? c.to,
                 fromPoint: 'output',
                 toPoint: 'input' as const,
                 ...(c.condition != null && { condition: c.condition as 'true' | 'false' }),
