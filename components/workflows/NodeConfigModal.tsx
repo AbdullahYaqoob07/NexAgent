@@ -41,6 +41,7 @@ import { getNodeByType } from '@/lib/workflow/NodeRegistry';
 import { getNodeDefinitionByType } from '@/lib/workflow/NodeDefinitions';
 import VariableReferencePicker from './VariableReferencePicker';
 import CredentialPicker from './CredentialPicker';
+import apiClient from '@/lib/api/client';
 
 interface NodeConfigModalProps {
   node: WorkflowNode | null;
@@ -64,6 +65,7 @@ const getCategoryIcon = (category: string) => {
     'AI/ML': <Bot className="w-4 h-4" />,
     'Communication': <MessageSquare className="w-4 h-4" />,
     'Data': <Database className="w-4 h-4" />,
+    'Databases': <Database className="w-4 h-4" />,
     'Utilities': <FileText className="w-4 h-4" />,
     'Integrations': <Globe className="w-4 h-4" />,
     'Storage': <Database className="w-4 h-4" />,
@@ -90,6 +92,7 @@ export default function NodeConfigModal({
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['Triggers']);
   const [testResult, setTestResult] = useState<any>(null);
   const [isTestLoading, setIsTestLoading] = useState(false);
+  const [isConnectionTestLoading, setIsConnectionTestLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
   const [newFieldName, setNewFieldName] = useState('');
@@ -100,6 +103,74 @@ export default function NodeConfigModal({
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
   const [workflowData, setWorkflowData] = useState<{nodes: any[]; connections: any[]}>({nodes: [], connections: []});
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string>('');
+
+  const isDatabaseNode = !!node && [
+    'PostgresQuery',
+    'PostgreSQL Query',
+    'Postgres Query',
+    'MongoDBQuery',
+    'MongoDB Query',
+    'PineconeQuery',
+    'Pinecone Query',
+  ].includes(node.type);
+
+  const getVisibleNodeFields = (fields: any[]) => {
+    const nodeType = node?.type;
+    const operation = String(config.operation || '').toLowerCase();
+
+    if (!nodeType || !Array.isArray(fields) || fields.length === 0) {
+      return fields;
+    }
+
+    const isType = (types: string[]) => types.includes(nodeType);
+
+    if (isType(['PostgresQuery', 'PostgreSQL Query', 'Postgres Query'])) {
+      const opFields: Record<string, Set<string>> = {
+        select: new Set(['table', 'columns', 'where_clause', 'limit', 'return_mode']),
+        insert: new Set(['table', 'data']),
+        update: new Set(['table', 'where_clause', 'data']),
+        delete: new Set(['table', 'where_clause']),
+        raw: new Set(['raw_sql', 'return_mode']),
+      };
+      const always = new Set(['operation', 'connection_string']);
+      const allowed = opFields[operation] || new Set<string>();
+      return fields.filter((field) => always.has(field.name) || allowed.has(field.name));
+    }
+
+    if (isType(['MongoDBQuery', 'MongoDB Query'])) {
+      const opFields: Record<string, Set<string>> = {
+        find: new Set(['filter', 'limit', 'skip']),
+        find_one: new Set(['filter']),
+        insert_one: new Set(['document']),
+        insert_many: new Set(['document']),
+        update_one: new Set(['filter', 'update', 'upsert']),
+        update_many: new Set(['filter', 'update', 'upsert']),
+        delete_one: new Set(['filter']),
+        delete_many: new Set(['filter']),
+        aggregate: new Set(['pipeline']),
+        count: new Set(['filter']),
+      };
+      const always = new Set(['operation', 'connection_string', 'database_name', 'collection']);
+      const allowed = opFields[operation] || new Set<string>();
+      return fields.filter((field) => always.has(field.name) || allowed.has(field.name));
+    }
+
+    if (isType(['PineconeQuery', 'Pinecone Query'])) {
+      const opFields: Record<string, Set<string>> = {
+        query: new Set(['vector', 'top_k', 'metadata_filter', 'include_metadata', 'include_values']),
+        upsert: new Set(['vectors']),
+        fetch: new Set(['ids']),
+        delete: new Set(['ids']),
+        stats: new Set([]),
+        list: new Set([]),
+      };
+      const always = new Set(['operation', 'api_key', 'index_name', 'environment', 'namespace']);
+      const allowed = opFields[operation] || new Set<string>();
+      return fields.filter((field) => always.has(field.name) || allowed.has(field.name));
+    }
+
+    return fields;
+  };
 
   // Helper function to render dynamic form fields - now has access to component state
   const renderDynamicField = (field: any, value: any, onChange: (newValue: any) => void, fieldName?: string) => {
@@ -778,6 +849,40 @@ export default function NodeConfigModal({
     
     setIsTestLoading(false);
   };
+
+  const handleTestConnection = async () => {
+    if (!node || !isDatabaseNode) return;
+
+    const startTime = Date.now();
+    setIsConnectionTestLoading(true);
+
+    try {
+      const res = await apiClient.post('/api/v1/workflows/test-connection', {
+        node_type: node.type,
+        config,
+      });
+
+      setTestResult({
+        success: true,
+        data: {
+          message: res?.data?.message || 'Connection successful',
+          nodeType: res?.data?.node_type || node.type,
+        },
+        executionTime: Date.now() - startTime,
+        metadata: { connectionTest: true },
+      });
+    } catch (error: any) {
+      const message = error?.message || error?.response?.data?.detail || 'Connection test failed';
+      setTestResult({
+        success: false,
+        error: message,
+        executionTime: Date.now() - startTime,
+        metadata: { connectionTest: true },
+      });
+    }
+
+    setIsConnectionTestLoading(false);
+  };
   
   // Specialized rendering for email nodes
   const renderEmailField = (field: any, value: any, onChange: (newValue: any) => void) => {
@@ -1126,10 +1231,10 @@ export default function NodeConfigModal({
               <p className="text-xs text-gray-500 text-center py-8">Add nodes to see variables</p>
             )}
             <div className="pt-4 border-t border-slate-700">
-              <p className="text-xs text-gray-500 space-y-2">
-                <div>💡 <strong>Click</strong> to insert into active field</div>
-                <div>🖱️ <strong>Drag</strong> to drop in fields</div>
-              </p>
+              <div className="text-xs text-gray-500 space-y-2">
+                <p>💡 <strong>Click</strong> to insert into active field</p>
+                <p>🖱️ <strong>Drag</strong> to drop in fields</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1183,7 +1288,7 @@ export default function NodeConfigModal({
                     // Group consecutive halfWidth fields into pairs for 2-column layout
                     const rows: { type: 'single' | 'pair'; fields: any[] }[] = [];
                     let i = 0;
-                    const fields = nodeDefinition.fields;
+                    const fields = getVisibleNodeFields(nodeDefinition.fields);
                     while (i < fields.length) {
                       if (fields[i].halfWidth && fields[i + 1]?.halfWidth) {
                         rows.push({ type: 'pair', fields: [fields[i], fields[i + 1]] });
@@ -1261,6 +1366,13 @@ export default function NodeConfigModal({
             )}
           </div>
           <div className="flex items-center gap-3">
+            {testResult && (
+              <span className={`text-xs ${testResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                {testResult.success
+                  ? (testResult?.data?.message || 'Test completed successfully')
+                  : (testResult?.error || 'Test failed')}
+              </span>
+            )}
             <Button
               variant="outline"
               onClick={onClose}
@@ -1281,6 +1393,21 @@ export default function NodeConfigModal({
                   <Play className="w-4 h-4 mr-2" />
                 )}
                 Test
+              </Button>
+            )}
+            {isDatabaseNode && (
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={isConnectionTestLoading}
+                className="border-cyan-600/60 text-cyan-300 hover:bg-cyan-950/40"
+              >
+                {isConnectionTestLoading ? (
+                  <RotateCcw className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Database className="w-4 h-4 mr-2" />
+                )}
+                Test Connection
               </Button>
             )}
             <Button
@@ -1377,99 +1504,6 @@ export default function NodeConfigModal({
           workflowId={currentWorkflowId}
           lastNodeOutputs={lastNodeOutputs}
           onSelect={(variablePath) => {
-            setConfig(prev => ({
-              ...prev,
-              [variablePickerField]: (prev[variablePickerField] || '') + variablePath
-            }));
-          }}
-          onClose={() => setShowVariablePicker(false)}
-        />
-      )}
-
-      {/* Add Field Modal */}
-      {showAddFieldModal && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md flex items-center justify-center">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-md mx-4">
-            <div className="p-6 border-b border-zinc-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Add Configuration Field</h3>
-                <button
-                  onClick={() => {
-                    setShowAddFieldModal(false);
-                    setNewFieldName('');
-                  }}
-                  className="text-zinc-400 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <Label className="text-white text-sm font-medium mb-2 block">
-                  Field Name
-                </Label>
-                <Input
-                  value={newFieldName}
-                  onChange={(e) => setNewFieldName(e.target.value)}
-                  placeholder="Enter field name (e.g. timeout, url, message)"
-                  className="bg-zinc-800 border-zinc-700 text-white"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newFieldName.trim()) {
-                      setConfig(prev => ({ ...prev, [newFieldName.trim()]: '' }));
-                      setShowAddFieldModal(false);
-                      setNewFieldName('');
-                    }
-                    if (e.key === 'Escape') {
-                      setShowAddFieldModal(false);
-                      setNewFieldName('');
-                    }
-                  }}
-                  autoFocus
-                />
-                <p className="text-xs text-zinc-400 mt-2">
-                  This will add a new configuration field to the node.
-                </p>
-              </div>
-            </div>
-            <div className="p-6 border-t border-zinc-700 flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1 border-zinc-600 text-zinc-300 hover:bg-zinc-800"
-                onClick={() => {
-                  setShowAddFieldModal(false);
-                  setNewFieldName('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-[#FF6900] hover:bg-[#E55D00] text-white"
-                disabled={!newFieldName.trim()}
-                onClick={() => {
-                  if (newFieldName.trim()) {
-                    setConfig(prev => ({ ...prev, [newFieldName.trim()]: '' }));
-                    setShowAddFieldModal(false);
-                    setNewFieldName('');
-                  }
-                }}
-              >
-                Add Field
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Variable Reference Picker */}
-      {showVariablePicker && node && (
-        <VariableReferencePicker
-          workflowNodes={workflowData.nodes}
-          workflowConnections={workflowData.connections}
-          currentNodeId={node.id}
-          workflowId={currentWorkflowId}
-          onSelect={(variablePath) => {
-            // Update the config with the selected variable
             setConfig(prev => ({
               ...prev,
               [variablePickerField]: (prev[variablePickerField] || '') + variablePath

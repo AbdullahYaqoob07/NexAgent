@@ -51,6 +51,7 @@ const CATEGORY_MAPPING = {
   "Actions": { icon: <Settings className="w-4 h-4" />, order: 1 },
   "Logic": { icon: <GitBranch className="w-4 h-4" />, order: 2 },
   "Data": { icon: <Database className="w-4 h-4" />, order: 3 },
+  "Databases": { icon: <Database className="w-4 h-4" />, order: 4 },
   "AI/ML": { icon: <Bot className="w-4 h-4" />, order: 4 },
   "Communication": { icon: <MessageSquare className="w-4 h-4" />, order: 5 },
   "Ecommerce": { icon: <ShoppingCart className="w-4 h-4" />, order: 6 },

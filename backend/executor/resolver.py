@@ -43,6 +43,16 @@ _FIELD_ALIASES: Dict[str, list] = {
 _PATTERN = re.compile(r"\{\{(.*?)\}\}")
 
 
+def _json_safe_default(obj: Any) -> str:
+    """Serialize non-JSON-native objects (e.g., datetime/date) for interpolation."""
+    if hasattr(obj, "isoformat"):
+        try:
+            return obj.isoformat()
+        except Exception:
+            pass
+    return str(obj)
+
+
 def _deep_get(data: Any, *path: str) -> Any:
     """Navigate a nested dict/list using dot-split keys, with alias fallback."""
     current = data
@@ -154,7 +164,7 @@ def _resolve_value(value: Any, context: "ExecutionContext") -> Any:
             if resolved is None:
                 return m.group(0)  # leave original if not found
             if isinstance(resolved, (dict, list)):
-                return json.dumps(resolved)
+                return json.dumps(resolved, default=_json_safe_default)
             return str(resolved)
 
         return _PATTERN.sub(_sub, value)

@@ -28,6 +28,7 @@ if str(backend_dir) not in sys.path:
 # New workflow engine
 from executor.engine import WorkflowEngine, WorkflowDefinition
 from executor.context import ExecutionContext
+from executor.execution_environment import ExecutionEnvironment
 from nodes.registry import get_registry
 
 # Scheduler
@@ -67,6 +68,66 @@ def get_engine() -> WorkflowEngine:
     if _engine is None:
         _engine = WorkflowEngine(get_registry())
     return _engine
+
+
+def _resolve_credential_ref(value: Any, user_credentials: Dict[str, str]) -> Any:
+    """Resolve {{$creds.name}} references to their secret values when possible."""
+    if not isinstance(value, str):
+        return value
+
+    raw = value.strip()
+    if raw.startswith("{{$creds.") and raw.endswith("}}"):
+        cred_name = raw.replace("{{$creds.", "").replace("}}", "").strip()
+        return user_credentials.get(cred_name, value)
+    return value
+
+
+def _extract_databases_config_from_nodes(
+    raw_nodes: List[Dict[str, Any]],
+    user_credentials: Dict[str, str],
+) -> Dict[str, Any]:
+    """
+    Build databases_config for ExecutionEnvironment from workflow node configs.
+
+    This enables MCP/AI tools to access DB clients even when database nodes are
+    placed after AI nodes in the graph.
+    """
+    db_config: Dict[str, Any] = {}
+
+    for node in raw_nodes or []:
+        node_type = str(node.get("type") or "")
+        cfg = node.get("config") or {}
+
+        # PostgreSQL
+        if node_type in {"PostgresQuery", "PostgreSQL Query", "Postgres Query"}:
+            conn = _resolve_credential_ref(cfg.get("connection_string"), user_credentials)
+            if isinstance(conn, str) and conn.strip() and "postgres" not in db_config:
+                db_config["postgres"] = {"connection_string": conn.strip()}
+
+        # MongoDB
+        elif node_type in {"MongoDBQuery", "MongoDB Query"}:
+            conn = _resolve_credential_ref(cfg.get("connection_string"), user_credentials)
+            db_name = cfg.get("database_name")
+            if isinstance(conn, str) and conn.strip() and "mongodb" not in db_config:
+                entry: Dict[str, Any] = {"connection_string": conn.strip()}
+                if isinstance(db_name, str) and db_name.strip():
+                    entry["database_name"] = db_name.strip()
+                db_config["mongodb"] = entry
+
+        # Pinecone
+        elif node_type in {"PineconeQuery", "Pinecone Query"}:
+            api_key = _resolve_credential_ref(cfg.get("api_key"), user_credentials)
+            index_name = cfg.get("index_name")
+            environment = cfg.get("environment")
+            if isinstance(api_key, str) and api_key.strip() and "pinecone" not in db_config:
+                entry = {"api_key": api_key.strip()}
+                if isinstance(index_name, str) and index_name.strip():
+                    entry["index_name"] = index_name.strip()
+                if isinstance(environment, str) and environment.strip():
+                    entry["environment"] = environment.strip()
+                db_config["pinecone"] = entry
+
+    return db_config
 
 
 security = HTTPBearer()
@@ -560,6 +621,17 @@ class ExecuteWorkflowRequest(BaseModel):
     config: Optional[Dict[str, Any]] = None
 
 
+class TestDbConnectionRequest(BaseModel):
+    node_type: str
+    config: Dict[str, Any]
+
+
+class TestDbConnectionResponse(BaseModel):
+    success: bool
+    message: str
+    node_type: str
+
+
 class ExecuteWorkflowResponse(BaseModel):
     status: str
     summary: Optional[Dict[str, Any]] = None
@@ -568,6 +640,133 @@ class ExecuteWorkflowResponse(BaseModel):
     execution_time_ms: Optional[float] = None
     error: Optional[str] = None
     partial_results: Optional[List[Dict[str, Any]]] = None
+
+
+@router.post("/test-connection", response_model=TestDbConnectionResponse)
+async def test_db_connection(
+    request: TestDbConnectionRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Test database connection for DB nodes (PostgresQuery, MongoDBQuery, PineconeQuery)
+    without executing a workflow.
+    """
+    node_type = (request.node_type or "").strip()
+    cfg = request.config or {}
+
+    try:
+        if node_type in ("PostgresQuery", "PostgreSQL Query", "Postgres Query"):
+            from executor.databases.postgres import PostgresClient
+
+            conn = str(cfg.get("connection_string") or "").strip()
+            if not conn:
+                raise HTTPException(status_code=400, detail="PostgreSQL connection string is required")
+
+            client = PostgresClient(conn)
+            await client.connect()
+            try:
+                healthy = await client.health_check()
+            finally:
+                await client.disconnect()
+
+            if not healthy:
+                raise HTTPException(status_code=400, detail="PostgreSQL health check failed")
+
+            return TestDbConnectionResponse(
+                success=True,
+                message="PostgreSQL connection successful",
+                node_type="PostgresQuery",
+            )
+
+        if node_type in ("MongoDBQuery", "MongoDB Query"):
+            from executor.databases.mongodb import MongoDBClient
+
+            conn = str(cfg.get("connection_string") or "").strip()
+            db_name = str(cfg.get("database_name") or "").strip()
+            if not conn:
+                raise HTTPException(status_code=400, detail="MongoDB connection string is required")
+            if not db_name:
+                raise HTTPException(status_code=400, detail="MongoDB database name is required")
+
+            client = MongoDBClient(conn, db_name)
+            await client.connect()
+            try:
+                healthy = await client.health_check()
+            finally:
+                await client.disconnect()
+
+            if not healthy:
+                raise HTTPException(status_code=400, detail="MongoDB health check failed")
+
+            return TestDbConnectionResponse(
+                success=True,
+                message="MongoDB connection successful",
+                node_type="MongoDBQuery",
+            )
+
+        if node_type in ("PineconeQuery", "Pinecone Query"):
+            from executor.databases.pinecone import PineconeClient
+
+            api_key = str(cfg.get("api_key") or "").strip()
+            index_name = str(cfg.get("index_name") or "").strip()
+            environment = str(cfg.get("environment") or "us-east-1").strip()
+            if not api_key:
+                raise HTTPException(status_code=400, detail="Pinecone API key is required")
+            if not index_name:
+                raise HTTPException(status_code=400, detail="Pinecone index name is required")
+
+            client = PineconeClient(api_key, index_name, environment)
+            await client.connect()
+            try:
+                healthy = await client.health_check()
+            finally:
+                await client.disconnect()
+
+            if not healthy:
+                raise HTTPException(status_code=400, detail="Pinecone health check failed")
+
+            return TestDbConnectionResponse(
+                success=True,
+                message="Pinecone connection successful",
+                node_type="PineconeQuery",
+            )
+
+        raise HTTPException(status_code=400, detail=f"Unsupported database node type: {node_type}")
+
+    except HTTPException:
+        raise
+    except RuntimeError as exc:
+        # Surface dependency/setup issues (e.g., missing SDKs) as clear client-visible errors
+        logger.error("Database connection test runtime error for node %s: %s", node_type, exc)
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        msg = str(exc)
+        logger.error("Database connection test failed for node %s: %s", node_type, msg)
+
+        # Map common connection/config errors to user-fixable 400 responses
+        lowered = msg.lower()
+        if "getaddrinfo failed" in lowered or "name or service not known" in lowered:
+            raise HTTPException(
+                status_code=400,
+                detail="Database host could not be resolved. Check the hostname in your connection string.",
+            )
+        if "connection refused" in lowered or "timeout expired" in lowered or "timed out" in lowered:
+            raise HTTPException(
+                status_code=400,
+                detail="Database server is unreachable. Check host/port, network access, and firewall.",
+            )
+        if "password authentication failed" in lowered or "authentication failed" in lowered:
+            raise HTTPException(
+                status_code=400,
+                detail="Authentication failed. Check username/password in your connection string.",
+            )
+        if "does not exist" in lowered and "database" in lowered:
+            raise HTTPException(
+                status_code=400,
+                detail="Database not found. Verify the database name in your connection string.",
+            )
+
+        raise HTTPException(status_code=500, detail=f"Connection test failed: {msg}")
 
 
 @router.post("/{workflow_id}/execute", response_model=ExecuteWorkflowResponse)
@@ -607,6 +806,9 @@ async def execute_workflow(
         wf_connections = [WorkflowConnection.from_dict(c) for c in raw_connections]
         wf_def = WorkflowDefinition(id=workflow_id, name=workflow.get("name", ""), nodes=wf_nodes, connections=wf_connections)
 
+        user_credentials = load_user_credentials_sync(user_id)
+        databases_config = _extract_databases_config_from_nodes(raw_nodes, user_credentials)
+
         # ── Check for Schedule node → register with scheduler ──────────
         schedule_nodes = [n for n in wf_nodes if n.type in ("Schedule", "ScheduleTriggerNode", "ScheduleEvent", "Scheduling")]
 
@@ -628,19 +830,23 @@ async def execute_workflow(
 
                 async def execute_scheduled_workflow(wf_data: Dict[str, Any], wf_input: Any):
                     """Called by scheduler on each cron tick."""
-                    ctx = ExecutionContext(
+                    ctx = await ExecutionEnvironment.create_context(
                         execution_id=str(uuid.uuid4()),
                         workflow_id=workflow_id,
                         user_id=user_id,
                         variables=workflow.get("variables") or {},
-                        user_credentials=load_user_credentials_sync(user_id),
+                        user_credentials=user_credentials,
+                        databases_config=databases_config,
                     )
-                    raw_c = wf_data.get("connections") or wf_data.get("edges", [])
-                    sched_nodes = [WorkflowNode(**n) for n in wf_data.get("nodes", [])]
-                    sched_conns = [WorkflowConnection.from_dict(c) for c in raw_c]
-                    sched_def = WorkflowDefinition(id=workflow_id, name=wf_data.get("name", ""), nodes=sched_nodes, connections=sched_conns)
-                    result = await engine.execute(sched_def, wf_input or {}, ctx)
-                    return {"status": result.status, "node_logs": [log.dict() for log in result.logs], "final_output": result.final_output}
+                    try:
+                        raw_c = wf_data.get("connections") or wf_data.get("edges", [])
+                        sched_nodes = [WorkflowNode(**n) for n in wf_data.get("nodes", [])]
+                        sched_conns = [WorkflowConnection.from_dict(c) for c in raw_c]
+                        sched_def = WorkflowDefinition(id=workflow_id, name=wf_data.get("name", ""), nodes=sched_nodes, connections=sched_conns)
+                        result = await engine.execute(sched_def, wf_input or {}, ctx)
+                        return {"status": result.status, "node_logs": [log.dict() for log in result.logs], "final_output": result.final_output}
+                    finally:
+                        await ExecutionEnvironment.cleanup_context(ctx)
 
                 # Serialise scheduler registration per workflow to prevent duplicate jobs
                 # from concurrent Execute requests arriving simultaneously.
@@ -680,66 +886,70 @@ async def execute_workflow(
         # ── Execute workflow immediately ───────────────────────────────
         logger.info("Executing workflow %s for user %s", workflow_id, user_id)
 
-        context = ExecutionContext(
+        context = await ExecutionEnvironment.create_context(
             execution_id=str(uuid.uuid4()),
             workflow_id=workflow_id,
             user_id=user_id,
             variables=workflow.get("variables") or {},
-            user_credentials=load_user_credentials_sync(user_id),
+            user_credentials=user_credentials,
+            databases_config=databases_config,
         )
 
-        engine = get_engine()
-        _exec_start_ms = int(__import__('time').time() * 1000)
-        result = await engine.execute(wf_def, request.input or {}, context)
-
-        # Convert NodeLog objects to frontend-friendly camelCase dicts
-        node_logs = [
-            {
-                "nodeId": log.node_id,
-                "nodeName": log.node_name,
-                "nodeType": log.node_type,
-                "status": log.status,
-                "output": log.output,
-                "error": log.error,
-                "executionTimeMs": log.duration_ms,
-                "startedAt": log.started_at,
-                "completedAt": log.finished_at,
-            }
-            for log in result.logs
-        ]
-
-        await workflow_service.increment_execution_count(workflow_id)
-
-        # Persist execution record to Firestore
         try:
-            exec_id = context.execution_id
-            exec_doc = {
-                "id": exec_id,
-                "workflowId": workflow_id,
-                "userId": user_id,
-                "status": result.status,
-                "startTime": _exec_start_ms,
-                "endTime": int(__import__('time').time() * 1000),
-                "duration": result.duration_ms,
-                "nodeLogs": node_logs,
-                "input": request.input or {},
-                "output": result.final_output or {},
-                "error": result.error,
-                "metadata": {"tokensUsed": 0, "cost": 0},
-                "createdAt": firestore.SERVER_TIMESTAMP,
-            }
-            firebase_service.db.collection("executions").document(exec_id).set(exec_doc)
-        except Exception as _save_err:
-            logger.warning("Failed to persist execution record: %s", _save_err)
+            engine = get_engine()
+            _exec_start_ms = int(__import__('time').time() * 1000)
+            result = await engine.execute(wf_def, request.input or {}, context)
 
-        logger.info("Workflow %s completed with status: %s", workflow_id, result.status)
-        return ExecuteWorkflowResponse(
-            status=result.status,
-            final_output=result.final_output,
-            node_logs=node_logs,
-            execution_time_ms=result.duration_ms,
-            error=result.error,
-        )
+            # Convert NodeLog objects to frontend-friendly camelCase dicts
+            node_logs = [
+                {
+                    "nodeId": log.node_id,
+                    "nodeName": log.node_name,
+                    "nodeType": log.node_type,
+                    "status": log.status,
+                    "output": log.output,
+                    "error": log.error,
+                    "executionTimeMs": log.duration_ms,
+                    "startedAt": log.started_at,
+                    "completedAt": log.finished_at,
+                }
+                for log in result.logs
+            ]
+
+            await workflow_service.increment_execution_count(workflow_id)
+
+            # Persist execution record to Firestore
+            try:
+                exec_id = context.execution_id
+                exec_doc = {
+                    "id": exec_id,
+                    "workflowId": workflow_id,
+                    "userId": user_id,
+                    "status": result.status,
+                    "startTime": _exec_start_ms,
+                    "endTime": int(__import__('time').time() * 1000),
+                    "duration": result.duration_ms,
+                    "nodeLogs": node_logs,
+                    "input": request.input or {},
+                    "output": result.final_output or {},
+                    "error": result.error,
+                    "metadata": {"tokensUsed": 0, "cost": 0},
+                    "createdAt": firestore.SERVER_TIMESTAMP,
+                }
+                firebase_service.db.collection("executions").document(exec_id).set(exec_doc)
+            except Exception as _save_err:
+                logger.warning("Failed to persist execution record: %s", _save_err)
+
+            logger.info("Workflow %s completed with status: %s", workflow_id, result.status)
+            return ExecuteWorkflowResponse(
+                status=result.status,
+                final_output=result.final_output,
+                node_logs=node_logs,
+                execution_time_ms=result.duration_ms,
+                error=result.error,
+            )
+        finally:
+            await ExecutionEnvironment.cleanup_context(context)
 
     except HTTPException:
         raise
@@ -849,68 +1059,74 @@ async def receive_webhook(
         wf_def = WorkflowDefinition(id=workflow_id, name=workflow.get("name", ""), nodes=wf_nodes, connections=wf_connections)
 
         _webhook_uid = workflow.get("userId", "")
-        context = ExecutionContext(
+        webhook_user_credentials = load_user_credentials_sync(_webhook_uid)
+        webhook_databases_config = _extract_databases_config_from_nodes(raw_nodes, webhook_user_credentials)
+        context = await ExecutionEnvironment.create_context(
             execution_id=str(uuid.uuid4()),
             workflow_id=workflow_id,
             user_id=_webhook_uid,
             variables=workflow.get("variables") or {},
-            user_credentials=load_user_credentials_sync(_webhook_uid),
+            user_credentials=webhook_user_credentials,
+            databases_config=webhook_databases_config,
         )
 
-        initial_input = {
-            "body": body,
-            "headers": headers,
-            "method": method,
-            "query_params": query_params,
-        }
-
-        engine = get_engine()
-        result = await engine.execute(wf_def, initial_input, context)
-
-        await workflow_service.increment_execution_count(workflow_id)
-
-        node_logs = [
-            {
-                "nodeId": log.node_id,
-                "nodeType": log.node_type,
-                "status": log.status,
-                "output": log.output,
-                "error": log.error,
-                "executionTimeMs": log.duration_ms,
-            }
-            for log in result.logs
-        ]
-
-        import time
-        execution_record = {
-            "received_at_ms": int(time.time() * 1000),
-            "execution_id": context.execution_id,
-            "status": result.status,
-            "final_output": result.final_output,
-            "node_logs": node_logs,
-            "execution_time_ms": result.duration_ms,
-            "error": result.error,
-            "request": {
-                "method": method,
+        try:
+            initial_input = {
                 "body": body,
+                "headers": headers,
+                "method": method,
                 "query_params": query_params,
-            },
-        }
-        # Store in memory for frontend polling (keep last N results per workflow)
-        bucket = _webhook_results.setdefault(workflow_id, [])
-        bucket.append(execution_record)
-        if len(bucket) > _MAX_WEBHOOK_RESULTS:
-            del bucket[:-_MAX_WEBHOOK_RESULTS]
+            }
 
-        return {
-            "status": result.status,
-            "execution_id": context.execution_id,
-            "workflow_id": workflow_id,
-            "final_output": result.final_output,
-            "node_logs": node_logs,
-            "execution_time_ms": result.duration_ms,
-            "error": result.error,
-        }
+            engine = get_engine()
+            result = await engine.execute(wf_def, initial_input, context)
+
+            await workflow_service.increment_execution_count(workflow_id)
+
+            node_logs = [
+                {
+                    "nodeId": log.node_id,
+                    "nodeType": log.node_type,
+                    "status": log.status,
+                    "output": log.output,
+                    "error": log.error,
+                    "executionTimeMs": log.duration_ms,
+                }
+                for log in result.logs
+            ]
+
+            import time
+            execution_record = {
+                "received_at_ms": int(time.time() * 1000),
+                "execution_id": context.execution_id,
+                "status": result.status,
+                "final_output": result.final_output,
+                "node_logs": node_logs,
+                "execution_time_ms": result.duration_ms,
+                "error": result.error,
+                "request": {
+                    "method": method,
+                    "body": body,
+                    "query_params": query_params,
+                },
+            }
+            # Store in memory for frontend polling (keep last N results per workflow)
+            bucket = _webhook_results.setdefault(workflow_id, [])
+            bucket.append(execution_record)
+            if len(bucket) > _MAX_WEBHOOK_RESULTS:
+                del bucket[:-_MAX_WEBHOOK_RESULTS]
+
+            return {
+                "status": result.status,
+                "execution_id": context.execution_id,
+                "workflow_id": workflow_id,
+                "final_output": result.final_output,
+                "node_logs": node_logs,
+                "execution_time_ms": result.duration_ms,
+                "error": result.error,
+            }
+        finally:
+            await ExecutionEnvironment.cleanup_context(context)
 
     except HTTPException:
         raise
