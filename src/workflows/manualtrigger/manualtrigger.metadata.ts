@@ -21,18 +21,22 @@ export const MANUAL_TRIGGER_METADATA: NodeMetadata = {
   // Output structure available to downstream nodes
   outputs: [
     {
+      id: 'triggered_at',
+      label: 'Triggered At',
+      type: 'date',
+      description: 'ISO 8601 timestamp when the workflow was triggered',
+    },
+    {
       id: 'timestamp',
       label: 'Timestamp',
       type: 'date',
-      description: 'Timestamp when the workflow was triggered',
-      executorKey: 'timestamp',
+      description: 'Alias for triggered_at — ISO 8601 timestamp',
     },
     {
-      id: 'executionId',
-      label: 'Execution ID',
-      type: 'string',
-      description: 'Unique ID for this workflow execution',
-      executorKey: 'executionId',
+      id: 'input_data',
+      label: 'Input Data',
+      type: 'object',
+      description: 'Any input data passed when triggering the workflow',
     },
   ],
 

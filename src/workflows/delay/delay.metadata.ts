@@ -31,25 +31,28 @@ export const DELAY_METADATA: NodeMetadata = {
   // Output structure available to downstream nodes
   outputs: [
     {
-      id: 'delayed',
-      label: 'Delayed',
-      type: 'trigger',
-      description: 'Fires after the delay completes',
-      executorKey: 'delayedData',
-    },
-    {
-      id: 'delayedUntil',
-      label: 'Delayed Until',
-      type: 'date',
-      description: 'Timestamp when delay completed',
-      executorKey: 'timestamp',
-    },
-    {
       id: 'duration',
       label: 'Duration',
       type: 'number',
-      description: 'Duration in seconds that was delayed',
-      executorKey: 'delayDuration',
+      description: 'Configured delay duration value',
+    },
+    {
+      id: 'unit',
+      label: 'Unit',
+      type: 'string',
+      description: 'Configured delay unit (seconds, minutes, milliseconds)',
+    },
+    {
+      id: 'actual_duration_ms',
+      label: 'Actual Duration (ms)',
+      type: 'number',
+      description: 'How long the delay actually took in milliseconds',
+    },
+    {
+      id: 'delayed_until',
+      label: 'Delayed Until',
+      type: 'date',
+      description: 'ISO timestamp when the delay ended',
     },
   ],
 

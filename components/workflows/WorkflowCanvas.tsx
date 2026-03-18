@@ -240,7 +240,16 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         message: 'The first node must be a trigger! Please select a node from the Triggers section.',
         type: 'error'
       });
-      // Clear notification after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
+      return;
+    }
+
+    // Validation: Only one trigger allowed per workflow
+    if (isStartNode && nodes.some(n => getNodeMapping(n.type)?.category === 'trigger' || (n as any).category === 'Triggers')) {
+      setNotification({
+        message: 'A workflow can only have one trigger. Remove the existing trigger first.',
+        type: 'error'
+      });
       setTimeout(() => setNotification(null), 5000);
       return;
     }
@@ -807,10 +816,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
           }}
           onClick={() => handleNodeClick(node.id)}
           onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            handleNodeDelete(node.id);
-          }}
+          onContextMenu={(e) => e.preventDefault()}
         >
           {/* Square Brand Logo Node */}
           <div className="relative">
@@ -860,8 +866,8 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
             </div>
             
             {/* Connection Handles (outside the clipped body) */}
-            {/* Input Handle - hidden for first trigger node */}
-            {!(isFirstNode && isTrigger) && (
+            {/* Input Handle - hidden for all trigger nodes */}
+            {!isTrigger && (
               <div 
                 className={`absolute -left-3 top-1/2 transform -translate-y-1/2 w-6 h-6 bg-zinc-800 border-2 transition-all duration-200 cursor-crosshair flex items-center justify-center z-50 shadow-lg rounded-full ${
                   isConnecting ? 'border-[#FF6900] bg-[#FF6900]/20 scale-110' : 'border-zinc-700 hover:border-[#FF6900] hover:bg-[#FF6900]/20'
@@ -931,7 +937,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
             })()}
 
             {/* Delete Button on Hover */}
-            <div className={`absolute -top-2 ${isFirstNode && isTrigger ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+            <div className={`absolute -top-2 ${isTrigger ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
               <button 
                 className="bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium shadow-sm transition-colors duration-200"
                 onClick={(e) => {

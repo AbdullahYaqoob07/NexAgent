@@ -57,11 +57,10 @@ export const STOPPER_METADATA: NodeMetadata = {
       executorKey: 'message',
     },
     {
-      id: 'timestamp',
-      label: 'Timestamp',
+      id: 'stopped_at',
+      label: 'Stopped At',
       type: 'date',
-      description: 'When the workflow was stopped',
-      executorKey: 'timestamp',
+      description: 'ISO timestamp when the workflow was stopped',
     },
   ],
 

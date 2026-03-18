@@ -613,7 +613,7 @@ async def execute_workflow(
         if schedule_nodes and _SCHEDULER_AVAILABLE:
             schedule_node = schedule_nodes[0]
             cfg = schedule_node.config or {}
-            # "cron" is the new field name; "frequency" was the old NodeDefinitions key
+        # "cron" is the new field name; "frequency" was the old NodeDefinitions key
             cron = cfg.get("cron") or cfg.get("frequency")
             tz = cfg.get("timezone", "UTC")
 
