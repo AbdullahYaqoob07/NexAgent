@@ -7,10 +7,14 @@ and the running execution log.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from pydantic import BaseModel, Field, PrivateAttr
 
 from nodes.base import NodeLog
+
+if TYPE_CHECKING:
+    from executor.databases.base import DatabaseClient
+    from ai.mcp.mcp_client import MCPClient
 
 
 class ExecutionContext(BaseModel):
@@ -21,6 +25,8 @@ class ExecutionContext(BaseModel):
     - Access credentials (read-only)
     - Read/write workflow variables (via SetVariable node)
     - Access any previous node's output
+    - Access database clients (for direct queries or AI tool calls)
+    - Call MCP tools (via AI nodes)
     - Append to the execution log
     """
 
@@ -49,8 +55,15 @@ class ExecutionContext(BaseModel):
     # Append-only execution log
     logs: List[NodeLog] = Field(default_factory=list)
 
-    class Config:
-        arbitrary_types_allowed = True
+    # Private attributes (not part of Pydantic model fields)
+    # Database clients — registered by the API layer
+    # Keyed by database type: "postgres", "mongodb", "pinecone"
+    _db_clients: Dict[str, "DatabaseClient"] = PrivateAttr(default_factory=dict)
+
+    # MCP client — for AI nodes to call MCP tools
+    _mcp_client: Optional["MCPClient"] = PrivateAttr(default=None)
+
+    model_config = {"arbitrary_types_allowed": True}
 
     # ------------------------------------------------------------------
     # Helpers
@@ -72,3 +85,41 @@ class ExecutionContext(BaseModel):
 
     def append_log(self, log: NodeLog) -> None:
         self.logs.append(log)
+
+    # ------------------------------------------------------------------
+    # Database access
+    # ------------------------------------------------------------------
+
+    def register_database(self, db_type: str, client: "DatabaseClient") -> None:
+        """
+        Register a database client for this execution.
+
+        Args:
+            db_type: Database type ("postgres", "mongodb", "pinecone")
+            client: DatabaseClient instance
+        """
+        self._db_clients[db_type] = client
+
+    def get_database(self, db_type: str) -> Optional["DatabaseClient"]:
+        """
+        Get a registered database client.
+
+        Args:
+            db_type: Database type ("postgres", "mongodb", "pinecone")
+
+        Returns:
+            DatabaseClient instance or None if not registered
+        """
+        return self._db_clients.get(db_type)
+
+    # ------------------------------------------------------------------
+    # MCP access
+    # ------------------------------------------------------------------
+
+    def set_mcp_client(self, client: "MCPClient") -> None:
+        """Register the MCP client for this execution."""
+        self._mcp_client = client
+
+    def get_mcp_client(self) -> Optional["MCPClient"]:
+        """Get the MCP client for calling MCP tools."""
+        return self._mcp_client

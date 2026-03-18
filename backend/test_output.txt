@@ -1,0 +1,25 @@
+============================================================
+DATABASE NODES TEST SUITE
+============================================================
+
+[1] Node Definitions
+  PASS  PostgresQuery: 10 params, 6 outputs
+  PASS  MongoDBQuery: 13 params, 6 outputs
+  PASS  PineconeQuery: 12 params, 8 outputs
+
+[2] Registry Discovery
+  PASS  All 3 database nodes registered (26 total)
+
+[3] SQL Builder (PostgresQuery)
+  PASS  SELECT builder: SELECT id, name FROM users LIMIT 10
+  PASS  INSERT builder: INSERT INTO users (name, age) VALUES ('Alice', 30)
+  PASS  DELETE builder: DELETE FROM users WHERE id = 1
+
+[4] Missing Config Error Handling
+  PASS  PostgresQuery raises NodeExecutionError: PostgreSQL connection string is required.
+  PASS  MongoDBQuery raises NodeExecutionError: MongoDB connection string is required.
+  PASS  PineconeQuery raises NodeExecutionError: Pinecone API key is required.
+
+============================================================
+ALL TESTS PASSED
+============================================================

@@ -21,3 +21,8 @@ pytz
 pyotp
 qrcode[pil]
 Pillow
+
+# Database clients for DB nodes and connection tests
+asyncpg
+motor
+pinecone

@@ -720,6 +720,18 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
     return node.icon || null;
   };
 
+  const isDatabaseNodeType = (nodeType: string): boolean => {
+    return [
+      'PostgresQuery',
+      'PostgreSQL Query',
+      'Postgres Query',
+      'MongoDBQuery',
+      'MongoDB Query',
+      'PineconeQuery',
+      'Pinecone Query',
+    ].includes(nodeType);
+  };
+
   return (
     <div 
       ref={canvasRef}
@@ -801,6 +813,7 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
         const nodeMapping = getNodeMapping(node.type);
         const isTrigger = nodeMapping?.category === 'trigger';
         const nodeIcon = getNodeIcon(node);
+        const isDatabaseNode = isDatabaseNodeType(node.type);
         
         return (
         <div
@@ -828,13 +841,18 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
                   ? 'border-[#FF6900] shadow-[#FF6900]/40 shadow-lg' 
                   : errorNodeIds.includes(node.id) 
                     ? 'border-red-500 animate-pulse' 
-                    : 'border-zinc-700 hover:border-zinc-600'
+                    : isDatabaseNode
+                      ? 'border-cyan-500/70 hover:border-cyan-400'
+                      : 'border-zinc-700 hover:border-zinc-600'
                 }
               `}
               style={{
                 width: NODE_SIZE,
                 height: NODE_SIZE,
-                borderRadius: '12px'
+                borderRadius: '12px',
+                boxShadow: !selectedNode && !errorNodeIds.includes(node.id) && isDatabaseNode
+                  ? '0 0 0 1px rgba(34, 211, 238, 0.22), 0 10px 24px rgba(6, 182, 212, 0.12)'
+                  : undefined,
               }}
             >
               {/* Brand Logo */}
@@ -849,6 +867,12 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
                   getBrandLogoComponent(node.type, node)
                 )}
               </div>
+
+              {isDatabaseNode && (
+                <div className="absolute top-1 left-1 w-4 h-4 rounded bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center">
+                  <Database className="w-2.5 h-2.5 text-cyan-300" />
+                </div>
+              )}
               
               {/* Execution indicator */}
               {executingNodeId === node.id && (

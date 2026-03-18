@@ -186,6 +186,35 @@ export const HARDCODED_NODES: NodeDef[] = [
     isStartNode: false,
   },
 
+  // ==================== DATABASES ====================
+  {
+    id: "postgresquery",
+    name: "PostgreSQL Query",
+    type: "PostgresQuery",
+    category: "Databases",
+    description: "Run SQL queries against PostgreSQL",
+    icon: "🐘",
+    isStartNode: false,
+  },
+  {
+    id: "mongodbquery",
+    name: "MongoDB Query",
+    type: "MongoDBQuery",
+    category: "Databases",
+    description: "Run MongoDB find, insert, update, delete, and aggregate operations",
+    icon: "🍃",
+    isStartNode: false,
+  },
+  {
+    id: "pineconequery",
+    name: "Pinecone Query",
+    type: "PineconeQuery",
+    category: "Databases",
+    description: "Run vector search and upsert operations on Pinecone",
+    icon: "🌲",
+    isStartNode: false,
+  },
+
   // ==================== AI/ML ====================
   {
     id: "openai",
@@ -283,6 +312,9 @@ const TYPE_ALIASES: Record<string, string> = {
   'Claude AI': 'ClaudeAI',
   'Google Sheets': 'GoogleSheets',
   'Google Drive': 'GoogleDrive',
+  'PostgreSQL Query': 'PostgresQuery',
+  'MongoDB Query': 'MongoDBQuery',
+  'Pinecone Query': 'PineconeQuery',
 };
 
 /**
