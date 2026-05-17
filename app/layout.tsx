@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   description: 'Experience the power of advanced artificial intelligence designed for the future. Transform your workflow with cutting-edge automation and intelligent insights.',
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{

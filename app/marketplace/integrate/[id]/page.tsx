@@ -14,7 +14,7 @@ import SadapayPaymentModal from '@/components/marketplace/SadapayPaymentModal';
 export default function IntegratePage() {
   const params = useParams();
   const router = useRouter();
-  const nexaId = params.id as string;
+  const nexaId = params?.id as string;
   
   const [loading, setLoading] = useState(false);
   const [nexa, setNexa] = useState<any>(null);

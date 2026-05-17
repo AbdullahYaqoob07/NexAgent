@@ -310,6 +310,7 @@ export function checkUsageLimits(user: FirebaseUser): {
   
   // Define limits based on subscription plan
   const limits = {
+    trial: { tokens: 1000, workflows: 3, apiCalls: 100 },
     free: { tokens: 1000, workflows: 3, apiCalls: 100 },
     pro: { tokens: 10000, workflows: 50, apiCalls: 1000 },
     enterprise: { tokens: 100000, workflows: 500, apiCalls: 10000 }

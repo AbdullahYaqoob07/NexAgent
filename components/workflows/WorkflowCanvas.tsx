@@ -654,8 +654,8 @@ const WorkflowCanvas = forwardRef<WorkflowCanvasRef, WorkflowCanvasProps>(({ sel
                 ));
               }}
               style={{ cursor: 'pointer' }}
-              title="Click to toggle true/false branch"
             >
+              <title>Click to toggle true/false branch</title>
               <rect
                 x={midX - 12}
                 y={midY - 10}

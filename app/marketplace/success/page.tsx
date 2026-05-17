@@ -10,8 +10,8 @@ import confetti from 'canvas-confetti';
 export default function SuccessPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const sessionId = searchParams.get('session_id');
-  const nexaId = searchParams.get('nexa_id');
+  const sessionId = searchParams?.get('session_id') ?? null;
+  const nexaId = searchParams?.get('nexa_id') ?? null;
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {

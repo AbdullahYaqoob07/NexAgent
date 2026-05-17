@@ -76,6 +76,23 @@ import {
 
 
 
+interface Transaction {
+  id?: string;
+  purchaseId?: string;
+  buyer?: string;
+  buyerEmail?: string;
+  seller?: string;
+  sellerName?: string;
+  nexa?: string;
+  nexaName?: string;
+  item?: string;
+  amount?: number | string;
+  price?: number | string;
+  status?: string;
+  date?: string;
+  createdAt?: string;
+}
+
 // Module-level cache for All Listings tab (survives re-renders, cleared on manual refresh)
 const _listingsCache: { data: MarketplaceNexa[] | null; ts: number } = { data: null, ts: 0 };
 const LISTINGS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -279,16 +296,16 @@ export default function MarketplaceAdminPage() {
 
   const downloadTransactionPDF = async (transaction: Transaction) => {
     try {
-      setDownloadingPDF(transaction.id);
-      
+      setDownloadingPDF(transaction.id ?? null);
+
       const params = new URLSearchParams({
-        purchase_id: transaction.purchaseId,
-        buyer: transaction.buyer,
-        seller: transaction.seller,
-        nexa: transaction.nexa,
-        amount: String(transaction.amount),
-        status: transaction.status,
-        date: transaction.date,
+        purchase_id: transaction.purchaseId ?? '',
+        buyer: transaction.buyer ?? '',
+        seller: transaction.seller ?? '',
+        nexa: transaction.nexa ?? '',
+        amount: String(transaction.amount ?? ''),
+        status: transaction.status ?? '',
+        date: transaction.date ?? '',
       });
 
       const response = await fetch(
@@ -355,7 +372,7 @@ export default function MarketplaceAdminPage() {
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <TabsList className="grid w-full grid-cols-6 bg-white/5 border border-white/10">
           <TabsTrigger value="overview" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Overview</TabsTrigger>
-          <TabsTrigger value="listings" onClick={fetchListings} className="data-[state=active]:text-black data-[state=inactive]:text-white/60">All Listings</TabsTrigger>
+          <TabsTrigger value="listings" onClick={() => fetchListings()} className="data-[state=active]:text-black data-[state=inactive]:text-white/60">All Listings</TabsTrigger>
           <TabsTrigger value="nexas" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Pending</TabsTrigger>
           <TabsTrigger value="sellers" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Sellers</TabsTrigger>
           <TabsTrigger value="disputes" className="data-[state=active]:text-black data-[state=inactive]:text-white/60">Disputes</TabsTrigger>

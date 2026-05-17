@@ -62,7 +62,7 @@ export const NodeFieldSchema = z.object({
   
   // Field grouping
   group: z.string().optional(),
-  order: z.number().default(0)
+  order: z.number().optional()
 });
 
 export type NodeField = z.infer<typeof NodeFieldSchema>;
@@ -175,6 +175,15 @@ export const NodeDefinitionSchema = z.object({
   // Advanced configuration
   execution: NodeExecutionSchema.optional(),
   
+  // Input definition (optional metadata used by seed/admin UI)
+  inputs: z.array(z.object({
+    key: z.string(),
+    label: z.string(),
+    type: z.string(),
+    description: z.string().optional(),
+    required: z.boolean().optional(),
+  })).optional(),
+
   // Output definition
   outputs: z.array(NodeOutputSchema).default([]),
   

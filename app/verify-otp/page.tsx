@@ -14,8 +14,8 @@ import apiClient from '@/lib/api/client';
 export default function VerifyOTPPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get('email') || '';
-  const userId = searchParams.get('userId') || '';
+  const email = searchParams?.get('email') || '';
+  const userId = searchParams?.get('userId') || '';
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');

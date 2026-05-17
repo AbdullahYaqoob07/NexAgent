@@ -23,7 +23,7 @@ export function ChatInputNode({ data, selected }: ChatInputNodeProps) {
           : isConfigured
             ? 'border-blue-300'
             : 'border-gray-300'
-      } ${isConnecting ? 'opacity-50' : ''}`}
+      }`}
     >
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-lg ${isConfigured ? 'bg-blue-100' : 'bg-gray-100'}`}>
@@ -36,8 +36,6 @@ export function ChatInputNode({ data, selected }: ChatInputNodeProps) {
         {isConfigured && (
           <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full">✓ Configured</span>
         )}
-      </div>
-
       </div>
     </div>
   );

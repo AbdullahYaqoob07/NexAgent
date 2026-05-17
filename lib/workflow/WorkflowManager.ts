@@ -10,7 +10,7 @@ import { FirestoreStorageProvider } from './storage/FirestoreStorageProvider';
 import { BackendStorageProvider } from './storage/BackendStorageProvider';
 import { authService } from '../auth';
 import { getAuthToken } from '../api/client';
-import { Workflow, WorkflowExecution, ExecutionContext, StorageProvider as IStorageProvider } from './types';
+import { Workflow, WorkflowExecution, ExecutionContext, StorageProvider as IStorageProvider, NodeExecutionLog } from './types';
 import { WorkflowConfig } from './engine/types';
 import { workflowService } from '@/lib/api/services/workflowService';
 
@@ -204,7 +204,7 @@ export class WorkflowManager {
             endTime: Date.now(),
             duration: response.execution_time_ms || 0,
             input: input,
-            nodeLogs: response.node_logs || [],
+            nodeLogs: (response.node_logs || []) as NodeExecutionLog[],
             metadata: {
               tokensUsed: 0,
               cost: 0

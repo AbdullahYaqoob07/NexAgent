@@ -146,10 +146,10 @@ const logCredentialAudit = async (
       },
       ipAddress,
       userAgent,
-      severity: 'info',
+      severity: 'info' as const,
       success: true
     };
-    
+
     await auditAdminService.createAuditLog(auditData);
   } catch (error) {
     console.error('Failed to log credential audit event:', error);
